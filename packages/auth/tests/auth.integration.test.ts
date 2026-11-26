@@ -23,6 +23,7 @@ import {
   provisionAccounts,
   pruneExpiredLoginAttempts,
   pruneLoginAttempts,
+  resetIpThrottle,
   resolveAuth,
   resolveAuthContext,
   resolveDeviceToken,
@@ -1456,5 +1457,98 @@ describe("provisioning guards", () => {
     } finally {
       process.env.NODE_ENV = previous;
     }
+  });
+});
+
+describe("per-IP login throttle (DEC-0011)", () => {
+  it("blocks a rotating-identifier attack from one address without harming another", async () => {
+    resetIpThrottle();
+    const now = new Date();
+    const attackerIp = "203.0.113.7";
+    const otherIp = "198.51.100.9";
+
+    for (let index = 0; index < 29; index += 1) {
+      await expect(
+        loginWithPassword(
+          { ...runtime, headers: headers(), clientIp: attackerIp },
+          {
+            identifier: `unknown-${index}@example.com`,
+            password: "salah-total-1",
+            surface: "web",
+          },
+          now,
+        ),
+      ).rejects.toMatchObject({ code: "INVALID_CREDENTIALS" });
+    }
+
+    // The 30th failure trips the per-IP threshold, before any further verify.
+    await expect(
+      loginWithPassword(
+        { ...runtime, headers: headers(), clientIp: attackerIp },
+        {
+          identifier: "unknown-last@example.com",
+          password: "salah-total-1",
+          surface: "web",
+        },
+        now,
+      ),
+    ).rejects.toMatchObject({ code: "RATE_LIMITED", retryAfterSeconds: 900 });
+
+    await expect(
+      loginWithPassword(
+        { ...runtime, headers: headers(), clientIp: attackerIp },
+        { identifier: "cashier", password, surface: "web" },
+        now,
+      ),
+    ).rejects.toMatchObject({ code: "RATE_LIMITED", retryAfterSeconds: 900 });
+
+    const allowed = await loginWithPassword(
+      { ...runtime, headers: headers(), clientIp: otherIp },
+      { identifier: "cashier", password, surface: "web" },
+      now,
+    );
+    expect(allowed.payload.user.role).toBe("CASHIER");
+
+    // The block expires with the window; the same address can try again.
+    resetIpThrottle();
+  });
+
+  it("does not let a successful login clear the per-IP budget", async () => {
+    resetIpThrottle();
+    const now = new Date();
+    const ip = "203.0.113.8";
+
+    for (let index = 0; index < 29; index += 1) {
+      await expect(
+        loginWithPassword(
+          { ...runtime, headers: headers(), clientIp: ip },
+          {
+            identifier: `unknown2-${index}@example.com`,
+            password: "salah-total-1",
+            surface: "web",
+          },
+          now,
+        ),
+      ).rejects.toMatchObject({ code: "INVALID_CREDENTIALS" });
+    }
+
+    // A valid credential from the same address does not reset the counter.
+    await loginWithPassword(
+      { ...runtime, headers: headers(), clientIp: ip },
+      { identifier: "cashier", password, surface: "web" },
+      now,
+    );
+
+    await expect(
+      loginWithPassword(
+        { ...runtime, headers: headers(), clientIp: ip },
+        {
+          identifier: "unknown3@example.com",
+          password: "salah-total-1",
+          surface: "web",
+        },
+        now,
+      ),
+    ).rejects.toMatchObject({ code: "RATE_LIMITED", retryAfterSeconds: 900 });
   });
 });

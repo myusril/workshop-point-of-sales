@@ -57,6 +57,14 @@ export {
   type RecordLoginAttemptInput,
 } from "./login-attempts.ts";
 export {
+  IP_THROTTLE,
+  checkIpThrottle,
+  ipThrottleSize,
+  recordIpFailure,
+  resetIpThrottle,
+  type IpThrottleStatus,
+} from "./ip-rate-limit.ts";
+export {
   createOutlet,
   listOutlets,
   updateOutlet,

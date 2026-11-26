@@ -1,8 +1,9 @@
-import { apiErrorSchema, type ApiError } from "@workshop-pos/contracts";
+import { apiErrorSchema, type ApiError, type AuthErrorCode } from "@workshop-pos/contracts";
 
 export interface FormErrorState {
   message: string;
   fieldErrors: Record<string, string[]>;
+  code?: AuthErrorCode;
   retryAfterSeconds?: number;
 }
 
@@ -30,6 +31,7 @@ export async function readApiError(response: Response): Promise<FormErrorState> 
     return {
       message: message.length > 0 ? message : fallback,
       fieldErrors: parsed.error.fieldErrors ?? {},
+      code: parsed.error.code,
       retryAfterSeconds: parsed.error.retryAfterSeconds,
     };
   } catch {

@@ -78,6 +78,30 @@ function allowedOrigins(request: Request): Set<string> {
 }
 
 /**
+ * Best-effort client address for the bounded login throttle. Behind the Caddy
+ * proxy the last `X-Forwarded-For` entry is the address Caddy observed; the
+ * last entry is used because a client-supplied prefix is attacker-controlled.
+ * Direct development requests without a proxy header are not throttled by IP.
+ */
+export function getClientIp(request: Request): string | null {
+  const forwarded = request.headers.get("x-forwarded-for");
+  if (forwarded) {
+    const entries = forwarded
+      .split(",")
+      .map((value) => value.trim())
+      .filter((value) => value.length > 0);
+    // The last entry is appended by the directly connected proxy (Caddy); a
+    // client-supplied prefix is ignored so the throttle cannot be evaded by
+    // sending a forged `X-Forwarded-For`.
+    const last = entries.at(-1);
+    if (last) return last;
+  }
+
+  // Fallback for a trusted proxy that sets only X-Real-IP.
+  return request.headers.get("x-real-ip")?.trim() || null;
+}
+
+/**
  * CSRF defence-in-depth for cookie-authenticated mutations (ADR-0001:
  * SameSite=Lax plus an origin check). A request without an `Origin` header —
  * server-to-server, bearer clients, tests — is allowed; a present mismatch or

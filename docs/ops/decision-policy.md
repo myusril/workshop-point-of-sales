@@ -237,11 +237,12 @@ Summary table:
 | DEC-0003 | 2026-11-26 | 3 | The Owner role is provisioned only; the staff API cannot create or grant it | Prevent privilege escalation from the users screen (FR-001, FR-003) | Founder | Founder | implemented | WP3 brief; WP3 implementation |
 | DEC-0004 | 2026-11-26 | 3 | Web sessions have a 12-hour absolute lifetime, in addition to the per-outlet idle timeout | Session lifetime is a Tier 3 security parameter (NFR-007, FR-070) | Founder | Founder | implemented | WP3 implementation |
 | DEC-0005 | 2026-11-26 | 3 | Mobile bearer tokens expire after 30 days and can be revoked per device | Token lifetime is a Tier 3 security parameter (ADR-0001 §3.4) | Founder | Founder | implemented | WP3 implementation |
-| DEC-0006 | 2026-11-26 | 2 | Outlet create/edit is Owner-only (`manage_outlets`), an explicit extension of Appendix A under FR-009 | Appendix A has no outlet CRUD row; FR-009 assigns it to the Owner | Product owner | Founder | implemented | WP3 implementation |
+| DEC-0006 | 2026-11-26 | 2 | Outlet create/edit is Owner-only (`manage_outlets`), an explicit extension of Appendix A under FR-009 | Appendix A has no outlet CRUD row; FR-009 assigns it to the Owner | Product owner (reference-matching) | decision-reviewer | implemented | WP3 implementation |
 | DEC-0007 | 2026-11-26 | 2 | Add an Owner-only "Buka kunci" action (audited) to clear a staff account's login lockout | A 5-request lockout DoS had no in-product recovery; an audited Owner action restores operations without changing any other role's permissions | Product owner | Founder | implemented | WP3 repair round |
 | DEC-0008 | 2026-11-26 | 3 | The outlet idle timeout applies to the mobile bearer surface as well as the web cookie surface | FR-002/NFR-007 are not surface-scoped; the 30-day token TTL remains a separate absolute cap | Founder | Founder | implemented | WP3 repair round |
 | DEC-0009 | 2026-11-26 | 3 | Login-attempt identifiers are retained for 30 days and then pruned | Identifier rows are personal data (PD-01) and grow from an unauthenticated path; 30 days supports abuse investigation | Founder | Founder | implemented | WP3 repair round |
 | DEC-0010 | 2026-11-26 | 2 | Any role assigned to more than one active outlet may switch the active outlet | FR-001/FR-004 are normative and not role-limited; WP4+ must filter outlet-scoped reads by the session's active outlet | Product owner | Founder | implemented | WP3 repair round |
+| DEC-0011 | 2026-11-26 | 3 | A bounded in-process per-IP throttle blocks 30 failed logins per 15 minutes; edge/IP throttling remains WP8 | The founder-approved unlock option also required an IP throttle; NAT-aware 30/15 keeps a shared office working | Founder | Founder | implemented | WP3 repair round 2 |
 
 Status values: `proposed`, `approved`, `rejected`, `implemented`, `reverted`, `superseded`.
 
@@ -363,8 +364,8 @@ Entry template:
 - Tier: 2
 - Status: implemented
 - Requester: engineering (WP3)
-- Decider: Product owner
-- Approver(s): Founder
+- Decider: Product owner (reference-matching)
+- Approver(s): decision-reviewer
 - Context: PRD Appendix A is the normative permission matrix, but it has no row for outlet creation or editing. FR-009 says the Owner creates and edits outlets.
 - Options: Reuse the Owner-only settings row; add an explicit Owner-only `manage_outlets` action (chosen).
 - Decision: `manage_outlets` is Owner-only. Admin, Cashier, and Mechanic cannot list, create, or edit outlets through management APIs; the session still carries outlet names for display and switching.
@@ -445,6 +446,24 @@ Entry template:
 - Rollback: Restrict switching to Owner/Admin and enforce single-outlet assignment for scoped roles.
 - Follow-ups: WP4 query helpers must consume `activeOutletId` for `O`-scoped actions.
 - Links: WP3 repair round, PRD FR-001/FR-004, `packages/auth/src/guard.ts`.
+- Supersedes: none
+
+### DEC-0011 — Bounded per-IP login throttle
+
+- Date: 2026-11-26
+- Tier: 3
+- Status: implemented
+- Requester: security review (WP3)
+- Decider: Founder
+- Approver(s): Founder
+- Context: The Founder's lockout-recovery choice bundled an Owner unlock with a per-IP attempt limit. The account-keyed lockout still allowed a caller rotating identifiers to spend the whole credential budget from one address.
+- Options: In-process NAT-aware 30 failures / 15 minutes (chosen); 20 or 50 per 15 minutes; defer to an edge/reverse-proxy throttle.
+- Decision: The public login route checks a bounded in-process per-IP counter before account resolution. The 30th failure blocks that address for 15 minutes with `RATE_LIMITED` and a countdown; successes do not reset it; the map is capped and time-pruned and never stores an IP in the database or logs. Edge/IP throttling across multiple app replicas remains WP8.
+- Rationale: Closes the rotating-identifier half of the founder-approved control without penalising a normal shared office NAT.
+- Consequences: A single aggressive client address is blocked for 15 minutes; a multi-process deployment needs the WP8 edge throttle for cross-replica coverage.
+- Rollback: Remove the throttle module and its route wiring; the account lockout remains.
+- Follow-ups: WP8 edge/IP throttle and monitoring; keep the Bahasa countdown copy.
+- Links: WP3 repair round 2, `packages/auth/src/ip-rate-limit.ts`, `apps/web/lib/auth/http.ts`.
 - Supersedes: none
 
 Log rules:

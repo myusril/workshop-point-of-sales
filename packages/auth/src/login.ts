@@ -14,6 +14,7 @@ import { getSessionCookieNames } from "./config.ts";
 import { acquireAdvisoryXactLock, asDatabase } from "./db-locks.ts";
 import { issueDeviceToken } from "./device-tokens.ts";
 import { AuthError } from "./errors.ts";
+import { checkIpThrottle, recordIpFailure } from "./ip-rate-limit.ts";
 import { buildSessionPayload } from "./session-payload.ts";
 import {
   accountLockKeys,
@@ -30,6 +31,8 @@ import type { AuthContext, AuthRuntime } from "./types.ts";
 export interface LoginDeps extends AuthRuntime {
   /** Forwarded so Better Auth can set cookies in the caller's response. */
   headers?: Headers;
+  /** Client address for the bounded per-IP throttle (DEC-0011); absent in tests. */
+  clientIp?: string | null;
   /**
    * Test-only observation hook fired immediately before each password
    * verification, including the dummy verification used for unknown accounts.
@@ -159,6 +162,15 @@ function lockoutError(retryAfterSeconds: number): AuthError {
   );
 }
 
+function ipThrottleError(retryAfterSeconds: number): AuthError {
+  const minutes = Math.max(1, Math.ceil(retryAfterSeconds / 60));
+  return new AuthError(
+    "RATE_LIMITED",
+    `Terlalu banyak percobaan dari jaringan ini. Tunggu ${minutes} menit sebelum mencoba lagi.`,
+    { retryAfterSeconds },
+  );
+}
+
 function accountLockKey(identifier: string, userId: string | null): string {
   return userId ? `user:${userId}` : identifier;
 }
@@ -181,6 +193,7 @@ async function pruneLoginAttemptHistory(db: Database, now: Date): Promise<void> 
  */
 type AttemptOutcome =
   | { status: "locked"; retryAfterSeconds: number }
+  | { status: "ip_limited"; retryAfterSeconds: number }
   | { status: "invalid_credentials" }
   | { status: "deactivated" }
   | { status: "verified" };
@@ -200,6 +213,12 @@ export async function loginWithPassword(
   now: Date = new Date(),
 ): Promise<LoginOutcome> {
   const identifier = normalizeIdentifier(input.identifier);
+
+  // The per-IP budget sits ahead of the account budget so rotating identifiers
+  // cannot spend the whole credential allowance (DEC-0011).
+  const ipPreflight = checkIpThrottle(deps.clientIp, now);
+  if (ipPreflight.limited) throw ipThrottleError(ipPreflight.retryAfterSeconds);
+
   const user = await findUserByIdentifier(deps.db, identifier);
   const keys = accountLockKeys(identifier, user?.id ?? null);
 
@@ -243,6 +262,11 @@ export async function loginWithPassword(
       );
       await pruneLoginAttempts(store, keys, now);
 
+      const ipAfterFailure = recordIpFailure(deps.clientIp, now);
+      if (ipAfterFailure.limited) {
+        return { status: "ip_limited", retryAfterSeconds: ipAfterFailure.retryAfterSeconds };
+      }
+
       // The fifth failure must surface the lock immediately, not on request six.
       const afterFailure = await getLockStatusForKeys(store, keys, now);
       if (afterFailure.locked) {
@@ -277,6 +301,8 @@ export async function loginWithPassword(
   switch (outcome.status) {
     case "locked":
       throw lockoutError(outcome.retryAfterSeconds);
+    case "ip_limited":
+      throw ipThrottleError(outcome.retryAfterSeconds);
     case "invalid_credentials":
       throw AuthError.invalidCredentials();
     case "deactivated":

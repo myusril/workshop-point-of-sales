@@ -2,7 +2,7 @@ import { loginRequestSchema } from "@workshop-pos/contracts";
 import { loginWithPassword } from "@workshop-pos/auth";
 import { NextResponse } from "next/server";
 
-import { assertSameOrigin, jsonError, parseJson } from "@/lib/auth/http";
+import { assertSameOrigin, getClientIp, jsonError, parseJson } from "@/lib/auth/http";
 import { getAuthRuntime } from "@/lib/auth/server";
 
 export const runtime = "nodejs";
@@ -14,7 +14,7 @@ export async function POST(request: Request): Promise<Response> {
     const input = await parseJson(request, loginRequestSchema);
     const runtime = getAuthRuntime();
     const outcome = await loginWithPassword(
-      { ...runtime, headers: request.headers },
+      { ...runtime, headers: request.headers, clientIp: getClientIp(request) },
       input,
     );
 

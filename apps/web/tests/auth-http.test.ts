@@ -6,6 +6,7 @@ import { AuthError } from "@workshop-pos/auth";
 import {
   MAX_JSON_BODY_BYTES,
   assertSameOrigin,
+  getClientIp,
   parseJson,
   parseOptionalJson,
 } from "../lib/auth/http";
@@ -172,5 +173,36 @@ describe("loginRedirectPath", () => {
     expect(loginRedirectPath("/login?next=/users", false)).toBe(
       "/login?next=%2F",
     );
+  });
+});
+
+describe("getClientIp", () => {
+  it("returns no address when the request carries no proxy headers", () => {
+    expect(getClientIp(request("{}"))).toBeNull();
+  });
+
+  it("uses the proxy-appended last X-Forwarded-For entry", () => {
+    expect(
+      getClientIp(
+        request("{}", { "x-forwarded-for": "203.0.113.5, 198.51.100.7" }),
+      ),
+    ).toBe("198.51.100.7");
+  });
+
+  it("prefers the forwarded chain over a spoofable X-Real-IP", () => {
+    expect(
+      getClientIp(
+        request("{}", {
+          "x-forwarded-for": "203.0.113.5, 198.51.100.7",
+          "x-real-ip": "192.0.2.99",
+        }),
+      ),
+    ).toBe("198.51.100.7");
+  });
+
+  it("falls back to X-Real-IP when the forwarded chain is absent", () => {
+    expect(
+      getClientIp(request("{}", { "x-real-ip": "192.0.2.99" })),
+    ).toBe("192.0.2.99");
   });
 });

@@ -164,9 +164,9 @@ Focused checks were run before review. The aggregate `scripts/check.sh` gate is 
 | Check | Result |
 |---|---|
 | `npm run test:unit --workspace @workshop-pos/contracts` | **PASS** — 26 tests (contracts round-trip, Bahasa messages, phone/username normalization, OWNER exclusion, password policy reuse, unlock schemas) |
-| `npm run test:unit --workspace @workshop-pos/auth` | **PASS** — 204 tests in 3 files (Appendix A matrix literal transcription, lockout arithmetic/keying, request guard) |
-| `npm run test:integration --workspace @workshop-pos/auth` (Compose test DB) | **PASS** — 39 tests (login by email/username/phone, 5th-failure 429, alias lockout + reset, concurrent burst, deactivation, idle web + mobile bearer, outlet scope/switch, cross-outlet audit, device-token hash/revoke, staff CRUD/unlock, last-active-outlet guard, retention prune) |
-| `npm run test:unit --workspace @workshop-pos/web` | **PASS** — 29 tests (health, safe next path, HTTP origin/body/redirect helpers, page loading skeleton) |
+| `npm run test:unit --workspace @workshop-pos/auth` | **PASS** — 208 tests in 4 files (Appendix A matrix literal transcription, lockout arithmetic/keying, per-IP throttle, request guard) |
+| `npm run test:integration --workspace @workshop-pos/auth` (Compose test DB) | **PASS** — 41 tests (per-IP throttle, login by email/username/phone, 5th-failure 429, alias lockout + reset, concurrent burst, deactivation, idle web + mobile bearer, outlet scope/switch, cross-outlet audit, device-token hash/revoke, staff CRUD/unlock, last-active-outlet guard, retention prune) |
+| `npm run test:unit --workspace @workshop-pos/web` | **PASS** — 33 tests (health, safe next path, HTTP origin/body/IP/redirect helpers, page loading skeleton) |
 | `npm run test:integration --workspace @workshop-pos/web` | **PASS** — 13 tests (health + every discovered `/api/v1/**` route rejects a request without a credential) |
 | `npm run test:e2e:web` (Chromium) | **PASS** — 22 tests (login/invalid/lockout/deactivated/expired, Owner creates+edits+deactivates+unlocks staff, Cashier 403 pages and API, outlet create/edit/switch including a multi-outlet Cashier, 320 px overflow) |
 | `npm run typecheck` / `npm run lint` (auth, contracts, web) | **PASS** — 0 errors, 0 warnings |
@@ -179,7 +179,7 @@ Focused checks were run before review. The aggregate `scripts/check.sh` gate is 
 **Known gaps recorded, not silently accepted**
 
 - Phone uniqueness is enforced in the WP3 service, but `packages/db` has no unique constraint on `(businessId, phone)`; concurrent creation can still race until WP2 adds one. WP3 does not edit `packages/db`.
-- `login_attempts` rows are pruned for touched keys and globally after 30 days. A distributed flood of distinct identifiers is bounded only by that retention; an edge/IP throttle belongs to WP8.
+- `login_attempts` rows are pruned for touched keys and globally after 30 days. The login route also has a bounded in-process per-IP throttle (30 failures/15 minutes, DEC-0011); a multi-replica deployment still needs the WP8 edge/IP throttle for cross-process coverage.
 - ADR-0001 §3.4's per-user device list/revocation endpoint is not part of WP3; only token issuance, idle revocation, logout, and deactivation revocation exist. Assign the endpoint to WP7/WP8.
 - The production `next build`/`next start` 403 status and the Docker image build are **NOT VERIFIED** until the aggregate gate/build and an image build are run.
 - The `(back-office)/loading.tsx` route-group skeleton was removed because it forced a 200 before `forbidden()`; page-level Suspense now provides `Memuat…` states below the permission check.
@@ -195,8 +195,8 @@ Focused checks were run before review. The aggregate `scripts/check.sh` gate is 
 | Preflight / Compose database | **PASS** — dev database recreated and healthy; `workshop_pos_test` reachable |
 | `npm run typecheck` | **PASS** — web, auth, contracts, db; 0 errors |
 | `npm run lint` | **PASS** — all four workspaces; 0 errors/warnings |
-| `npm run test:unit` | **PASS** — web 29, auth 204, contracts 26, db 11 (270 total) |
-| `npm run test:integration` | **PASS** — web 13, auth 39, db 63 (115 total) |
+| `npm run test:unit` | **PASS** — web 33, auth 208, contracts 26, db 11 (278 total) |
+| `npm run test:integration` | **PASS** — web 13, auth 41, db 63 (117 total) |
 | `npm run test:e2e:web` | **PASS** — 22 Chromium tests; E2E reset guarded to the disposable dev DB; Cashier `/users` and `/outlets` return HTTP 403; Owner unlock and multi-outlet Cashier switch covered |
 | `npm run build` | **PASS** — Next.js 16.4.6 production build; all API routes dynamic, `/login`, `/users`, `/outlets` dynamic; Proxy compiled |
 

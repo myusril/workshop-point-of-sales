@@ -118,8 +118,12 @@ export function LoginForm({ nextPath, notice }: LoginFormProps) {
 
         {locked ? (
           <p className="wp3-alert wp3-alert--warning wp3-login-message" id="login-lockout" role="alert">
-            <strong>Akun dikunci sementara.</strong> Coba lagi dalam{" "}
-            {formatLockoutCountdown(lockedSeconds)}.
+            <strong>
+              {error?.code === "RATE_LIMITED"
+                ? "Terlalu banyak percobaan dari jaringan ini."
+                : "Akun dikunci sementara."}
+            </strong>{" "}
+            Coba lagi dalam {formatLockoutCountdown(lockedSeconds)}.
           </p>
         ) : null}
 
