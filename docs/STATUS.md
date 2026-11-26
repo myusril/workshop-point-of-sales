@@ -3,13 +3,13 @@
 | Field | Value |
 |---|---|
 | Product | Workshop POS (working name; buyer may rebrand) |
-| Phase | WP1 walking skeleton verified on the task branch; pending merge |
+| Phase | WP2 (database schema, migrations, seed) on the task branch |
 | Date | 2026-11-26 |
-| Code status | Web skeleton, health endpoint, Compose dev/prod stacks, license report, and aggregate gate exist. WP2+ product code (schema, auth, catalog, orders, mobile) does not exist yet |
-| Next gate | Merge WP1 into `main`, then start WP2 (schema, migrations, seed) |
+| Code status | WP1 is merged. `packages/db` (schema, migrations, seed, outlet-scoped query helpers) is on the task branch. Auth, catalog, orders, and mobile code do not exist yet |
+| Next gate | WP2 acceptance gates in `docs/plan/work-packages.md` — focused database tests, review gates, then one aggregate `scripts/check.sh` run on the frozen candidate |
 | Source of truth | `docs/product/PRD.md`, `docs/adr/0001-stack-and-architecture.md`, `docs/plan/work-packages.md` |
 
-> **Honesty rule.** This page reports what exists and what has been verified. Documents are not proof that the product works. WP1 commands were executed on 2026-11-26 on branch `feat/wp1-walking-skeleton`, including the aggregate `scripts/check.sh` gate on a fresh development volume. Anything not listed in §7 as verified is **NOT VERIFIED**.
+> **Honesty rule.** This page reports what exists and what has been verified. Documents are not proof that the product works. WP1 commands were executed on 2026-11-26 on branch `feat/wp1-walking-skeleton`, including the aggregate `scripts/check.sh` gate on a fresh development volume, and WP1 was merged to `main` as PR #1 (`a96ffcb`). Anything not listed in §7 as verified is **NOT VERIFIED** — including the WP2 schema, migrations, and seed on `feat/wp2-database-schema`, whose verification is not recorded here yet.
 
 ---
 
@@ -17,7 +17,7 @@
 
 | Milestone | Scope | Exit criteria | Status |
 |---|---|---|---|
-| **M1 — Walking skeleton** | WP1: npm-workspaces monorepo, pinned Node, `.env.example`, Compose dev/prod, Postgres, Dockerfiles, `scripts/check.sh`, license report, health endpoint, minimal page/API | A fresh clone reaches a healthy web + database stack with standard Docker/Node tooling; `scripts/check.sh` exits 0; license report has no blocker | **Verified on the task branch (2026-11-26); pending merge** |
+| **M1 — Walking skeleton** | WP1: npm-workspaces monorepo, pinned Node, `.env.example`, Compose dev/prod, Postgres, Dockerfiles, `scripts/check.sh`, license report, health endpoint, minimal page/API | A fresh clone reaches a healthy web + database stack with standard Docker/Node tooling; `scripts/check.sh` exits 0; license report has no blocker | **Verified 2026-11-26 and merged to `main` as PR #1 (`a96ffcb`)** |
 | **M2 — MVP** | WP2–WP8: schema/seed, auth/RBAC/outlets, catalog + stock ledger, customers/vehicles/history, mixed orders + payments + receipts, offline mobile POS + sync, reports/audit/export/settings, hardening gate | Every PRD story US-01–US-20 passes its acceptance criteria; offline/conflict, money, stock, and RBAC tests are green; no license blocker; WCAG 2.2 AA checks pass on agreed screens | **Not started** |
 | **M3 — Handover-ready** | WP9: accessibility sign-off, backup/restore drill, fresh-clone deployment rehearsal, license re-audit, documentation and credential handover | `docs/ops/handover-checklist.md` is fully checked with captured evidence; restore drill meets RPO/RTO targets; buyer accepts the signed manifest | **Not started** |
 
@@ -37,7 +37,7 @@
 | `docs/plan/work-packages.md` | WP1–WP9, owned paths, dependencies, acceptance gates, PRD traceability | Proposed |
 | `docs/ops/handover-checklist.md` | Seller pre-delivery verification and evidence checklist | Draft; **not executed** |
 | `docs/ops/decision-policy.md` | Tier 1/2/3 decision authority for the buyer's team | Draft |
-| `README.md`, `AGENTS.md` | Buyer setup guide and engineering rules | README updated with WP1 status and verified commands; AGENTS.md still describes WP1 as pending and needs a post-merge refresh |
+| `README.md`, `AGENTS.md` | Buyer setup guide and engineering rules | README updated with WP1 status and verified commands; AGENTS.md still describes the repository as planning-only and needs a post-merge refresh |
 | `.omp/`, `orca.yaml`, `.worktreeinclude` | Optional development aids | Present; may be stripped at handover |
 
 ---
@@ -180,6 +180,6 @@ Recorded 2026-11-26 from the product owner. These close the corresponding open q
 ## 9. Next actions
 
 1. Obtain buyer counsel review for the Epson SDK redistribution terms, the privacy notice, retention duration, and tax rounding; record the signed outcomes.
-2. Review and merge WP1 from `feat/wp1-walking-skeleton` into `main` after the aggregate gate.
-3. Start WP2 (database schema, migrations, seed) per `docs/plan/work-packages.md`; shared contracts and schema land before consumers.
+2. WP1 is merged to `main` (PR #1, `a96ffcb`); no merge action remains.
+3. Complete WP2 (database schema, migrations, seed) per `docs/plan/work-packages.md` on `feat/wp2-database-schema`; shared contracts and schema land before consumers.
 4. Keep CI workflows and git hooks in WP8; do not add them to WP1.
