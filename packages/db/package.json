@@ -1,0 +1,35 @@
+{
+  "name": "@workshop-pos/db",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Database schema, migrations, seed data, and outlet-scoped query helpers for Workshop POS.",
+  "license": "MIT",
+  "type": "module",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema/index.ts"
+  },
+  "scripts": {
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:seed": "node src/seed/run.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test:unit": "vitest run --config vitest.config.ts tests/*.unit.test.ts",
+    "test:integration": "vitest run --config vitest.config.ts tests/*.integration.test.ts"
+  },
+  "dependencies": {
+    "drizzle-orm": "0.45.4",
+    "pg": "8.23.1"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.11",
+    "@types/pg": "8.23.1",
+    "drizzle-kit": "0.31.11",
+    "eslint": "10.15.0",
+    "typescript": "7.0.2",
+    "typescript-eslint": "8.74.0",
+    "vitest": "5.1.2"
+  }
+}

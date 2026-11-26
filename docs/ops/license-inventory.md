@@ -65,6 +65,7 @@
 | shadcn CLI | 4.23.1 | MIT | Adds/updates copied shadcn/ui components; not a runtime dependency | dev | YES | https://registry.npmjs.org/shadcn/latest (`license: "MIT"`) | 2026-11-26 |
 | Playwright | 1.65.1 | Apache-2.0 | Web E2E tests | dev | YES | https://registry.npmjs.org/playwright/latest (`license: "Apache-2.0"`) | 2026-11-26 |
 | ESLint | 10.15.0 | MIT | Lint runner and flat config host | dev | YES | https://registry.npmjs.org/eslint/10.15.0 (`license: "MIT"`) | 2026-11-26 |
+| typescript-eslint | 8.74.0 | MIT | TypeScript parser and recommended+strict rules for the flat config | dev | YES | https://registry.npmjs.org/typescript-eslint/8.74.0 (`license: "MIT"`, pinned version) | 2026-11-26 |
 | eslint-config-next | 16.4.6 | MIT | Next.js core-web-vitals + TypeScript ESLint rules | dev | YES | https://registry.npmjs.org/eslint-config-next/16.4.6 (`license: "MIT"`) | 2026-11-26 |
 | @tailwindcss/postcss | 4.3.5 | MIT | Tailwind 4 PostCSS integration | dev | YES | https://registry.npmjs.org/@tailwindcss/postcss/4.3.5 (`license: "MIT"`) | 2026-11-26 |
 | @types/node | 26.6.11 | MIT | Node.js TypeScript declarations (DefinitelyTyped) | dev | YES | https://registry.npmjs.org/@types/node/26.6.11 (`license: "MIT"`) | 2026-11-26 |
