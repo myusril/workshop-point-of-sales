@@ -96,7 +96,7 @@ WP1 uses the documented token values but the system font fallback; self-hosted I
 
 ## Quality gate
 
-The npm scripts and aggregate runner exist. The individual steps were exercised on 2026-11-26; the aggregate runner is executed on the frozen candidate after review. The aggregate gate starts the dev database with `--wait`, waits for `workshop_pos_test` itself, then runs the steps in order. `scripts/check.sh` fails loudly when Docker is unavailable; it never skips a step.
+The npm scripts and aggregate runner exist. The individual steps and the aggregate runner were executed on 2026-11-26; `bash scripts/check.sh` passed on a fresh development volume after review. The aggregate gate starts the dev database with `--wait`, waits for `workshop_pos_test` itself, then runs the steps in order. `scripts/check.sh` fails loudly when Docker is unavailable; it never skips a step.
 
 | Command | Scope |
 |---|---|
@@ -110,7 +110,7 @@ The npm scripts and aggregate runner exist. The individual steps were exercised 
 
 Runner parity rule: automation must run exactly these commands in this order; nothing may pass locally and fail elsewhere. Stop any running `npm run dev` before the aggregate gate; Next.js allows one dev server per project, and the E2E step starts its own on port 3100.
 
-**CI workflows and git hooks are intentionally not part of this kickoff.** They are introduced later as a gate inside WP8; until then `scripts/check.sh` is the only aggregate gate and runs locally. The aggregate gate is executed on the frozen WP1 candidate after review; its result is recorded in the task delivery report.
+**CI workflows and git hooks are intentionally not part of this kickoff.** They are introduced later as a gate inside WP8; until then `scripts/check.sh` is the only aggregate gate and runs locally. The aggregate gate passed on the frozen candidate.
 
 Verified on 2026-11-26: `npm ci`, typecheck, lint (ESLint 10.15.0), 5 unit tests, 1 integration test against PostgreSQL 19.0, 1 Playwright Chromium test, production build, license report, Compose config parsing, and production-image health checks. Chromium viewports 320, 390, 768, and 1440 px were measured; real devices, Firefox, WebKit, and OS dark mode are **NOT VERIFIED**.
 

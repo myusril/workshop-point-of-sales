@@ -3,13 +3,13 @@
 | Field | Value |
 |---|---|
 | Product | Workshop POS (working name; buyer may rebrand) |
-| Phase | WP1 walking skeleton verified on the task branch; not merged |
+| Phase | WP1 walking skeleton verified on the task branch; pending merge |
 | Date | 2026-11-26 |
 | Code status | Web skeleton, health endpoint, Compose dev/prod stacks, license report, and aggregate gate exist. WP2+ product code (schema, auth, catalog, orders, mobile) does not exist yet |
 | Next gate | Merge WP1 into `main`, then start WP2 (schema, migrations, seed) |
 | Source of truth | `docs/product/PRD.md`, `docs/adr/0001-stack-and-architecture.md`, `docs/plan/work-packages.md` |
 
-> **Honesty rule.** This page reports what exists and what has been verified. Documents are not proof that the product works. WP1 commands were executed on 2026-11-26 on branch `feat/wp1-walking-skeleton`; the aggregate `scripts/check.sh` is run on the frozen candidate after review, and its result is recorded in the task delivery report. Anything not listed in §7 as verified is **NOT VERIFIED**.
+> **Honesty rule.** This page reports what exists and what has been verified. Documents are not proof that the product works. WP1 commands were executed on 2026-11-26 on branch `feat/wp1-walking-skeleton`, including the aggregate `scripts/check.sh` gate on a fresh development volume. Anything not listed in §7 as verified is **NOT VERIFIED**.
 
 ---
 
@@ -17,7 +17,7 @@
 
 | Milestone | Scope | Exit criteria | Status |
 |---|---|---|---|
-| **M1 — Walking skeleton** | WP1: npm-workspaces monorepo, pinned Node, `.env.example`, Compose dev/prod, Postgres, Dockerfiles, `scripts/check.sh`, license report, health endpoint, minimal page/API | A fresh clone reaches a healthy web + database stack with standard Docker/Node tooling; `scripts/check.sh` exits 0; license report has no blocker | **Verified on the task branch (2026-11-26); pending merge and the final aggregate gate** |
+| **M1 — Walking skeleton** | WP1: npm-workspaces monorepo, pinned Node, `.env.example`, Compose dev/prod, Postgres, Dockerfiles, `scripts/check.sh`, license report, health endpoint, minimal page/API | A fresh clone reaches a healthy web + database stack with standard Docker/Node tooling; `scripts/check.sh` exits 0; license report has no blocker | **Verified on the task branch (2026-11-26); pending merge** |
 | **M2 — MVP** | WP2–WP8: schema/seed, auth/RBAC/outlets, catalog + stock ledger, customers/vehicles/history, mixed orders + payments + receipts, offline mobile POS + sync, reports/audit/export/settings, hardening gate | Every PRD story US-01–US-20 passes its acceptance criteria; offline/conflict, money, stock, and RBAC tests are green; no license blocker; WCAG 2.2 AA checks pass on agreed screens | **Not started** |
 | **M3 — Handover-ready** | WP9: accessibility sign-off, backup/restore drill, fresh-clone deployment rehearsal, license re-audit, documentation and credential handover | `docs/ops/handover-checklist.md` is fully checked with captured evidence; restore drill meets RPO/RTO targets; buyer accepts the signed manifest | **Not started** |
 
@@ -152,7 +152,7 @@
 | Host dev path | **PASS** — root `.env` loaded by `next.config.mjs`; `npm run dev` served `/` and `/api/v1/health` returned 200 against the Compose database |
 | Host database access | **PASS** — `psql "postgresql://…@127.0.0.1:55432/workshop_pos_test" -c 'select 1'` without environment overrides |
 | Secret scan | **PASS** on the source tree after removing local build artifacts: `gitleaks dir .` found no leaks. Local `.next` build caches contain generated signing keys and must stay out of scans/commits (they are gitignored) |
-| Aggregate gate | `bash scripts/check.sh` is executed on the frozen candidate after review; result recorded in the task delivery report |
+| Aggregate gate | **PASS** — `bash scripts/check.sh` exited 0 on a fresh development volume (`down -v` first): Docker preflight and test-DB readiness, then typecheck → lint → unit (5) → integration (1) → E2E (1) → build |
 | Design evidence | Chromium at 320, 390, 768, and 1440 px: one `h1`, health link `href`, 2 px focus ring with 2 px offset and 4 px radius, no horizontal overflow; contrast 16.2 / 17.73 / 7.68 / 7.96. Real Android/iOS hardware, Firefox, WebKit, and OS dark mode: **NOT VERIFIED** |
 | Docker base images | **PASS** — `postgres:19-alpine`, `node:26.13.1-alpine`, and `caddy:2-alpine` pulled; `caddy validate` on `docker/Caddyfile` returned "Valid configuration" |
 | Script syntax and DB entrypoints | **PASS** — `bash -n` clean on all `scripts/*.sh`; `npm run db:migrate` and `npm run db:seed` print the WP2 hand-off message and exit 0 |
