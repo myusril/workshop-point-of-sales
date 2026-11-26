@@ -1,0 +1,34 @@
+# Project-level agent configuration for this repository.
+#
+# Global preferences (models, theme, providers, credentials) live in the
+# user-level agent configuration outside this repository; do not copy them
+# here. This file holds only settings that every contributor to this project
+# should share. List-valued settings defined here REPLACE the global list
+# rather than extending it, so keep project lists complete.
+#
+# Nothing in this file may contain a secret, token, private hostname, or
+# machine-specific absolute path.
+
+# Language intelligence: type and lint diagnostics must run after every
+# written file, including files written by delegated tasks.
+lsp:
+  enabled: true
+  diagnosticsOnWrite: true
+
+# Subagents editing this workspace get the same language diagnostics as the
+# primary agent, so they cannot hand back code that does not parse or type.
+task:
+  enableLsp: true
+
+# Review every second turn; a concern is enough to continue the work instead
+# of silently finishing on a risky change. Blockers always interrupt.
+advisor:
+  enabled: true
+  reviewMode: turn
+  reviewInterval: 2
+  continueSeverity: concern
+
+# Reads and workspace writes proceed without prompting; anything outside the
+# workspace still requires approval. Never raise this to bypass review.
+tools:
+  approvalMode: write

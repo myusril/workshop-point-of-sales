@@ -1,0 +1,43 @@
+# Workspace bootstrap for internal development.
+#
+# Orca reads this file from the primary checkout when it creates a worktree
+# and runs `scripts.setup` once inside the new worktree, with bash, `set -e`,
+# and the worktree root as the working directory. Keep it plain bash.
+#
+# This repository is pre-scaffold: package.json and package-lock.json do not
+# exist yet, so setup prints a message and succeeds without installing
+# anything. Once the npm workspace lands, the same block becomes a
+# lockfile-strict install. Nothing here is required to build or run the
+# product, and the product must not depend on Orca at runtime.
+
+scripts:
+  setup: |
+    set -euo pipefail
+
+    if ! command -v node >/dev/null 2>&1; then
+      echo "orca setup: Node.js is not installed or not on PATH." >&2
+      echo "orca setup: install the Node version pinned by this repository, then retry." >&2
+      exit 1
+    fi
+    if ! command -v npm >/dev/null 2>&1; then
+      echo "orca setup: npm is not on PATH (it ships with Node.js)." >&2
+      exit 1
+    fi
+    echo "orca setup: Node $(node --version), npm $(npm --version)"
+
+    if [ -f package.json ] && [ -f package-lock.json ]; then
+      echo "orca setup: installing workspace dependencies with npm ci"
+      npm ci
+      echo "orca setup: dependencies installed"
+    else
+      missing=""
+      [ -f package.json ] || missing="package.json"
+      [ -f package-lock.json ] || missing="${missing:+$missing and }package-lock.json"
+      echo "orca setup: nothing to install yet (${missing} not present)."
+      echo "orca setup: this repository is pre-scaffold; setup is complete."
+    fi
+    exit 0
+
+# Start the coding agent only after setup finishes, so it never sees a
+# half-prepared worktree.
+setupAgentStartupPolicy: wait-for-setup

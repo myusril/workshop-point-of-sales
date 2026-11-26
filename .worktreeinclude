@@ -1,0 +1,11 @@
+# Local files copied into new local worktrees.
+#
+# One literal path per line, anchored at the repository root. Globs and
+# negation are not supported. Only gitignored files are copied, so tracked
+# files listed here are harmless but pointless.
+#
+# These are developer-local environment files. They are never committed and
+# must contain no production secrets: use disposable local values.
+.env
+.env.local
+.env.test
