@@ -64,6 +64,13 @@
 | Vitest | 5.1.2 | MIT | Unit + integration test runner | dev | YES | https://registry.npmjs.org/vitest/latest (`license: "MIT"`) | 2026-11-26 |
 | shadcn CLI | 4.23.1 | MIT | Adds/updates copied shadcn/ui components; not a runtime dependency | dev | YES | https://registry.npmjs.org/shadcn/latest (`license: "MIT"`) | 2026-11-26 |
 | Playwright | 1.65.1 | Apache-2.0 | Web E2E tests | dev | YES | https://registry.npmjs.org/playwright/latest (`license: "Apache-2.0"`) | 2026-11-26 |
+| ESLint | 10.15.0 | MIT | Lint runner and flat config host | dev | YES | https://registry.npmjs.org/eslint/10.15.0 (`license: "MIT"`) | 2026-11-26 |
+| eslint-config-next | 16.4.6 | MIT | Next.js core-web-vitals + TypeScript ESLint rules | dev | YES | https://registry.npmjs.org/eslint-config-next/16.4.6 (`license: "MIT"`) | 2026-11-26 |
+| @tailwindcss/postcss | 4.3.5 | MIT | Tailwind 4 PostCSS integration | dev | YES | https://registry.npmjs.org/@tailwindcss/postcss/4.3.5 (`license: "MIT"`) | 2026-11-26 |
+| @types/node | 26.6.11 | MIT | Node.js TypeScript declarations (DefinitelyTyped) | dev | YES | https://registry.npmjs.org/@types/node/26.6.11 (`license: "MIT"`) | 2026-11-26 |
+| @types/react | 19.3.3 | MIT | React TypeScript declarations (DefinitelyTyped) | dev | YES | https://registry.npmjs.org/@types/react/19.3.3 (`license: "MIT"`) | 2026-11-26 |
+| @types/react-dom | 19.3.0 | MIT | React DOM TypeScript declarations (DefinitelyTyped) | dev | YES | https://registry.npmjs.org/@types/react-dom/19.3.0 (`license: "MIT"`) | 2026-11-26 |
+| @types/pg | 8.23.1 | MIT | node-postgres TypeScript declarations (DefinitelyTyped) | dev | YES | https://registry.npmjs.org/@types/pg/8.23.1 (`license: "MIT"`) | 2026-11-26 |
 | lightningcss | 1.33.0 | MPL-2.0 | CSS transform/native binding reached through `@tailwindcss/node`; build-only, not distributed in the runtime image | dev | REVIEW — file-level copyleft; no MPL source is shipped | https://registry.npmjs.org/lightningcss/1.33.0 (`license: "MPL-2.0"`) | 2026-11-26 |
 | axe-core | 4.14.1 | MPL-2.0 | Accessibility rule engine used by `eslint-plugin-jsx-a11y` during linting; build/lint-only, not distributed | dev | REVIEW — file-level copyleft; not shipped | https://registry.npmjs.org/axe-core/4.14.1 (`license: "MPL-2.0"`) | 2026-11-26 |
 | caniuse-lite | 1.0.30001828 | CC-BY-4.0 | Browser-support data for browserslist/PostCSS at build time; not executed by the running app (the lockfile marks it production because Next depends on browserslist) | dev (build-only) | YES with attribution — attribution recorded here; pinned as a license-report exception | https://registry.npmjs.org/caniuse-lite/1.0.30001828 (`license: "CC-BY-4.0"`) | 2026-11-26 |

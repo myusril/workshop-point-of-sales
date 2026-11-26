@@ -14,6 +14,9 @@ const nextConfig = {
   output: "standalone",
   outputFileTracingRoot: fileURLToPath(new URL("../..", import.meta.url)),
   reactStrictMode: true,
+  // Next 16 writes apps/web/AGENTS.md on every `next dev` unless disabled.
+  // That file is framework tooling, not a WP1 deliverable.
+  agentRules: false,
   images: {
     unoptimized: true,
   },

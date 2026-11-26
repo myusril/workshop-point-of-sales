@@ -88,7 +88,7 @@ npm run db:seed             # prints the WP2 hand-off message until packages/db 
 npm run dev                 # Next.js on 127.0.0.1:3000; reads the root .env
 ```
 
-To run the whole dev stack in containers instead, use `docker compose -f compose.dev.yaml up -d --build` and open <http://127.0.0.1:3000>. In that mode skip `npm run dev`, because the web container owns port 3000. Dev ports bind to loopback only.
+To run the whole dev stack in containers instead, use `docker compose -f compose.dev.yaml up -d --build` and open <http://127.0.0.1:3000>. In that mode skip `npm run dev`, because the web container owns port 3000. Both the root `npm run dev` script and Compose-published ports bind to loopback.
 
 WP1 uses the documented token values but the system font fallback; self-hosted Inter / IBM Plex Mono are WP4/WP9 work.
 

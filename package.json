@@ -13,7 +13,7 @@
     "npm": ">=11"
   },
   "scripts": {
-    "dev": "npm run dev --workspace @workshop-pos/web",
+    "dev": "npm run dev --workspace @workshop-pos/web -- --hostname 127.0.0.1",
     "build": "npm run build --workspace @workshop-pos/web",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
