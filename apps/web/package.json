@@ -17,9 +17,12 @@
     "test:e2e:web": "playwright test"
   },
   "dependencies": {
+    "@tanstack/react-table": "9.3.1",
     "@workshop-pos/auth": "0.1.0",
     "@workshop-pos/contracts": "0.1.0",
+    "@workshop-pos/core": "0.1.0",
     "@workshop-pos/db": "0.1.0",
+    "@workshop-pos/design-tokens": "0.1.0",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "cmdk": "1.1.1",

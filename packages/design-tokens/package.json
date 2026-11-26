@@ -1,0 +1,29 @@
+{
+  "name": "@workshop-pos/design-tokens",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Single source of truth for Workshop POS design tokens, generated from docs/ui/tokens.json for web and mobile.",
+  "license": "MIT",
+  "type": "module",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./tokens.css": "./src/generated/tokens.css"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "build:tokens": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test:unit": "vitest run --config vitest.config.ts tests/*.unit.test.ts"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.11",
+    "eslint": "10.15.0",
+    "typescript": "7.0.2",
+    "typescript-eslint": "8.74.0",
+    "vitest": "5.1.2"
+  }
+}

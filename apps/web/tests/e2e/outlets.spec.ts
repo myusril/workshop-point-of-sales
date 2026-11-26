@@ -46,7 +46,11 @@ test.describe("owner manages outlets", () => {
     await expect(page.getByRole("row", { name: new RegExp(editedName) })).toBeVisible();
 
     await page.reload();
-    const outletSelect = page.getByLabel("Outlet aktif");
+    // The shell sidebar owns the visible switcher; the WP3 session bar is
+    // hidden inside the shell and is not an interactive surface there.
+    const outletSelect = page
+      .getByRole("complementary", { name: "Bilah samping" })
+      .getByLabel("Outlet aktif");
     await expect(outletSelect).toBeVisible();
 
     const editedOption = outletSelect.locator("option", { hasText: editedName });
