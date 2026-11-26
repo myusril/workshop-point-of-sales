@@ -1,6 +1,6 @@
 # Workshop POS
 
-> **Current status: WP1 (walking skeleton) and WP2 (database schema, migrations, seed) are merged to `main`.** WP3 (auth, RBAC, staff, and outlets) is on `feat/wp3-auth-rbac-outlets` and is not merged. Catalog, orders, receipts, reports, and the mobile app have not started, so the capability list below is the product target, not current functionality.
+> **Current status: WP1 (walking skeleton), WP2 (database schema, migrations, seed), and WP3 (auth, RBAC, staff, outlets) are merged to `main`.** WP4 (web shell, domain core, catalog, inventory) is on `feat/wp4-web-shell-catalog-inventory` and is not merged. Orders, receipts, reports, and the mobile app have not started, so the capability list below is the product target, not current functionality.
 
 A point-of-sale system for vehicle workshops (bengkel) in Indonesia.
 
@@ -49,7 +49,7 @@ Rationale, alternatives, trust boundaries, offline-sync design, and rollback str
 
 ## Repository layout
 
-WP1 created `apps/web/`, `docker/`, `scripts/`, `compose.yaml`, and `compose.dev.yaml`; WP2 added `packages/db/`; WP3 added `packages/auth/` and `packages/contracts/`. `apps/mobile/`, `packages/core/`, and `packages/design-tokens/` are created by later WPs.
+WP1 created `apps/web/`, `docker/`, `scripts/`, `compose.yaml`, and `compose.dev.yaml`; WP2 added `packages/db/`; WP3 added `packages/auth/` and `packages/contracts/`; WP4 added `packages/core/`, `packages/design-tokens/`, the back-office shell, and catalog/inventory screens. `apps/mobile/` is created by a later WP.
 
 | Path | Contents |
 |---|---|
@@ -77,7 +77,7 @@ Exact file ownership per work package: [`docs/plan/work-packages.md`](docs/plan/
 
 ## Setup
 
-The commands below are implemented by WP1–WP3. Run them under Node 26.13.1 (for example `fnm exec --using=26.13.1 -- npm ci`). The dev database uses disposable local credentials and publishes port **55432**; the integration test database `workshop_pos_test` is created by `docker/initdb/01-test-database.sql` on a fresh volume.
+The commands below are implemented by WP1–WP4. Run them under Node 26.13.1 (for example `fnm exec --using=26.13.1 -- npm ci`). The dev database uses disposable local credentials and publishes port **55432**; the integration test database `workshop_pos_test` is created by `docker/initdb/01-test-database.sql` on a fresh volume.
 
 ```sh
 cp .env.example .env        # placeholders only; .env is gitignored and never committed
@@ -89,11 +89,13 @@ WP3_TEST_PASSWORD='<generated>' npm run provision:seed --workspace @workshop-pos
 npm run dev                 # Next.js on 127.0.0.1:3000; reads the root .env
 ```
 
+The generated design tokens are committed. After changing `docs/ui/tokens.json`, regenerate them with `npm run build:tokens --workspace @workshop-pos/design-tokens`; the web app imports `@workshop-pos/design-tokens/tokens.css`.
+
 `BETTER_AUTH_SECRET` in `.env` must be at least 32 characters (`openssl rand -base64 32`). It signs session cookies; never commit it. The provisioning command is **local/test seed provisioning only**: it updates credentials for the four synthetic seed accounts (usernames `owner`, `admin`, `cashier`, `mechanic`) using `WP3_TEST_PASSWORD`, prints counts, and never prints passwords. It refuses `NODE_ENV=production` unless `WP3_ALLOW_PROVISION=1` is set explicitly. There is no default password and no public sign-up; **production first-Owner onboarding is not implemented in WP3** and remains an operations/handover task.
 
 To run the whole dev stack in containers instead, use `docker compose -f compose.dev.yaml up -d --build` and open <http://127.0.0.1:3000>. In that mode skip `npm run dev`, because the web container owns port 3000. Both the root `npm run dev` script and Compose-published ports bind to loopback.
 
-WP1 uses the documented token values but the system font fallback; self-hosted Inter / IBM Plex Mono are WP4/WP9 work.
+WP4 maps the documented token values into shared CSS variables and uses the documented font fallback stack; self-hosted Inter / IBM Plex Mono are WP9 work.
 
 `.env` is gitignored; only `.env.example` (placeholders + comments) is tracked. Never put real credentials in the repository. `apps/web/next.config.mjs` loads the root `.env` for host-run Next.js commands; Compose-injected variables take precedence.
 
@@ -158,12 +160,12 @@ From handover onward the **buyer is the Data Controller** under Indonesia's UU P
 
 ## Handover status
 
-**Current status: WP1 and WP2 merged to `main`; WP3 on `feat/wp3-auth-rbac-outlets`.** Requirements, architecture, design system, work packages, and handover documentation exist. WP1 added the monorepo harness, web skeleton, health endpoint, Compose stacks, license report, and aggregate gate; WP2 added the database schema, migrations, seed, and scoped query helpers; WP3 adds auth, RBAC, staff, and outlets. No CI pipeline or git hook exists yet; the mobile app, catalog, orders, and reports have not started.
+**Current status: WP1, WP2, and WP3 merged to `main`; WP4 on `feat/wp4-web-shell-catalog-inventory`.** Requirements, architecture, design system, work packages, and handover documentation exist. WP1 added the monorepo harness, web skeleton, health endpoint, Compose stacks, license report, and aggregate gate; WP2 added the database schema, migrations, seed, and scoped query helpers; WP3 added auth, RBAC, staff, and outlets; WP4 adds the domain core, design tokens, back-office shell, catalog, and inventory ledger screens. No CI pipeline or git hook exists yet; the mobile app, orders, and reports have not started.
 
 | Milestone | Scope | Status |
 |---|---|---|
 | **M1 — Walking skeleton** (WP1) | Clone-and-run monorepo harness, Compose stack, health endpoint, aggregate gate, license report | **Verified 2026-11-26 and merged to `main` as PR #1 (`a96ffcb`)** |
-| **M2 — MVP** (WP2–WP8) | Schema and seed; auth/RBAC/outlets; catalog and inventory ledger; customers, vehicles, plate history; orders, payments, receipts; Android offline app with sync; reports, audit, export, settings, hardening gate | **In progress** — WP2 merged (PR #2, `88252dc`); WP3 on `feat/wp3-auth-rbac-outlets` |
+| **M2 — MVP** (WP2–WP8) | Schema and seed; auth/RBAC/outlets; catalog and inventory ledger; customers, vehicles, plate history; orders, payments, receipts; Android offline app with sync; reports, audit, export, settings, hardening gate | **In progress** — WP2 merged (PR #2, `88252dc`); WP3 merged (PR #3, `344de62`); WP4 on `feat/wp4-web-shell-catalog-inventory` |
 | **M3 — Handover-ready** (WP9) | Backup restore drill, accessibility sign-off, fresh-clone deployment rehearsal, license re-audit, executed handover checklist and evidence bundle | Not started |
 
 Milestone definitions and exit criteria are maintained in [`docs/STATUS.md`](docs/STATUS.md); work-package acceptance criteria in [`docs/plan/work-packages.md`](docs/plan/work-packages.md) define the detailed proof. Handover is executed against [`docs/ops/handover-checklist.md`](docs/ops/handover-checklist.md) on a frozen candidate commit.

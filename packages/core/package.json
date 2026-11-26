@@ -1,0 +1,24 @@
+{
+  "name": "@workshop-pos/core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pure domain rules for Workshop POS: integer IDR money, stock ledger invariants, and plate normalization.",
+  "license": "MIT",
+  "type": "module",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test:unit": "vitest run --config vitest.config.ts tests/*.unit.test.ts"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.11",
+    "eslint": "10.15.0",
+    "typescript": "7.0.2",
+    "typescript-eslint": "8.74.0",
+    "vitest": "5.1.2"
+  }
+}

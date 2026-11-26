@@ -24,7 +24,9 @@ const nextConfig = {
   transpilePackages: [
     "@workshop-pos/auth",
     "@workshop-pos/contracts",
+    "@workshop-pos/core",
     "@workshop-pos/db",
+    "@workshop-pos/design-tokens",
   ],
   // Next 16 writes apps/web/AGENTS.md on every `next dev` unless disabled.
   // That file is framework tooling, not a WP1 deliverable.

@@ -3,13 +3,13 @@
 | Field | Value |
 |---|---|
 | Product | Workshop POS (working name; buyer may rebrand) |
-| Phase | WP3 (auth, RBAC, outlets) on the task branch |
-| Date | 2026-11-26 |
-| Code status | WP1 and WP2 are merged to `main`. WP3 auth/RBAC/outlets code is on `feat/wp3-auth-rbac-outlets` and is not merged. Catalog, orders, reports, and mobile code do not exist yet |
-| Next gate | WP3 acceptance gates in `docs/plan/work-packages.md` — focused auth/RBAC tests, reviewer + security review, then one aggregate `scripts/check.sh` run on the frozen candidate |
+| Phase | WP4 (web shell, domain core, catalog, inventory) on the task branch |
+| Date | 2026-11-27 |
+| Code status | WP1, WP2, and WP3 are merged to `main` (WP3 as PR #3, `344de62`). WP4 code is verified on `feat/wp4-web-shell-catalog-inventory` and is not merged. Orders, reports, and mobile code do not exist yet |
+| Next gate | WP4 is verified on `feat/wp4-web-shell-catalog-inventory` (§7.5–§7.6); the founder reviews the diff and merges. WP5 starts from `main` after the merge |
 | Source of truth | `docs/product/PRD.md`, `docs/adr/0001-stack-and-architecture.md`, `docs/plan/work-packages.md` |
 
-> **Honesty rule.** This page reports what exists and what has been verified. Documents are not proof that the product works. WP1 commands were executed on 2026-11-26 on branch `feat/wp1-walking-skeleton`, including the aggregate `scripts/check.sh` gate on a fresh development volume, and WP1 was merged to `main` as PR #1 (`a96ffcb`). WP2 (schema, migrations, seed, outlet-scoped query helpers) was merged to `main` as PR #2 (`88252dc`); its tests are re-run by the aggregate gate recorded in §7. Anything not listed in §7 as verified is **NOT VERIFIED** — including WP3 until its gate result is recorded here.
+> **Honesty rule.** This page reports what exists and what has been verified. Documents are not proof that the product works. WP1 commands were executed on 2026-11-26 on branch `feat/wp1-walking-skeleton`, including the aggregate `scripts/check.sh` gate on a fresh development volume, and WP1 was merged to `main` as PR #1 (`a96ffcb`). WP2 (schema, migrations, seed, outlet-scoped query helpers) was merged to `main` as PR #2 (`88252dc`). WP3 (auth, RBAC, users, outlets) passed its focused gates and the aggregate gate, and was merged to `main` as PR #3 (`344de62`); its tests are re-run by later aggregate gates. Anything not listed in §7 as verified is **NOT VERIFIED** — including WP4 until its gate result is recorded here.
 
 ---
 
@@ -18,7 +18,7 @@
 | Milestone | Scope | Exit criteria | Status |
 |---|---|---|---|
 | **M1 — Walking skeleton** | WP1: npm-workspaces monorepo, pinned Node, `.env.example`, Compose dev/prod, Postgres, Dockerfiles, `scripts/check.sh`, license report, health endpoint, minimal page/API | A fresh clone reaches a healthy web + database stack with standard Docker/Node tooling; `scripts/check.sh` exits 0; license report has no blocker | **Verified 2026-11-26 and merged to `main` as PR #1 (`a96ffcb`)** |
-| **M2 — MVP** | WP2–WP8: schema/seed, auth/RBAC/outlets, catalog + stock ledger, customers/vehicles/history, mixed orders + payments + receipts, offline mobile POS + sync, reports/audit/export/settings, hardening gate | Every PRD story US-01–US-20 passes its acceptance criteria; offline/conflict, money, stock, and RBAC tests are green; no license blocker; WCAG 2.2 AA checks pass on agreed screens | **In progress** — WP2 merged to `main` as PR #2 (`88252dc`); WP3 on `feat/wp3-auth-rbac-outlets` |
+| **M2 — MVP** | WP2–WP8: schema/seed, auth/RBAC/outlets, catalog + stock ledger, customers/vehicles/history, mixed orders + payments + receipts, offline mobile POS + sync, reports/audit/export/settings, hardening gate | Every PRD story US-01–US-20 passes its acceptance criteria; offline/conflict, money, stock, and RBAC tests are green; no license blocker; WCAG 2.2 AA checks pass on agreed screens | **In progress** — WP2 merged as PR #2 (`88252dc`); WP3 merged as PR #3 (`344de62`); WP4 on `feat/wp4-web-shell-catalog-inventory` |
 | **M3 — Handover-ready** | WP9: accessibility sign-off, backup/restore drill, fresh-clone deployment rehearsal, license re-audit, documentation and credential handover | `docs/ops/handover-checklist.md` is fully checked with captured evidence; restore drill meets RPO/RTO targets; buyer accepts the signed manifest | **Not started** |
 
 ---
@@ -31,9 +31,9 @@
 | `docs/ui/research/kickoff-2026-11-26.md` | Desk research, task flows, heuristics, accessibility risks | Draft; evidence and assumptions separated |
 | `docs/marketing/competitors.md` | Cited Indonesian workshop POS landscape and positioning | Draft; vendor claims labeled, gaps marked `NOT VERIFIED` |
 | `docs/adr/0001-stack-and-architecture.md` | Stack, data, auth, offline sync, deployment, cost range, rejected alternatives | Proposed |
-| `docs/ops/license-inventory.md` | Dependency/license/transferability evidence | Updated through WP3 (`better-auth` 1.7.28, `zod` 4.6.7; lockfile report re-run in the gate); Epson SDK remains `REVIEW` |
+| `docs/ops/license-inventory.md` | Dependency/license/transferability evidence | Updated through WP4 (`better-auth` 1.7.28, `zod` 4.6.7, `@tanstack/react-table` 9.3.1 + MIT tree; lockfile report re-run in the gate); Epson SDK remains `REVIEW` |
 | `docs/product/personal-data.md` | Buyer-as-Controller obligations and engineering controls | Draft; counsel review required |
-| `docs/ui/DESIGN.md`, `state-matrix.md`, `tokens.json` | Original clean-room design system shared by web and mobile | Draft for review; WP1 uses only a minimal light-theme subset |
+| `docs/ui/DESIGN.md`, `state-matrix.md`, `tokens.json` | Original clean-room design system shared by web and mobile | Draft for review; WP4 generates `packages/design-tokens` and renders the back-office shell/catalog/inventory from these tokens |
 | `docs/plan/work-packages.md` | WP1–WP9, owned paths, dependencies, acceptance gates, PRD traceability | Proposed |
 | `docs/ops/handover-checklist.md` | Seller pre-delivery verification and evidence checklist | Draft; **not executed** |
 | `docs/ops/decision-policy.md` | Tier 1/2/3 decision authority for the buyer's team | Draft |
@@ -202,6 +202,39 @@ Focused checks were run before review. The aggregate `scripts/check.sh` gate is 
 
 The only post-gate edit was this documentation row (no code, config, test, or dependency changed). The E2E dev server logged one non-fatal `destination stream errored while writing data` after an intentionally aborted navigation; no test failed and it did not reproduce in the final run.
 
+### 7.5 WP4 execution checks (2026-11-27, branch `feat/wp4-web-shell-catalog-inventory`)
+
+WP3 was merged to `main` as PR #3 (`344de62`) before WP4 started. Focused checks below were run on the final working tree after the review/repair round; the aggregate gate runs once on the frozen candidate after the completion audit.
+
+| Check | Result |
+|---|---|
+| `npm ci` | **PASS** — clean install from the single root lockfile, 576 packages |
+| `npm run typecheck` | **PASS** — web, auth, contracts, core, db, design-tokens; 0 errors |
+| `npm run lint` | **PASS** — all six workspaces; 0 errors/warnings |
+| `npm run test:unit` | **PASS** — web 52, auth 208, contracts 37, core 25, db 11, design-tokens 4 (**337 total**) |
+| `npm run test:integration` | **PASS** — web 41, auth 41, db 63 (**145 total**); catalog/inventory coverage includes active-outlet scoping, cost hiding, price/cost audit, opening stock, stock-in/adjustment, low-stock shortfall, append-only denial, ledger continuity, concurrent last-unit and duplicate replay, reversal pairing, WIB date boundaries, and cross-outlet audit |
+| `npm run test:e2e:web` (Chromium) | **PASS** — 37 tests; shell/skip link, catalog CRUD + cost hiding, money-field Tab order, unsaved-change guard, inventory stock-in/adjustment/override, single ledger filter, Cashier 403 + audit row, and no page overflow at 320/390/768/1024/1440 |
+| `npm run build` | **PASS** — Next.js 16.4.6 production build; `/`, `/catalog`, `/inventory`, `/users`, `/outlets` dynamic; catalog/inventory API routes force-dynamic |
+| `bash scripts/license-report.sh` | **PASS** — `@tanstack/react-table` 9.3.1 and its MIT tree recorded; no disallowed runtime license |
+| Secret scan | **PASS on the source tree** — `gitleaks dir .` after removing gitignored `.next` and `test-results` build artifacts; no tracked secret. Local `.next` caches contain generated preview keys and stay out of scans/commits |
+| Design evidence (Chromium) | **PASS** — 1440/1280/1024/768/390/320: no page overflow; sidebar 264/72, top bar 56 + 1 px rule, 44 px rows for single-line content; dark `data-theme` with token contrast 15.67/5.76; axe 0 critical/serious on catalog/inventory/legacy/login in light and dark; cashier has no cost column/text or mutation controls; `/inventory` returns a real 403. Real Android/iOS, Firefox, WebKit, OS dark mode beyond Chromium emulation, screen-reader output, 200%/400% zoom, and a 200-character reason are **NOT VERIFIED** |
+| Known limitation | The catalog global search is catalog-scoped until WP5 adds vehicle/customer lookup; legacy WP3 users/outlets table density is unchanged by WP4; self-hosted Inter/IBM Plex Mono remain WP9 work, so the documented fallback stack renders; the dev server logs a non-fatal React warning from next-themes' pre-paint script (production build passes), and the dev DB must be re-seeded after E2E because the reset leaves test fixtures |
+
+### 7.6 WP4 aggregate gate (2026-11-27, frozen candidate)
+
+`fnm exec --using=26.13.1 -- bash scripts/check.sh` was run once on the frozen candidate after the completion audit and the §7.5 documentation update. It exited 0.
+
+| Gate step | Observed result |
+|---|---|
+| Preflight / Compose database | **PASS** — Docker preflight, dev database healthy, `workshop_pos_test` reachable |
+| `npm run typecheck` | **PASS** — web, auth, contracts, core, db, design-tokens; 0 errors |
+| `npm run lint` | **PASS** — all six workspaces; 0 errors/warnings |
+| `npm run test:unit` | **PASS** — web 52, auth 208, contracts 37, core 25, db 11, design-tokens 4 (337 total) |
+| `npm run test:integration` | **PASS** — web 41, auth 41, db 63 (145 total) |
+| `npm run test:e2e:web` | **PASS** — 37 Chromium tests |
+| `npm run build` | **PASS** — Next.js 16.4.6 production build; `/`, `/catalog`, `/inventory`, `/users`, `/outlets` dynamic |
+
+The only post-gate edit is this documentation section and the status fields above (no code, config, test, or dependency changed). WP4 is verified on `feat/wp4-web-shell-catalog-inventory`; it is not merged to `main`.
 
 ---
 
@@ -227,5 +260,5 @@ Recorded 2026-11-26 from the product owner. These close the corresponding open q
 
 1. Obtain buyer counsel review for the Epson SDK redistribution terms, the privacy notice, retention duration, and tax rounding; record the signed outcomes.
 2. WP1 is merged to `main` (PR #1, `a96ffcb`); no merge action remains.
-3. WP2 is merged to `main` (PR #2, `88252dc`). WP3 (auth, RBAC, outlets) passed its focused gates and the aggregate gate on `feat/wp3-auth-rbac-outlets`; the founder reviews the diff, merges, and then WP4 starts from `main`. The branch is not merged yet.
+3. WP2 is merged to `main` (PR #2, `88252dc`); WP3 is merged to `main` (PR #3, `344de62`). WP4 (web shell, domain core, catalog, inventory) passed its focused checks, completion audit, and aggregate gate on `feat/wp4-web-shell-catalog-inventory`; the founder reviews and merges, then WP5 starts from `main`.
 4. Keep CI workflows and git hooks in WP8; do not add them before then.

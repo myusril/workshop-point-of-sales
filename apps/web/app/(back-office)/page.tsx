@@ -2,7 +2,6 @@ import { can } from "@workshop-pos/auth";
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { AppBar } from "@/components/auth/AppBar";
 import { ROLE_LABELS } from "@/components/auth/labels";
 import { getSessionPayload, requirePageAuthContext } from "@/lib/auth/server";
 
@@ -23,9 +22,7 @@ export default async function HomePage() {
   const seesAllOutlets = session.user.role === "OWNER" || session.user.role === "ADMIN";
 
   return (
-    <>
-      <AppBar session={session} current="home" />
-      <main className="wp3-page">
+    <main className="wp3-page">
         <header className="wp3-page__header">
           <div>
             <h1 className="wp3-page__title">Workshop POS</h1>
@@ -100,6 +97,5 @@ export default async function HomePage() {
           </section>
         </div>
       </main>
-    </>
   );
 }
