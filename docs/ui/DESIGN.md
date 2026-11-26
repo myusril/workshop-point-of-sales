@@ -1032,7 +1032,7 @@ Screenshots and recordings are stored outside the repository per policy. Unverif
 | Icons | Lucide (ISC), an open set, with documented stroke and size rules. No template icon font or sprite. |
 | Imagery | None. No stock photography, no demo illustrations, no placeholder portraits. Empty and error states use a single Lucide glyph and text. |
 | Content | All UI strings are authored for this product in Bahasa Indonesia; sample/seed data is synthetic and authored in-repo, never copied from a demo. |
-| Component code | Built from accessible primitives (Radix) and Tailwind with the tokens in this document. No template component code is used. |
+| Component code | Built from **shadcn/ui (MIT)** components copied into the repo, Radix primitives, and Tailwind with the tokens in this document. The project owns the copied source; no Ecme or other commercial-template component code is used. |
 | Theming | Semantic CSS custom properties generated from `tokens.json`, mapped identically to the mobile theme. The mechanism is standard; the token names and values are original. |
 
 ### 11.3 Buyer branding

@@ -52,6 +52,7 @@
 | Epson ePOS SDK (via thermal printer wrapper) | **REVIEW — legal decision** | Buyer counsel confirms redistribution terms before the native sink ships; otherwise ship the PDF/browser fallback |
 | Docker Desktop | Informational | Production hosts should use Docker Engine on Linux; Desktop licensing is separate |
 | Maestro Studio / Cloud | Not included | CLI only, if adopted; do not add commercial tiers to cost assumptions |
+| shadcn/ui (web components) | MIT, copied source | Retain the MIT notice in `THIRD_PARTY_NOTICES.md`; listed in the license inventory |
 | Inter font | OFL-1.1 | Self-host with the license text; do not imply endorsement |
 | IBM Plex Mono font | OFL-1.1 | Self-host with the license text; used only for plates and receipt numerals |
 | Illustrations, logo, sample data | Must be original or licensed | No template or stock assets without an inventory entry |

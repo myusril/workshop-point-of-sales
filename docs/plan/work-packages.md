@@ -49,7 +49,7 @@
 **Size:** M
 **Dependencies:** none (first WP).
 
-**Goal.** A clone-and-run monorepo: npm workspaces, pinned Node, dev Compose stack with Postgres, one Next.js page served, one authenticated-free `/api/v1/health` endpoint doing a DB roundtrip and reporting the migration version, one quality gate script, one license report, one migrate/seed entrypoint — all reproducible from a fresh clone with only Docker and `.env.example`.
+**Goal.** A clone-and-run monorepo: npm workspaces, pinned Node, dev Compose stack with Postgres, one Next.js page served, one authenticated-free `/api/v1/health` endpoint doing a DB roundtrip and reporting the migration version, one quality gate script, one license report, one migrate/seed entrypoint, and the **shadcn/ui baseline dependencies** — all reproducible from a fresh clone with only Docker and `.env.example`. WP1 owns `apps/web/package.json` and the root lockfile so later UI work does not race the manifest.
 
 **Owned paths:**
 
@@ -87,6 +87,7 @@
 4. `bash scripts/license-report.sh` produces a report from `package-lock.json` and exits non-zero on any GPL/AGPL/SSPL/FSL/commercial runtime dependency (this is the §6 blocker guard from the license inventory).
 5. `scripts/db-migrate.sh` runs against a clean DB without error (zero migrations is a valid pass at this point) and `scripts/db-seed.sh` exits with a clear "seed data lands in WP2" message or no-ops cleanly.
 6. Upgrade-then-rollback path exercised once on the delivery environment (image retag rollback), documented in the ops runbook draft (ADR-0001 §5.3).
+7. `apps/web/package.json` contains the shadcn/ui baseline: Radix primitives as required by the copied components (`radix-ui` and/or the individual `@radix-ui/react-*` packages), `class-variance-authority`, `clsx`, `tailwind-merge`, `lucide-react`, `cmdk`, `sonner`, `vaul`, `next-themes`; the license report stays green.
 
 **Focused gates:** `scripts/check.sh` green; license report green; Compose healthchecks green. No CI, no hooks.
 
@@ -180,7 +181,7 @@
 - `apps/web/app/(back-office)/catalog/` (screens — frontend-developer)
 - `apps/web/app/(back-office)/inventory/` (screens — frontend-developer)
 
-**Explicitly NOT owned:** `packages/db` (ledger tables are WP2's; WP4 uses the scoping helpers), order lifecycle and payments (WP6), reports (WP8), mobile (WP7), customer/vehicle screens (WP5).
+**Explicitly NOT owned:** `packages/db` (ledger tables are WP2's; WP4 uses the scoping helpers), order lifecycle and payments (WP6), reports (WP8), mobile (WP7), customer/vehicle screens (WP5), and `apps/web/package.json` / root `package-lock.json` (WP1 owns the shadcn baseline; a new dependency is a WP1 change request).
 
 **PRD requirements covered:** FR-010–FR-013, FR-050–FR-054, US-11, US-12, US-13, US-04 (normalization part), BR-001–BR-006, BR-012, AC3.4's line-validation primitives.
 
@@ -351,6 +352,7 @@
 - `docs/ops/backup-runbook.md` (restore procedure, RPO/RTO rehearsal record)
 - `docs/ops/handover-evidence.md` (evidence index per the checklist's §0 conventions; actual evidence lives outside the repo)
 - `docs/ui/a11y-audit.md` (final WCAG 2.2 AA + mobile touch-target audit record — designer)
+- `THIRD_PARTY_NOTICES.md` (root: shadcn/ui MIT notice, Inter and IBM Plex Mono OFL notices, and any other required attribution; generated from the license inventory)
 - `docker/backup.Dockerfile` (optional scheduled `pg_dump` sidecar image)
 - `compose.yaml` — backup service section only (file created by WP1; WP9 appends the optional backup service after WP8 freezes feature code — sequential reuse, the only compose edit outside WP1)
 - `README.md` (buyer-facing quickstart: clone → `.env.example` → Compose → migrate/seed → login; no internal names, no local paths)
@@ -366,6 +368,7 @@
 3. Final accessibility report: no open WCAG 2.2 AA violations on shipped screens; mobile touch targets ≥ 44 dp verified on the sale path.
 4. `README.md` quickstart verified by a person who did not write it, from a fresh clone.
 5. No permissive-license regression: `scripts/license-report.sh` green on the final lockfile.
+6. `THIRD_PARTY_NOTICES.md` exists at the root, includes the shadcn/ui MIT notice plus the Inter and IBM Plex Mono OFL notices, and is referenced by the handover checklist evidence.
 
 **Focused gates:** restore drill timing log; a11y audit document; handover checklist section results recorded as pass/fail/blocked — no "probably fine".
 

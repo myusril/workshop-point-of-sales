@@ -80,7 +80,7 @@ Owned by `docs/plan/work-packages.md`; two work packages never own the same path
 | `packages/core/src/{lifecycle,receipt}.ts`, orders/payments/receipts API + screens | WP6 |
 | `apps/mobile/`, `packages/contracts/src/sync.ts` | WP7 |
 | reports/audit/settings/export contracts, API, screens; `.woodpecker/**`, `.githooks/**` | WP8 |
-| `docs/ops/backup-runbook.md`, `docs/ops/handover-evidence.md`, `docs/ui/a11y-audit.md`, `docker/backup.Dockerfile`, buyer quickstart verification | WP9 |
+| `docs/ops/backup-runbook.md`, `docs/ops/handover-evidence.md`, `docs/ui/a11y-audit.md`, `THIRD_PARTY_NOTICES.md`, `docker/backup.Dockerfile`, buyer quickstart verification | WP9 |
 | `README.md` (this kickoff creates it; WP9 re-verifies the quickstart) | WP9 (revision) |
 | `docs/product/**`, `docs/adr/**`, `docs/ops/handover-checklist.md`, `docs/plan/**` | PM / architect / reviewer roles — not an implementation WP |
 
@@ -126,5 +126,6 @@ Tracked files must be neutral for handover — the buyer's team and any tooling 
 - **Permissive only:** MIT, Apache-2.0, ISC, BSD (plus PostgreSQL License / OFL where already inventory-listed). No GPL/AGPL/SSPL/FSL, no commercial runtime dependencies.
 - **Any new dependency must be added to `docs/ops/license-inventory.md`** with a verified SPDX identifier, evidence URL, verification date, tier (runtime/dev/external/asset), and transferability verdict — before it is merged.
 - **No third-party commercial template source or assets** (e.g., Ecme/ThemeForest items) anywhere in the repository. MIT component source such as shadcn/ui is allowed, must retain its license notice, and must be inventoried.
+- **`THIRD_PARTY_NOTICES.md` is shipped at the root** with the shadcn/ui MIT notice and the Inter / IBM Plex Mono OFL notices. It is owned by WP9 and verified in the handover checklist.
 - The thermal-printer SDK (Epson ePOS terms) is **REVIEW** until buyer counsel confirms it; keep receipt printing behind the `packages/core` receipt interface with the browser/PDF fallback so a swap stays bounded.
 - `scripts/license-report.sh` (WP1) must stay green: it fails the build on any non-permissive runtime license found in the lockfile.

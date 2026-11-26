@@ -225,6 +225,9 @@ Assumptions: one business ≤ 10 outlets; TLS free via Caddy; no CDN; email/SMS 
 ### A9 — Microservices (order/inventory/auth split)
 *Lost because:* at ≤ 10 outlets there is no scaling pressure (§1.3) to justify network-fragmented consistency for what must be ACID money/stock writes; splitting would *increase* the risk of stock/ledger drift, the exact failure mode the product exists to prevent. Re-open only on T4/T6.
 
+### A10 — Ecme or another commercial admin template as the web base
+*Lost because:* the licence is per end product and does not permit resale, multi-client reuse, or stock/template redistribution; the handover package is a reusable source delivery. A single-client transfer is possible only with seller deletion and buyer acceptance of the restriction, which conflicts with the sale model. The template also brings 79 dependencies and demo/mock surfaces that the POS does not need. **shadcn/ui (MIT) copied source + project tokens** gives a comparable shell with buyer-owned code and no transfer gate. Re-open only if the buyer is contractually one workshop, will not resell, and supplies a valid licence plus written acceptance.
+
 ---
 
 ## 5. Trust Boundaries, Failure Modes & Rollback
