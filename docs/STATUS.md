@@ -137,7 +137,8 @@ Recorded 2026-11-26 from the product owner. These close the corresponding open q
 
 | Topic | Decision | Consequence |
 |---|---|---|
-| Template treatment | **Clean-room only.** No Ecme source, demo asset, or brand asset is included | UI follows the documented visual language; no Envato transfer is required |
+| Template treatment | **Clean-room only.** No Ecme source, demo asset, or brand asset is included. Web UI starts from **shadcn/ui (MIT)** components copied into the repo and styled with project tokens | UI follows the documented visual language; no Envato transfer is required |
+| Web UI basis | **shadcn/ui (MIT)** + Radix + Tailwind, restyled to the Ecme-inspired tokens | Fast shell without a commercial-template licence; buyer owns the copied component source |
 | Buyer model | **Single workshop**, internal use | No multi-tenant SaaS build; one installation serves one business |
 | Hosting | **Buyer-operated VPS with Docker Compose** | Buyer owns the database and backups; no vendor processor by default |
 | Stack | **Next.js + Expo/React Native + PostgreSQL** | Follow ADR-0001; no Laravel/Flutter rewrite |

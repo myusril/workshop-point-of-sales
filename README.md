@@ -36,7 +36,8 @@ Not built now, and not to be built speculatively: full accounting/payroll; suppl
 | Layer | Choice |
 |---|---|
 | Repository | npm workspaces monorepo, single lockfile |
-| Web | Next.js 16 (App Router) — back-office UI **and** versioned REST API (`/api/v1/...`) in one app |
+| Web | Next.js 16 (App Router) + shadcn/ui (MIT) — back-office UI **and** versioned REST API (`/api/v1/...`) in one app |
+| UI kit | shadcn/ui components copied into the repo on Radix + Tailwind, styled from shared design tokens; no commercial template |
 | Mobile | Expo 58 / React Native, Android-first, expo-router; SQLite outbox for offline sales |
 | Data | PostgreSQL + Drizzle ORM (integer-IDR money columns, append-only stock ledger and audit log) |
 | Contracts | Zod schemas shared by web, mobile, and tests |
@@ -118,8 +119,9 @@ Details: [`docs/adr/0001-stack-and-architecture.md`](docs/adr/0001-stack-and-arc
 ## License
 
 - **Original code: MIT** (see [`LICENSE`](LICENSE)).
+- **Web UI components: shadcn/ui (MIT)**, copied into the repository and restyled from project tokens; the MIT notice is retained. This is component source, not a commercial admin template.
 - **Dependencies: permissive only** — MIT / Apache-2.0 / ISC / BSD (plus PostgreSQL License and OFL for the font). No GPL/AGPL/SSPL/FSL or commercial runtime dependencies.
-- **No third-party admin-template source is included.** The Ecme/ThemeForest template referenced in earlier research is commercial and must never appear in this repository; the UI is an original clean-room implementation.
+- **No third-party admin-template source is included.** The Ecme/ThemeForest template referenced in earlier research is commercial and must never appear in this repository; the UI is an original implementation using MIT-licensed shadcn/ui components and project tokens.
 - **Thermal-printer SDK: REVIEW.** The ESC/POS printing candidate bundles the Epson ePOS SDK, whose redistribution terms require buyer-counsel confirmation before shipping; a browser/PDF fallback exists so this is a bounded swap, not a lock-in.
 
 Evidence, SPDX identifiers, and verification dates: [`docs/ops/license-inventory.md`](docs/ops/license-inventory.md).

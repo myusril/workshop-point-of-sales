@@ -277,7 +277,7 @@ White on `accent.active` is 9.98:1; dark ink on `accent.active` is 8.72:1. Any n
 | UI, body, headings, money | **Inter** (variable, self-hosted) | SIL OFL 1.1 | Already approved in the license inventory; Indonesian Latin coverage; excellent small-size legibility on low-end Android; true tabular figures. |
 | Plates, document/receipt numbers, receipt preview | **IBM Plex Mono** | SIL OFL 1.1 | An industrial, document-like mono with a clear 0/O and 1/l distinction; makes plates and receipt columns scannable; supports a truthful 35-column preview. |
 
-Both licenses were verified on 2026-11-26. Fonts are self-hosted as WOFF2 on web and bundled files on mobile; no runtime font CDN. OFL notices ship with the source. IBM Plex Mono must be added to `docs/ops/license-inventory.md` before the first implementation release (see §12).
+Both licenses were verified on 2026-11-26. Fonts are self-hosted as WOFF2 on web and bundled files on mobile; no runtime font CDN. OFL notices ship with the source. IBM Plex Mono is listed in `docs/ops/license-inventory.md`; keep the OFL notice with the bundled files.
 
 Fallback stacks are only a safety net, never the design: `Inter, "Segoe UI", system-ui, sans-serif` and `"IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace`. Receipt preview must use the bundled mono, not the fallback, or its column count is not trustworthy.
 
@@ -803,6 +803,8 @@ A component may change layout between shells; it may not change its words, state
 ---
 
 ## 8. Component inventory
+
+**Implementation basis.** The web back-office starts from **shadcn/ui (MIT)** components copied into `apps/web/components/ui/` and restyled with the tokens in this document; Radix primitives provide behaviour, and the project owns the copied source. This is a component source, not a commercial admin template: no Ecme file, demo page, brand asset, or mock service is included. The mobile app uses its own React Native components mapped to the same tokens. Every component below must be implemented once and reused; screens compose components and do not restyle them.
 
 Shared components are the only path to consistent UI. A screen composes them; it does not restyle them. Every component below must implement the states named, and every interactive component must meet the 44 px web / 48 dp mobile target.
 

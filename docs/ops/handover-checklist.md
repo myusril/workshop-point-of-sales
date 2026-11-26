@@ -706,6 +706,7 @@ npx --yes license-checker-rseidelsohn@4.3.0 --production --json \
 |  |  |  |  |  |  |  |  |
 
 - [ ] Confirm every row appears in `docs/ops/license-inventory.md`, or add it before delivery.
+- [ ] Confirm copied shadcn/ui components retain the MIT notice, and that no Ecme/ThemeForest file, demo asset, or brand asset exists in the tree.
 - [ ] For fonts and icons, check that the license permits embedding and redistribution in a commercial product.
 - [ ] For screenshots or images of third-party products, confirm they are licensed or replace them. Do not rely on "it was on the internet".
 - [ ] For sample data, confirm it was generated for this project and carries no third-party rights.

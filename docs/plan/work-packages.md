@@ -62,7 +62,7 @@
 - `compose.dev.yaml` (hot reload, seeded DB, test-DB service for integration tests)
 - `docker/web.Dockerfile` (Next.js standalone output)
 - `apps/web/package.json`, `apps/web/tsconfig.json`, `apps/web/next.config.mjs`
-- `apps/web/app/layout.tsx`, `apps/web/app/page.tsx` (walking-skeleton page; **replaced** by WP5's back-office shell later — sequential reuse)
+- `apps/web/app/layout.tsx`, `apps/web/app/page.tsx` (walking-skeleton page; **replaced** by WP4's back-office shell later — sequential reuse)
 - `apps/web/app/api/v1/health/route.ts` (health endpoint: DB roundtrip + migration version; the only route WP1 owns)
 - `scripts/check.sh` (runs `typecheck` → `lint` → `test:unit` → `test:integration` → `test:e2e:web` → `build` in ADR-0001 §3.10 order; CI-parity: nothing passes locally that fails in CI later)
 - `scripts/license-report.sh` (license-checker-style report from the lockfile; fails on any non-permissive runtime license per `docs/ops/license-inventory.md` policy)
@@ -158,13 +158,13 @@
 
 ---
 
-### WP4 — Domain core, catalog, and inventory ledger
+### WP4 — Web shell, domain core, catalog, and inventory ledger
 
-**Owner:** `backend-engineer` (lead: `packages/core`, contracts, API) with `frontend-developer` as co-owner for the two UI directories below.
+**Owner:** `backend-engineer` (lead: `packages/core`, contracts, API) with `frontend-developer` as co-owner for the UI paths below.
 **Size:** L
 **Dependencies:** WP2; WP3 for the API routes (guard), while the pure `packages/core` modules may be built in parallel with WP3 because they have no I/O or auth.
 
-**Goal.** Pure domain rules (money, stock, plate) + product/service catalog + the append-only stock ledger operations (stock-in, adjustment, decrement, reversal, override) with their API and back-office screens. This WP owns `packages/core` so that WP6 consumes, never edits, domain functions.
+**Goal.** Pure domain rules (money, stock, plate) + product/service catalog + the append-only stock ledger operations (stock-in, adjustment, decrement, reversal, override) with their API and back-office screens. WP4 is the first UI-heavy WP, so it also lands the **shared web shell and UI foundation** — shadcn/ui (MIT) components, `packages/design-tokens`, and the back-office layout — that WP5–WP8 compose and do not rebuild.
 
 **Owned paths:**
 
@@ -174,10 +174,13 @@
 - `packages/contracts/src/catalog.ts`, `packages/contracts/src/inventory.ts`
 - `apps/web/app/api/v1/catalog/` (products + services CRUD per Appendix A permissions)
 - `apps/web/app/api/v1/inventory/` (stock-in, adjustment, ledger read, low-stock list)
+- `packages/design-tokens/` (whole package: token JSON shared by web and mobile, generated from `docs/ui/tokens.json`)
+- `apps/web/app/(back-office)/layout.tsx` (web shell: sidebar, top bar, page header, content frame)
+- `apps/web/components/ui/` (shadcn/ui copied source; MIT notice retained), `apps/web/components.json`, `apps/web/lib/utils.ts`
 - `apps/web/app/(back-office)/catalog/` (screens — frontend-developer)
 - `apps/web/app/(back-office)/inventory/` (screens — frontend-developer)
 
-**Explicitly NOT owned:** `packages/db` (ledger tables are WP2's; WP4 uses the scoping helpers), order lifecycle and payments (WP6), reports (WP8), mobile (WP7).
+**Explicitly NOT owned:** `packages/db` (ledger tables are WP2's; WP4 uses the scoping helpers), order lifecycle and payments (WP6), reports (WP8), mobile (WP7), customer/vehicle screens (WP5).
 
 **PRD requirements covered:** FR-010–FR-013, FR-050–FR-054, US-11, US-12, US-13, US-04 (normalization part), BR-001–BR-006, BR-012, AC3.4's line-validation primitives.
 
@@ -189,6 +192,7 @@
 4. AC4.4: `b1234xyz`, `B 1234 XYZ`, `B1234XYZ` all normalize to `B1234XYZ` (unit table).
 5. Catalog CRUD respects Appendix A (Cashier cannot create/edit products; cost edit denied and audited per AC16.2 prerequisite).
 6. Ledger integrity property test: any randomized sequence of operations leaves `initial + Σ rows = stock-on-hand`.
+7. Shell acceptance: sidebar (264/72 px), top bar (56 px), page header, filter bar, and 44 px data table match `docs/ui/DESIGN.md`; shadcn/ui components are copied source with the MIT notice; no Ecme/ThemeForest file or asset exists.
 
 **Focused gates:** `npm run test:unit` on `money/stock/plate` tables vs PRD worked examples; `npm run test:integration` on decrement concurrency + ledger recompute; contract round-trip tests.
 
@@ -196,11 +200,11 @@
 
 ### WP5 — Customers, vehicles, and plate history
 
-**Owner:** `backend-engineer` (lead: API) with `frontend-developer` as co-owner for the two UI directories below.
+**Owner:** `backend-engineer` (lead: API) with `frontend-developer` as co-owner for the UI paths below.
 **Size:** M
-**Dependencies:** WP2, WP3, WP4 (consumes `packages/core/plate.ts`; never edits it).
+**Dependencies:** WP2, WP3, WP4 (consumes `packages/core/plate.ts` and the WP4 shell/tokens; never edits them).
 
-**Goal.** Customer and vehicle profiles keyed by normalized plate (unique per business), vehicle reuse on repeat intake, and the plate-keyed history view with outlet scoping.
+**Goal.** Customer and vehicle profiles keyed by normalized plate (unique per business), vehicle reuse on repeat intake, and the plate-keyed history view with outlet scoping. Screens compose the WP4 shell and shadcn/ui components; WP5 does not rebuild them.
 
 **Owned paths:**
 
@@ -210,7 +214,7 @@
 - `apps/web/app/(back-office)/customers/` (screens — frontend-developer)
 - `apps/web/app/(back-office)/vehicles/` (screens incl. history view — frontend-developer)
 
-**Explicitly NOT owned:** `packages/core/plate.ts` (WP4), order data (WP6 writes the history rows WP5 reads), mobile cache behavior (WP7).
+**Explicitly NOT owned:** `packages/core/plate.ts`, `packages/design-tokens/`, `apps/web/components/ui/`, and `apps/web/app/(back-office)/layout.tsx` (all WP4); order data (WP6 writes the history rows WP5 reads); mobile cache behavior (WP7); any Ecme/ThemeForest file (never permitted).
 
 **PRD requirements covered:** FR-020–FR-024, US-04 (vehicle parts), US-10, BR-006 (uniqueness per business), BR-012 (history scoping: AC10.4), NFR-002 (history first page ≤ 5 s p95 at 1,000 orders — AC10.5, measured in WP8's perf pass; structural work here).
 
@@ -220,6 +224,7 @@
 2. AC4.3: empty plate or invalid characters blocked with a Bahasa Indonesia message; odometer must be a non-negative integer.
 3. AC10.1–AC10.4: history newest-first with date, type, lines, odometer, total, payment status; unpaid orders flagged with balance due (once WP6 data exists); empty state; Cashier sees own outlet only, Owner/Admin all outlets.
 4. PD-03 minimization: only inventoried fields collected; free-text notes carry the PD-02 warning.
+5. Screens compose the WP4 shell and shadcn/ui components; no duplicated layout, no Ecme/ThemeForest file or asset.
 
 **Focused gates:** integration tests on uniqueness + reuse; history pagination test with a 1,000-order fixture; contract round-trip tests. UI QA evidence per `docs/ui/research/kickoff-2026-11-26.md` flow notes.
 
@@ -267,7 +272,7 @@
 
 **Owner:** `mobile-developer`
 **Size:** L
-**Dependencies:** WP2, WP3 (bearer auth contract), WP4 (catalog/contracts), WP6 (sync contract: order + payment payload and idempotency semantics). The printer pilot also gates this WP.
+**Dependencies:** WP2, WP3 (bearer auth contract), WP4 (catalog/contracts and design tokens), WP5 (customer/vehicle contracts), WP6 (sync contract: order + payment payload and idempotency semantics). The printer pilot also gates this WP.
 
 **Goal.** The Android-first Expo app: catalog/customer/vehicle read cache, offline sale creation into a SQLite outbox with client idempotency keys, background sync with deterministic ordering and backoff, the conflict taxonomy screen, and the ESC/POS printing sink behind the `packages/core/receipt.ts` interface.
 
@@ -275,9 +280,8 @@
 
 - `apps/mobile/` (whole app: `package.json`, `app.json`, `app/` routes via expo-router, `src/outbox/` (SQLite), `src/sync/`, `src/cache/`, `src/printing/` (ESC/POS sink implementing the receipt interface), `src/theme/` mapping `packages/design-tokens`)
 - `packages/contracts/src/sync.ts` (sync envelope + conflict-code schemas; the one contracts file this WP owns)
-- `packages/design-tokens/` (whole package: shared tokens consumed by both renderers, per ADR-0001 §3.2)
 
-**Explicitly NOT owned:** server sync endpoint logic (`apps/web/app/api/v1/sync/` is part of WP6's order/payment API surface — the server applies queued sales with the same handlers; WP7 defines only the client envelope contract file above), `packages/core/receipt.ts` (WP6's; WP7 implements against it), web screens.
+**Explicitly NOT owned:** `packages/design-tokens/` (WP4 owns the shared token package; WP7 maps it into the mobile theme), server sync endpoint logic (`apps/web/app/api/v1/sync/` is part of WP6's order/payment API surface — the server applies queued sales with the same handlers; WP7 defines only the client envelope contract file above), `packages/core/receipt.ts` (WP6's; WP7 implements against it), web screens.
 
 **PRD requirements covered:** FR-041–FR-043, US-14, US-15, US-17 (device sink, AC17.1/AC17.3/AC17.4), BR-011 (client key generation), BR-005/PR-3 (server-authoritative stock, provisional local display), NFR-001 (Android-first), NFR-003 (Android 8+/2 GB, APK ≤ 60 MB, cold start ≤ 5 s, 3G-tolerant), NFR-004 (print p95 ≤ 5 s), SM-04 (≥ 95% conflict-free sync, measured post-launch).
 
@@ -374,7 +378,7 @@ graph TD
     WP1["WP1 · Walking skeleton + tooling (devops-engineer)"]
     WP2["WP2 · DB schema, migrations, seed (backend-engineer)"]
     WP3["WP3 · Auth, RBAC, outlets (backend-engineer)"]
-    WP4["WP4 · Domain core, catalog, inventory ledger (backend-engineer + frontend-developer)"]
+    WP4["WP4 · Domain core, web shell, catalog, inventory ledger (backend-engineer + frontend-developer)"]
     WP5["WP5 · Customers, vehicles, plate history (backend-engineer + frontend-developer)"]
     WP6["WP6 · Orders, pricing, payments, receipts (backend-engineer + frontend-developer)"]
     WP7["WP7 · Mobile offline POS + sync (mobile-developer)"]
@@ -394,6 +398,7 @@ graph TD
     WP5 --> WP6
     WP2 --> WP7
     WP4 --> WP7
+    WP5 --> WP7
     WP6 --> WP7
     WP4 --> WP8
     WP6 --> WP8
@@ -458,7 +463,7 @@ Every FR/BR/NFR/PD group maps to at least one WP; every WP maps back to PRD IDs.
 A WP is "done" when its focused gates are green and its acceptance criteria each have recorded evidence (command output or QA artifact). The **delivery** is done only when all of the following hold, per `docs/ops/handover-checklist.md` (executed in WP9 on the frozen candidate):
 
 1. Every checklist section run with captured evidence and a second-person review; no item marked complete on inspection alone; every result is `pass`, `fail`, `blocked`, or `n/a` with a written reason.
-2. **License blockers cleared** (`docs/ops/license-inventory.md` §6): no Ecme/ThemeForest code or assets anywhere (clean-room UI only, PR-8); the Epson ePOS SDK REVIEW item resolved by buyer counsel or the ESC/POS sink dropped for the browser/PDF fallback; `scripts/license-report.sh` green on the final lockfile; all runtime dependencies permissive (MIT/Apache-2.0/ISC/BSD/PostgreSQL-License/OFL).
+2. **License blockers cleared** (`docs/ops/license-inventory.md` §6): no Ecme/ThemeForest code or assets anywhere (clean-room relative to commercial templates, PR-8); copied shadcn/ui components retain their MIT notice; the Epson ePOS SDK REVIEW item resolved by buyer counsel or the ESC/POS sink dropped for the browser/PDF fallback; `scripts/license-report.sh` green on the final lockfile; all runtime dependencies permissive (MIT/Apache-2.0/ISC/BSD/PostgreSQL-License/OFL).
 3. No unrotated secret; `.env.example` is the only tracked env file and is placeholder-only; no local paths, internal names, or private registries in the tree.
 4. Fresh-clone install → migrate → seed → `scripts/check.sh` all green from the pinned `.node-version`.
 5. Backup restore drill passed with measured RTO ≤ 2 h and RPO ≤ 15 min (NFR-009 targets).

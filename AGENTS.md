@@ -15,7 +15,7 @@
 | Layer | Choice |
 |---|---|
 | Repository | npm workspaces monorepo, single lockfile |
-| Web + API | Next.js 16 App Router; REST route handlers under `/api/v1/...` |
+| Web + API | Next.js 16 App Router; REST route handlers under `/api/v1/...`; shadcn/ui (MIT) components copied into `apps/web/components/ui` |
 | Mobile | Expo 58 / React Native, expo-router, SQLite outbox |
 | Data | PostgreSQL + Drizzle ORM; integer-IDR money; append-only stock ledger and audit log |
 | Contracts | Zod schemas in `packages/contracts`, shared by web, mobile, and tests |
@@ -63,6 +63,7 @@ bash scripts/check.sh        # aggregate gate: typecheck → lint → test:unit 
 - **RBAC server-side, deny-by-default.** Every non-health endpoint resolves role + outlet scope from the session. The UI hiding a control is cosmetic; the server refusing it is the rule. Cross-outlet access is denied and audited. The PRD Appendix A matrix is encoded as tested constants.
 - **Audit sensitive actions.** Voids, overrides, price/cost edits, discount-cap denials, exports, role changes, settings changes: actor + target + timestamp + reason, append-only, visible to Owner.
 - **UI copy is Bahasa Indonesia**; documentation, code identifiers, and commit messages are English. All UI strings are product strings, not browser/library defaults.
+- **One web UI kit.** Compose screens from the copied shadcn/ui components in `apps/web/components/ui/` and the shared tokens. Add a missing primitive there instead of introducing another UI library. Keep the shadcn/ui MIT notice; never add Ecme/ThemeForest source or assets.
 - **Docs are English** and live under `docs/` per the ownership map below.
 
 ## File ownership map (planned)
@@ -74,10 +75,10 @@ Owned by `docs/plan/work-packages.md`; two work packages never own the same path
 | `package.json`, `package-lock.json`, `.node-version`, `.env.example`, `compose.yaml`, `compose.dev.yaml`, `docker/web.Dockerfile`, `scripts/check.sh`, `scripts/db-*.sh`, `scripts/license-report.sh`, `apps/web` skeleton + `/api/v1/health` | WP1 (devops-engineer) |
 | `packages/db/` (schema, migrations, seed, query helpers) | WP2 |
 | `packages/auth/`, API + screens for auth/users/outlets | WP3 |
-| `packages/core/src/{money,stock,plate}.ts`, catalog + inventory API/screens, `packages/contracts/src/{catalog,inventory}.ts` | WP4 |
-| customers/vehicles contracts, API, and screens | WP5 |
+| `packages/core/src/{money,stock,plate}.ts`, catalog + inventory API/screens, `packages/contracts/src/{catalog,inventory}.ts`; web shell; `apps/web/components/ui/`, `components.json`, `lib/utils.ts`; `packages/design-tokens/` | WP4 |
+| customers/vehicles contracts, API, and screens (composes the WP4 shell) | WP5 |
 | `packages/core/src/{lifecycle,receipt}.ts`, orders/payments/receipts API + screens | WP6 |
-| `apps/mobile/`, `packages/design-tokens/`, `packages/contracts/src/sync.ts` | WP7 |
+| `apps/mobile/`, `packages/contracts/src/sync.ts` | WP7 |
 | reports/audit/settings/export contracts, API, screens; `.woodpecker/**`, `.githooks/**` | WP8 |
 | `docs/ops/backup-runbook.md`, `docs/ops/handover-evidence.md`, `docs/ui/a11y-audit.md`, `docker/backup.Dockerfile`, buyer quickstart verification | WP9 |
 | `README.md` (this kickoff creates it; WP9 re-verifies the quickstart) | WP9 (revision) |
@@ -124,6 +125,6 @@ Tracked files must be neutral for handover — the buyer's team and any tooling 
 
 - **Permissive only:** MIT, Apache-2.0, ISC, BSD (plus PostgreSQL License / OFL where already inventory-listed). No GPL/AGPL/SSPL/FSL, no commercial runtime dependencies.
 - **Any new dependency must be added to `docs/ops/license-inventory.md`** with a verified SPDX identifier, evidence URL, verification date, tier (runtime/dev/external/asset), and transferability verdict — before it is merged.
-- **No third-party template source or assets** (e.g., Ecme/ThemeForest items) anywhere in the repository — clean-room UI only.
+- **No third-party commercial template source or assets** (e.g., Ecme/ThemeForest items) anywhere in the repository. MIT component source such as shadcn/ui is allowed, must retain its license notice, and must be inventoried.
 - The thermal-printer SDK (Epson ePOS terms) is **REVIEW** until buyer counsel confirms it; keep receipt printing behind the `packages/core` receipt interface with the browser/PDF fallback so a swap stays bounded.
 - `scripts/license-report.sh` (WP1) must stay green: it fails the build on any non-permissive runtime license found in the lockfile.

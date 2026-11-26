@@ -34,7 +34,7 @@ Workshop POS ships as a **single TypeScript monorepo** (one Next.js web back-off
 - **Licenses:** MIT, Apache-2.0, ISC, BSD only. No GPL/AGPL/SSPL/FSL or commercial runtime dependencies (NFR-011).
 - **Handover economics:** the delivered source is maintained after handover by a **local Indonesian software team that a single workshop can hire**. Every choice must be boring, documentable in Bahasa-Indonesia-friendly plain English, and servable by a mid-level TypeScript engineer without exotic infrastructure.
 - **Buyer hardware:** buyer-supplied Android 8.0+ devices and ESC/POS printers (PRD DEP-1); intermittent internet at outlets (DEP-2).
-- **Clean-room UI:** no third-party commercial admin-template source or assets (PR-8; the Ecme Next template is not included — see `docs/ops/license-inventory.md` §Ecme).
+- **Clean-room relative to commercial templates:** no third-party commercial admin-template source or assets (PR-8; the Ecme Next template is not included — see `docs/ops/license-inventory.md` §Ecme). Permissive MIT component source such as shadcn/ui is allowed and inventoried; it is not a commercial template.
 - **No application code/CI in this kickoff** — this ADR defines the target only; WP1 implements tooling.
 
 ### 1.3 MVP scale and evolution triggers
@@ -85,11 +85,11 @@ workshop-pos/
 
 **npm workspaces with one lockfile** is the default. The alternative (pnpm) is faster but adds a second tool to teach a hiring market that mostly knows npm; TypeScript project references + `packages/*` paths give the same strictness without changing the package manager. `packages/core` and `packages/contracts` have **zero runtime dependencies** (only `zod` in contracts) so mobile can import them without dragging server code into the APK.
 
-### 3.2 Web: Next.js App Router + Tailwind + Radix-based own components
+### 3.2 Web: Next.js App Router + Tailwind + shadcn/ui components
 
 - **Next.js App Router** (Server Components by default, `next build` standalone output for the Docker image).
 - **Tailwind CSS** for styling; `packages/design-tokens` is the single source of truth (Tailwind theme reads from it; mobile maps tokens to its own theme object — one design language, two renderers).
-- **Own UI component layer built on accessible primitives** (Radix UI unstyled primitives + our props/labels in Bahasa Indonesia) — this is how WCAG 2.2 AA (NFR-005) is met without copying any commercial template. **No template code from the Ecme Next item or any ThemeForest product is included**; the visual language is an original clean-room implementation in a similar spirit (PR-8).
+- **UI component layer: shadcn/ui (MIT) components copied into the repository**, built on Radix UI primitives and styled with our design tokens. We own the copied source, so there is no runtime template dependency and no vendor lock-in; this is how WCAG 2.2 AA (NFR-005) is met quickly without copying any commercial template. shadcn/ui is a component source, not a full admin template: it brings accessible primitives, tables, forms, dialogs, sheets, toasts, and command menu without demo pages, mock services, or 79 bundled dependencies. **No template code from the Ecme Next item or any ThemeForest product is included**; the visual language is an original implementation in a similar spirit (PR-8).
 - Data fetching in client components uses TanStack Query against the app's own REST API; server components read the DB directly via `packages/db` where simpler.
 
 ### 3.3 Mobile: Expo + expo-router + SQLite outbox + TanStack Query
@@ -284,7 +284,10 @@ Assumptions: one business ≤ 10 outlets; TLS free via Caddy; no CDN; email/SMS 
 | Expo 58 / React Native 0.88 / expo-router 58 | MIT | Mobile |
 | TypeScript 7 | Apache-2.0 | Language |
 | Tailwind CSS 4 | MIT | Styling |
+| shadcn/ui component source | MIT | Web UI components (copied, owned) |
 | Radix UI 1.8 | MIT | Accessible primitives |
+| class-variance-authority 0.7 / clsx 2 / tailwind-merge 3 | Apache-2.0 / MIT / MIT | Component variants and class utilities |
+| cmdk 1 / sonner 2 / next-themes 0.4 / vaul 1 | MIT | Command menu, toasts, theming, sheets |
 | Drizzle ORM 0.45 / Kit 0.31 | Apache-2.0 / MIT | Data |
 | Zod 4 | MIT | Contracts |
 | TanStack Query 5 / Table 9 | MIT | Data fetching |
@@ -302,15 +305,15 @@ Assumptions: one business ≤ 10 outlets; TLS free via Caddy; no CDN; email/SMS 
 
 | WP | Owner | Owns | Verification evidence |
 |---|---|---|---|
-| WP1 Tooling & CI-parity | `devops-engineer` | root `package.json` scripts, Compose dev/prod files, Dockerfiles, test DB service, license-report generation, no CI files yet per kickoff | `npm run typecheck/lint/test:*/build` green locally; license report generated |
-| WP2 `packages/db` schema + migrations | `backend-engineer` | `packages/db/**` | drizzle-kit generate/migrate on clean DB; seed loads PRD fixtures (AC3.1 values) |
-| WP3 `packages/core` domain rules | `backend-engineer` | `packages/core/**` | Vitest green on money/lifecycle/stock/plate tables (BR-001..012) |
-| WP4 `packages/contracts` + web API | `backend-engineer` | `packages/contracts/**`, `apps/web/app/api/**` | integration tests incl. idempotency + cross-outlet denial |
-| WP5 Web back-office UI | `frontend-developer` | `apps/web/app/**` (non-API), `packages/design-tokens/**` | Playwright green; axe clean on core screens |
-| WP6 Mobile app | `mobile-developer` | `apps/mobile/**` | RNTL green; offline-sale → sync flow on emulator |
-| WP7 Receipts | `mobile-developer` | `apps/mobile/**/receipts/**`, web print route | AC17.1–17.4 on target printers; fallback verified |
-| WP8 Auth + RBAC wiring | `backend-engineer` | auth config + guard middleware | login/rate-limit/session tests; Appendix A denial matrix |
-| WP9 Backups/DR runbook + hosting handover | `devops-engineer` | `docker/**`, `docs/ops/**` (backup runbook only) | restore rehearsal timed ≤ RTO target on a scratch host |
+| WP1 Tooling, walking skeleton, CI-parity | `devops-engineer` | root `package.json` scripts, Compose dev/prod files, Dockerfiles, test DB service, license-report generation, skeleton page + health route; no CI files yet per kickoff | `npm run typecheck/lint/test:*/build` green locally; license report generated; Compose healthchecks green |
+| WP2 DB schema, migrations, seed | `backend-engineer` | `packages/db/**` | drizzle-kit generate/migrate on clean DB; seed loads PRD fixtures (AC3.1 values) |
+| WP3 Auth, RBAC, outlets | `backend-engineer` | `packages/auth/**`, auth/users/outlets API + screens | login/rate-limit/session tests; Appendix A denial matrix |
+| WP4 Web shell, domain core, catalog, inventory | `backend-engineer` + `frontend-developer` | `packages/core/**`, catalog/inventory API + screens, `packages/design-tokens/**`, `apps/web/components/ui/**`, back-office layout | Vitest on money/stock/plate; integration on ledger concurrency; shadcn MIT notice present |
+| WP5 Customers, vehicles, plate history | `backend-engineer` + `frontend-developer` | customer/vehicle contracts, API, and screens; composes the WP4 shell | uniqueness/reuse tests; history pagination at 1,000 orders |
+| WP6 Orders, pricing, payments, receipts | `backend-engineer` + `frontend-developer` | `packages/core/{lifecycle,receipt}.ts`, orders/payments/receipts API + screens | AC3.x/AC7.x/AC9.x; idempotency and void/refund tests |
+| WP7 Mobile offline POS + sync | `mobile-developer` | `apps/mobile/**`, `packages/contracts/src/sync.ts` | RNTL green; offline-sale → sync flow on device; conflict sheet verified |
+| WP8 Reports, audit, export, settings, hardening | `backend-engineer` + `frontend-developer` + `devops-engineer` | reports/audit/settings/export contracts, API, screens; `.woodpecker/**`, `.githooks/**` | report totals vs ledger; CSV export; axe/a11y pass; CI-parity gate |
+| WP9 Handover, a11y sign-off, backup drill | `devops-engineer` + `designer` | `docs/ops/backup-runbook.md`, `docs/ops/handover-evidence.md`, `docs/ui/a11y-audit.md`, `docker/backup.Dockerfile`, buyer quickstart verification | restore rehearsal ≤ RTO; executed handover checklist on frozen commit |
 
 ### 6.4 Review & escalation
 - `decision-reviewer` and the founder should review **§3.7 (printer candidate + Epson SDK terms)** and **§3.11 (hosting model / managed-cloud DPA)** — both are Tier 3 founder-relevant decisions flagged for counsel.

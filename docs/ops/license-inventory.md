@@ -29,6 +29,14 @@
 | React Native | 0.88.1 | MIT | Mobile runtime | runtime | YES | https://registry.npmjs.org/react-native/latest (`license: "MIT"`) | 2026-11-26 |
 | Tailwind CSS | 4.3.5 | MIT | Web styling | runtime | YES | https://registry.npmjs.org/tailwindcss/latest (`license: "MIT"`) | 2026-11-26 |
 | Radix UI (radix-ui umbrella package) | 1.8.1 | MIT | Accessible UI primitives | runtime | YES | https://registry.npmjs.org/radix-ui/latest (`license: "MIT"`) | 2026-11-26 |
+| shadcn/ui component source | copied at WP4 (CLI 4.23.1) | MIT | Web UI components copied into the repo and styled with project tokens; not a runtime vendor dependency | runtime | YES | https://raw.githubusercontent.com/shadcn-ui/ui/main/LICENSE.md ("MIT License, Copyright (c) 2023 shadcn"); retain the notice with the copied files | 2026-11-26 |
+| class-variance-authority | 0.7.1 | Apache-2.0 | Component variant API | runtime | YES | https://registry.npmjs.org/class-variance-authority/0.7.1 (`license: "Apache-2.0"`) | 2026-11-26 |
+| clsx | 2.1.1 | MIT | Conditional class names | runtime | YES | https://registry.npmjs.org/clsx/2.1.1 (`license: "MIT"`) | 2026-11-26 |
+| tailwind-merge | 3.7.1 | MIT | Conflict-free Tailwind class merging | runtime | YES | https://registry.npmjs.org/tailwind-merge/3.7.1 (`license: "MIT"`) | 2026-11-26 |
+| cmdk | 1.1.1 | MIT | Command menu | runtime | YES | https://registry.npmjs.org/cmdk/1.1.1 (`license: "MIT"`) | 2026-11-26 |
+| sonner | 2.0.8 | MIT | Toasts | runtime | YES | https://registry.npmjs.org/sonner/2.0.8 (`license: "MIT"`) | 2026-11-26 |
+| next-themes | 0.4.6 | MIT | Light/dark theme switching | runtime | YES | https://registry.npmjs.org/next-themes/0.4.6 (`license: "MIT"`) | 2026-11-26 |
+| vaul | 1.1.2 | MIT | Drawer/sheet primitive | runtime | YES | https://registry.npmjs.org/vaul/1.1.2 (`license: "MIT"`) | 2026-11-26 |
 | Drizzle ORM | 0.45.4 | Apache-2.0 | PostgreSQL data access | runtime | YES | https://registry.npmjs.org/drizzle-orm/0.45.4 (`license: "Apache-2.0"`, pinned version) | 2026-11-26 |
 | Drizzle Kit | 0.31.11 | MIT | Schema migrations CLI | dev | YES | https://registry.npmjs.org/drizzle-kit/0.31.11 (`license: "MIT"`, pinned version) | 2026-11-26 |
 | Zod | 4.6.7 | MIT | Request/response contracts, validation | runtime | YES | https://registry.npmjs.org/zod/latest (`license: "MIT"`) | 2026-11-26 |
@@ -51,6 +59,7 @@
 | Name | Version | License (SPDX) | Purpose | Tier | Buyer-transferable | Evidence | Verified |
 |---|---|---|---|---|---|---|---|
 | Vitest | 5.1.2 | MIT | Unit + integration test runner | dev | YES | https://registry.npmjs.org/vitest/latest (`license: "MIT"`) | 2026-11-26 |
+| shadcn CLI | 4.23.1 | MIT | Adds/updates copied shadcn/ui components; not a runtime dependency | dev | YES | https://registry.npmjs.org/shadcn/latest (`license: "MIT"`) | 2026-11-26 |
 | Playwright | 1.65.1 | Apache-2.0 | Web E2E tests | dev | YES | https://registry.npmjs.org/playwright/latest (`license: "Apache-2.0"`) | 2026-11-26 |
 | @testing-library/react-native | 14.1.0 | MIT | Mobile component tests | dev | YES | https://registry.npmjs.org/@testing-library/react-native/latest (`license: "MIT"`) | 2026-11-26 |
 | Maestro CLI | current (Apache-2.0 repo) | Apache-2.0 (CLI only — Maestro **Studio** and **Cloud** are commercial, not bundled) | Mobile E2E (optional; **candidate**, not committed) | dev | REVIEW | https://github.com/mobile-dev-inc/Maestro ("Maestro is open-source under the Apache 2.0 license"; Studio "is not an open-source project") | 2026-11-26 |
@@ -92,13 +101,13 @@
 | Recorded decision | The product owner selected **single-workshop internal use** and **clean-room implementation**. Therefore this package does not rely on any transfer exception: no Ecme source, demo asset, or brand asset is included. If a future delivery wants to use Ecme source for one client, it needs a fresh written decision, Envato license linkage, buyer acceptance of the restriction, and deletion of the seller's copy. | `docs/STATUS.md` §8 |
 | Conclusion for Workshop POS | **NO for including Ecme source code, demo assets, or brand assets in this handover.** The deliverable is a reusable source package prepared for handover; the clean-room path removes the dependency entirely and does not require proving single-client deletion. | ADR-0001 §3.2, PRD PR-8, PRD DEP-5 |
 
-**Clean-room alternative (what the delivery does instead):** the back-office UI is implemented from scratch against ADR-0001's design tokens, Radix primitives, and Tailwind — visually in the *spirit* of a clean, modern admin layout (sidebar navigation, dense data tables, restrained color) but with no copied files, no copied component code, no copied CSS values, and no copied brand/demo assets. The visual reference, if any is used during design, is inspected and then closed; nothing is downloaded, screenshotted into the repo, or mirrored.
+**Clean-room alternative (what the delivery does instead):** the back-office UI is implemented from **shadcn/ui (MIT) components copied into the repository**, styled with ADR-0001's design tokens and Tailwind — visually in the *spirit* of a clean, modern admin layout (sidebar navigation, dense data tables, restrained color) but with no copied Ecme files, no copied component code, no copied CSS values, and no copied brand/demo assets. shadcn/ui is permissive component source, not a commercial template; the copied files retain the MIT notice. The visual reference, if any is used during design, is inspected and then closed; nothing is downloaded, screenshotted into the repo, or mirrored. The unlicensed `Ecme-next-lite` repository is not used as a source either.
 
 ## 6. Blockers and REVIEW items (summary)
 
 | Item | Severity | Action required |
 |---|---|---|
-| Ecme Next template (or any ThemeForest item) included in the handover | **BLOCKER** | Must not be included; clean-room UI only (§5) |
+| Ecme Next template (or any ThemeForest item) included in the handover | **BLOCKER** | Must not be included; build on MIT shadcn/ui + project tokens instead (§5) |
 | Epson ePOS SDK redistribution terms (via `react-native-esc-pos-printer-sdk`) | **REVIEW — Tier 3 founder/legal decision** | Buyer counsel confirms Epson SDK terms before the ESC/POS sink ships; otherwise use the PDF/browser fallback (§3) |
 | Docker Desktop licensing | REVIEW (informational) | Docker **Engine/Compose** are Apache-2.0 and fine for self-hosting; if the buyer's ops team wants Docker Desktop on macOS/Windows workstations, Docker Desktop is free only for small companies/personal use — recommend Linux hosts (engine) for production (§1 row "Docker Engine") |
 | Maestro Studio / Maestro Cloud | REVIEW (informational) | CLI is Apache-2.0; Studio and Cloud are commercial products and are **not** part of the delivery; do not add them to buyer cost assumptions (§2 row "Maestro CLI") |
