@@ -1,6 +1,6 @@
 # Workshop POS
 
-> **Current status: WP1 walking skeleton implemented and verified on branch `feat/wp1-walking-skeleton` (2026-11-26); not yet merged into `main`.** The npm-workspace harness, dev/prod Compose stacks, `/api/v1/health` endpoint, license report, and aggregate gate exist; the individual gate steps were executed. WP2+ product code — database schema, auth, catalog, orders, receipts, and the mobile app — has not started, so the capability list below is the product target, not current functionality.
+> **Current status: WP1 (walking skeleton) and WP2 (database schema, migrations, seed) are merged to `main`.** WP3 (auth, RBAC, staff, and outlets) is on `feat/wp3-auth-rbac-outlets` and is not merged. Catalog, orders, receipts, reports, and the mobile app have not started, so the capability list below is the product target, not current functionality.
 
 A point-of-sale system for vehicle workshops (bengkel) in Indonesia.
 
@@ -49,7 +49,7 @@ Rationale, alternatives, trust boundaries, offline-sync design, and rollback str
 
 ## Repository layout
 
-WP1 created `apps/web/`, `docker/`, `scripts/`, `compose.yaml`, and `compose.dev.yaml`. `apps/mobile/` and the `packages/*` workspaces are created by later WPs and do not exist yet.
+WP1 created `apps/web/`, `docker/`, `scripts/`, `compose.yaml`, and `compose.dev.yaml`; WP2 added `packages/db/`; WP3 added `packages/auth/` and `packages/contracts/`. `apps/mobile/`, `packages/core/`, and `packages/design-tokens/` are created by later WPs.
 
 | Path | Contents |
 |---|---|
@@ -77,16 +77,19 @@ Exact file ownership per work package: [`docs/plan/work-packages.md`](docs/plan/
 
 ## Setup
 
-The commands below are implemented by WP1. Run them under Node 26.13.1 (for example `fnm exec --using=26.13.1 -- npm ci`). The dev database uses disposable local credentials and publishes port **55432**; the integration test database `workshop_pos_test` is created by `docker/initdb/01-test-database.sql` on a fresh volume.
+The commands below are implemented by WP1–WP3. Run them under Node 26.13.1 (for example `fnm exec --using=26.13.1 -- npm ci`). The dev database uses disposable local credentials and publishes port **55432**; the integration test database `workshop_pos_test` is created by `docker/initdb/01-test-database.sql` on a fresh volume.
 
 ```sh
 cp .env.example .env        # placeholders only; .env is gitignored and never committed
 npm ci                      # install workspace dependencies from the lockfile
 docker compose -f compose.dev.yaml up -d --wait db   # PostgreSQL on 127.0.0.1:55432
-npm run db:migrate          # prints the WP2 hand-off message until packages/db exists
-npm run db:seed             # prints the WP2 hand-off message until packages/db exists
+npm run db:migrate          # apply the WP2 schema migrations
+npm run db:seed             # load synthetic fixtures and one outlet
+WP3_TEST_PASSWORD='<generated>' npm run provision:seed --workspace @workshop-pos/auth
 npm run dev                 # Next.js on 127.0.0.1:3000; reads the root .env
 ```
+
+`BETTER_AUTH_SECRET` in `.env` must be at least 32 characters (`openssl rand -base64 32`). It signs session cookies; never commit it. The provisioning command is **local/test seed provisioning only**: it updates credentials for the four synthetic seed accounts (usernames `owner`, `admin`, `cashier`, `mechanic`) using `WP3_TEST_PASSWORD`, prints counts, and never prints passwords. It refuses `NODE_ENV=production` unless `WP3_ALLOW_PROVISION=1` is set explicitly. There is no default password and no public sign-up; **production first-Owner onboarding is not implemented in WP3** and remains an operations/handover task.
 
 To run the whole dev stack in containers instead, use `docker compose -f compose.dev.yaml up -d --build` and open <http://127.0.0.1:3000>. In that mode skip `npm run dev`, because the web container owns port 3000. Both the root `npm run dev` script and Compose-published ports bind to loopback.
 
@@ -102,7 +105,7 @@ The npm scripts and aggregate runner exist. The individual steps and the aggrega
 |---|---|
 | `npm run typecheck` | TypeScript strict type checking across workspaces |
 | `npm run lint` | ESLint 10 flat config (`eslint-config-next`) |
-| `npm run test:unit` | Unit tests (WP1: health payload mapping and migration labels) |
+| `npm run test:unit` | Unit tests (health, contracts, RBAC matrix, lockout arithmetic, HTTP guards, loading skeleton) |
 | `npm run test:integration` | Database integration test against the Compose test database |
 | `npm run test:e2e:web` | Playwright Chromium test for the walking-skeleton page |
 | `npm run build` | Next.js production build with standalone output |
@@ -118,8 +121,8 @@ Verified on 2026-11-26: `npm ci`, typecheck, lint (ESLint 10.15.0), 5 unit tests
 
 - **Compose services:** `web` (Next.js standalone), `db` (PostgreSQL 19 with a named persistent volume), `proxy` (Caddy 2: TLS, compression, security headers). The optional `backup` sidecar exists only as a commented block in `compose.yaml`; scheduled backups are WP9 work. No Redis, no mandatory cloud service.
 - **Health checks:** `/api/v1/health` (DB roundtrip + migration version) is used by the Compose healthcheck and returns 503 with `database:"down"` when PostgreSQL is unreachable. The proxy waits for a healthy web container.
-- **Migrations before app start:** not implemented in WP1. `scripts/db-migrate.sh` delegates to `packages/db` once WP2 creates it; until then it prints a hand-off message and exits 0. Do not treat the current image as migration-safe for production data.
-- **Backups:** planned for WP9 (`pg_dump` schedule, off-host copy, encryption, restore drill); nothing is scheduled by WP1.
+- **Migrations before app start:** `npm run db:migrate` applies the WP2 Drizzle migrations. The web container does not auto-migrate; run the command (or the release runbook step) before starting a new image. Production data still requires a backup before a migration.
+- **Backups:** planned for WP9 (`pg_dump` schedule, off-host copy, encryption, restore drill); nothing is scheduled yet.
 - **Upgrades and rollback:** image tags and the DB-volume snapshot rule are design requirements (ADR §5.3); the upgrade/rollback rehearsal is not yet executed.
 
 Details: [`docs/adr/0001-stack-and-architecture.md`](docs/adr/0001-stack-and-architecture.md) §3.9 and §5.
@@ -155,12 +158,12 @@ From handover onward the **buyer is the Data Controller** under Indonesia's UU P
 
 ## Handover status
 
-**Current status: WP1 verified on `feat/wp1-walking-skeleton`, not yet merged.** Requirements, architecture, design system, work packages, and handover documentation exist. WP1 added the monorepo harness, web skeleton, health endpoint, Compose stacks, license report, and aggregate gate. No CI pipeline or git hook exists; the mobile app, database schema, auth, and business screens have not started.
+**Current status: WP1 and WP2 merged to `main`; WP3 on `feat/wp3-auth-rbac-outlets`.** Requirements, architecture, design system, work packages, and handover documentation exist. WP1 added the monorepo harness, web skeleton, health endpoint, Compose stacks, license report, and aggregate gate; WP2 added the database schema, migrations, seed, and scoped query helpers; WP3 adds auth, RBAC, staff, and outlets. No CI pipeline or git hook exists yet; the mobile app, catalog, orders, and reports have not started.
 
 | Milestone | Scope | Status |
 |---|---|---|
-| **M1 — Walking skeleton** (WP1) | Clone-and-run monorepo harness, Compose stack, health endpoint, aggregate gate, license report | **Verified on the task branch (2026-11-26), not yet merged** |
-| **M2 — MVP** (WP2–WP8) | Schema and seed; auth/RBAC/outlets; catalog and inventory ledger; customers, vehicles, plate history; orders, payments, receipts; Android offline app with sync; reports, audit, export, settings, hardening gate | Not started |
+| **M1 — Walking skeleton** (WP1) | Clone-and-run monorepo harness, Compose stack, health endpoint, aggregate gate, license report | **Verified 2026-11-26 and merged to `main` as PR #1 (`a96ffcb`)** |
+| **M2 — MVP** (WP2–WP8) | Schema and seed; auth/RBAC/outlets; catalog and inventory ledger; customers, vehicles, plate history; orders, payments, receipts; Android offline app with sync; reports, audit, export, settings, hardening gate | **In progress** — WP2 merged (PR #2, `88252dc`); WP3 on `feat/wp3-auth-rbac-outlets` |
 | **M3 — Handover-ready** (WP9) | Backup restore drill, accessibility sign-off, fresh-clone deployment rehearsal, license re-audit, executed handover checklist and evidence bundle | Not started |
 
 Milestone definitions and exit criteria are maintained in [`docs/STATUS.md`](docs/STATUS.md); work-package acceptance criteria in [`docs/plan/work-packages.md`](docs/plan/work-packages.md) define the detailed proof. Handover is executed against [`docs/ops/handover-checklist.md`](docs/ops/handover-checklist.md) on a frozen candidate commit.

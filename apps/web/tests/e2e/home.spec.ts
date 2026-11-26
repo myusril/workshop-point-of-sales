@@ -1,25 +1,27 @@
 import { expect, test } from "@playwright/test";
 
-test("walking-skeleton page renders the heading and health link", async ({ page }) => {
+import { readTestPassword, SEED_ACCOUNTS } from "./env";
+
+test("the guarded home redirects to login, then shows the signed-in identity", async ({ page }) => {
   await page.goto("/");
 
+  await expect(page).toHaveURL(/\/login\?next=%2F$/);
   await expect(page.locator("html")).toHaveAttribute("lang", "id");
-  await expect(page.locator("h1")).toHaveCount(1);
-  await expect(
-    page.getByRole("heading", { level: 1, name: "Workshop POS" }),
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Masuk" })).toBeVisible();
 
-  const healthLink = page.getByRole("link", { name: "Periksa status sistem" });
+  await page.getByLabel("Email, nama pengguna, atau nomor HP").fill(SEED_ACCOUNTS.owner.username);
+  await page.getByLabel("Kata sandi").fill(readTestPassword());
+  await page.getByRole("button", { name: "Masuk" }).click();
 
-  await expect(healthLink).toBeVisible();
-  await expect(healthLink).toHaveAttribute("href", "/api/v1/health");
+  await expect(page.getByRole("heading", { level: 1, name: "Workshop POS" })).toBeVisible();
+  expect(new URL(page.url()).pathname).toBe("/");
 
-  await page.keyboard.press("Tab");
-  await expect(healthLink).toBeFocused();
-  await expect(healthLink).toHaveCSS("outline-style", "solid");
+  await expect(page.getByText(SEED_ACCOUNTS.owner.name).first()).toBeVisible();
+  await expect(page.getByText("Pemilik", { exact: true }).first()).toBeVisible();
+  await expect(page.getByRole("link", { name: "Pengguna", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Outlet", exact: true })).toBeVisible();
 
-  const fitsViewport = await page.evaluate(
-    () => document.documentElement.scrollWidth <= window.innerWidth,
-  );
-  expect(fitsViewport).toBe(true);
+  await page.getByRole("button", { name: "Keluar" }).click();
+  await expect(page).toHaveURL(/\/login$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Masuk" })).toBeVisible();
 });

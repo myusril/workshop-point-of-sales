@@ -232,7 +232,17 @@ Summary table:
 
 | ID | Date | Tier | Decision | Context | Decider | Approver | Status | Link |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| DEC-0001 |  |  |  |  |  |  |  |  |
+| DEC-0001 | 2026-11-26 | 3 | Lock an identifier for 15 minutes after 5 consecutive failed logins | WP3 auth rate limiting (PRD AC2.2, NFR-007) | Founder | Founder | implemented | WP3 brief; WP3 implementation |
+| DEC-0002 | 2026-11-26 | 3 | Passwords are at least 8 characters and contain a letter and a digit | WP3 credential policy (NFR-007) | Founder | Founder | implemented | WP3 brief; WP3 implementation |
+| DEC-0003 | 2026-11-26 | 3 | The Owner role is provisioned only; the staff API cannot create or grant it | Prevent privilege escalation from the users screen (FR-001, FR-003) | Founder | Founder | implemented | WP3 brief; WP3 implementation |
+| DEC-0004 | 2026-11-26 | 3 | Web sessions have a 12-hour absolute lifetime, in addition to the per-outlet idle timeout | Session lifetime is a Tier 3 security parameter (NFR-007, FR-070) | Founder | Founder | implemented | WP3 implementation |
+| DEC-0005 | 2026-11-26 | 3 | Mobile bearer tokens expire after 30 days and can be revoked per device | Token lifetime is a Tier 3 security parameter (ADR-0001 §3.4) | Founder | Founder | implemented | WP3 implementation |
+| DEC-0006 | 2026-11-26 | 2 | Outlet create/edit is Owner-only (`manage_outlets`), an explicit extension of Appendix A under FR-009 | Appendix A has no outlet CRUD row; FR-009 assigns it to the Owner | Product owner (reference-matching) | decision-reviewer | implemented | WP3 implementation |
+| DEC-0007 | 2026-11-26 | 2 | Add an Owner-only "Buka kunci" action (audited) to clear a staff account's login lockout | A 5-request lockout DoS had no in-product recovery; an audited Owner action restores operations without changing any other role's permissions | Product owner | Founder | implemented | WP3 repair round |
+| DEC-0008 | 2026-11-26 | 3 | The outlet idle timeout applies to the mobile bearer surface as well as the web cookie surface | FR-002/NFR-007 are not surface-scoped; the 30-day token TTL remains a separate absolute cap | Founder | Founder | implemented | WP3 repair round |
+| DEC-0009 | 2026-11-26 | 3 | Login-attempt identifiers are retained for 30 days and then pruned | Identifier rows are personal data (PD-01) and grow from an unauthenticated path; 30 days supports abuse investigation | Founder | Founder | implemented | WP3 repair round |
+| DEC-0010 | 2026-11-26 | 2 | Any role assigned to more than one active outlet may switch the active outlet | FR-001/FR-004 are normative and not role-limited; WP4+ must filter outlet-scoped reads by the session's active outlet | Product owner | Founder | implemented | WP3 repair round |
+| DEC-0011 | 2026-11-26 | 3 | A bounded in-process per-IP throttle blocks 30 failed logins per 15 minutes; edge/IP throttling remains WP8 | The founder-approved unlock option also required an IP throttle; NAT-aware 30/15 keeps a shared office working | Founder | Founder | implemented | WP3 repair round 2 |
 
 Status values: `proposed`, `approved`, `rejected`, `implemented`, `reverted`, `superseded`.
 
@@ -258,6 +268,204 @@ Entry template:
 - Supersedes:         DEC-<number>, if any
 ```
 
+### DEC-0001 — Lockout after five failed logins
+
+- Date: 2026-11-26
+- Tier: 3
+- Status: implemented
+- Requester: engineering (WP3)
+- Decider: Founder
+- Approver(s): Founder
+- Context: PRD AC2.2 requires rate limiting after five consecutive failures; the duration was not specified.
+- Options: 5 minutes (faster recovery, weaker resistance); 15 minutes (chosen); 30 minutes (stronger, more counter friction).
+- Decision: Five consecutive failures lock the identifier for 15 minutes; a success or expiry resets the streak.
+- Rationale: Slows guessing without blocking a full shift; the Owner can restore a staff account.
+- Consequences: Locked staff wait or ask the Owner; attempts are recorded without the password.
+- Rollback: Change the policy constant and its tests; no data migration.
+- Follow-ups: Keep the lockout copy in Bahasa Indonesia in sync.
+- Links: WP3 brief, `packages/auth/src/rbac.ts`, `packages/auth/src/login-attempts.ts`.
+- Supersedes: none
+
+### DEC-0002 — Password composition policy
+
+- Date: 2026-11-26
+- Tier: 3
+- Status: implemented
+- Requester: engineering (WP3)
+- Decider: Founder
+- Approver(s): Founder
+- Context: Better Auth defaults to a minimum length; the product needed an explicit staff-credential policy.
+- Options: 8 characters only (upstream default); 8 characters with a letter and a digit (chosen); 12 characters with composition.
+- Decision: Minimum 8 characters, at least one letter and one digit, maximum 256. Hashing stays with Better Auth's adaptive salted default.
+- Rationale: Blocks the weakest passwords without inventing a proprietary hashing path.
+- Consequences: Provisioning and staff creation reject non-conforming temporary passwords.
+- Rollback: Change the contract schema and tests; existing hashes remain valid.
+- Follow-ups: None.
+- Links: WP3 brief, `packages/contracts/src/auth.ts`, `packages/contracts/src/users.ts`.
+- Supersedes: none
+
+### DEC-0003 — Owner role is provisioned only
+
+- Date: 2026-11-26
+- Tier: 3
+- Status: implemented
+- Requester: engineering (WP3)
+- Decider: Founder
+- Approver(s): Founder
+- Context: FR-001 lists Owner as a role, and FR-009 gives staff management to the Owner; granting Owner from the staff API would allow accidental or malicious escalation.
+- Options: Allow Owner creation with audit; restrict the Owner role to the provisioning path (chosen).
+- Decision: The users API/UI can create and assign Admin, Cashier, and Mechanic only. Owner accounts come from the provisioning path; Owner rows cannot be deactivated or re-roled through staff management.
+- Rationale: Keeps the highest privilege out of routine UI flows; provisioning remains a deliberate operator action.
+- Consequences: A second owner requires the provisioning path; support must document that step.
+- Rollback: Add the Owner role to the assignable set with an explicit approval; no schema change.
+- Follow-ups: Document the Owner provisioning step for the buyer.
+- Links: WP3 brief, `packages/contracts/src/users.ts`, `packages/auth/src/users.ts`.
+- Supersedes: none
+
+### DEC-0004 — Absolute web-session lifetime
+
+- Date: 2026-11-26
+- Tier: 3
+- Status: implemented
+- Requester: engineering (WP3)
+- Decider: Founder
+- Approver(s): Founder
+- Context: FR-070 configures an idle timeout per outlet (default 30 minutes). A stolen or shared browser session also needs an absolute cap independent of activity.
+- Options: 8 hours (one shift); 12 hours (chosen); 24 hours (more convenience, higher shared-device risk).
+- Decision: A web session can live at most 12 hours from creation even with continuous activity; inactivity still ends it at the outlet's configured timeout.
+- Rationale: Covers a long shift plus overtime while forcing a daily re-authentication.
+- Consequences: Staff sign in again after 12 hours; no data migration.
+- Rollback: Change `POLICY.absoluteSessionHours` and its tests.
+- Follow-ups: Keep the CMS/ops note aligned if the shift model changes.
+- Links: WP3 implementation, ADR-0001 §3.8, PRD NFR-007.
+- Supersedes: none
+
+### DEC-0005 — Mobile bearer token lifetime
+
+- Date: 2026-11-26
+- Tier: 3
+- Status: implemented
+- Requester: engineering (WP3)
+- Decider: Founder
+- Approver(s): Founder
+- Context: The Android app needs a bearer token that survives offline periods but can be revoked; ADR-0001 fixes the hashed-at-rest design but not the lifetime.
+- Options: 7 days; 30 days (chosen); 90 days.
+- Decision: Device tokens expire after 30 days. Only the SHA-256 digest is stored; Owner/Admin and the user can revoke a device; logout revokes immediately.
+- Rationale: Balances counter reliability with a bounded misuse window.
+- Consequences: Devices re-authenticate monthly; revocation takes effect on the next request.
+- Rollback: Change the token TTL constant; existing tokens keep their stored expiry.
+- Follow-ups: WP7 must handle expiry by prompting an online re-login and clearing its outbox state safely.
+- Links: WP3 implementation, ADR-0001 §3.4, PRD NFR-007.
+- Supersedes: none
+
+### DEC-0006 — Outlet management permission
+
+- Date: 2026-11-26
+- Tier: 2
+- Status: implemented
+- Requester: engineering (WP3)
+- Decider: Product owner (reference-matching)
+- Approver(s): decision-reviewer
+- Context: PRD Appendix A is the normative permission matrix, but it has no row for outlet creation or editing. FR-009 says the Owner creates and edits outlets.
+- Options: Reuse the Owner-only settings row; add an explicit Owner-only `manage_outlets` action (chosen).
+- Decision: `manage_outlets` is Owner-only. Admin, Cashier, and Mechanic cannot list, create, or edit outlets through management APIs; the session still carries outlet names for display and switching.
+- Rationale: Keeps Appendix A unchanged while making FR-009 testable and explicit.
+- Consequences: Outlet CRUD is audited and Owner-only; a future matrix change requires a new decision.
+- Rollback: Remove the action and map outlet CRUD to `manage_settings`; no data change.
+- Follow-ups: Add the row to Appendix A at the next PRD revision.
+- Links: WP3 implementation, PRD FR-009, `packages/auth/src/rbac.ts`.
+- Supersedes: none
+
+### DEC-0007 — Owner unlock for a locked staff account
+
+- Date: 2026-11-26
+- Tier: 2
+- Status: implemented
+- Requester: engineering (WP3)
+- Decider: Product owner
+- Approver(s): Founder
+- Context: A known identifier can be locked with five wrong passwords, and there was no in-product recovery short of waiting or direct database access.
+- Options: Owner-only audited unlock; per-IP throttle only; accept with a manual SQL runbook.
+- Decision: The Owner can clear a staff account's login-attempt rows from the users screen. The action is audited with actor, target, and reason; no other role gains it.
+- Rationale: Restores operations quickly while keeping the 5-failure lock and leaving the permission matrix otherwise unchanged.
+- Consequences: A new Owner-only action appears in the staff screen; it cannot unlock the Owner account if the Owner is themselves locked (wait for expiry or use the documented recovery path).
+- Rollback: Remove the route/UI and the audit action; login attempts remain.
+- Follow-ups: Add the action to the next PRD Appendix A revision.
+- Links: WP3 repair round, `packages/auth/src/users.ts`, `apps/web/app/api/v1/users/[id]/unlock`.
+- Supersedes: none
+
+### DEC-0008 — Mobile bearer idle timeout
+
+- Date: 2026-11-26
+- Tier: 3
+- Status: implemented
+- Requester: architecture review (WP3)
+- Decider: Founder
+- Approver(s): Founder
+- Context: The web session enforced the outlet idle timeout, but the bearer path only had a 30-day TTL; FR-002 and NFR-007 are not surface-scoped.
+- Options: Enforce the idle timeout on bearer requests (chosen); exempt mobile and record the exemption.
+- Decision: A bearer request whose last use exceeds the active outlet's idle timeout is rejected and the device token is revoked. The 30-day TTL remains.
+- Rationale: Closes the silent gap; the offline outbox is unaffected because sync is an online write and can prompt re-authentication.
+- Consequences: WP7 must handle an idle-revoked token by prompting an online re-login and keeping queued data safe.
+- Rollback: Remove the idle comparison from the bearer path; the TTL remains.
+- Follow-ups: WP7 re-auth UX; keep the idle copy in Bahasa Indonesia.
+- Links: WP3 repair round, PRD FR-002/NFR-007, ADR-0001 §3.4.
+- Supersedes: none
+
+### DEC-0009 — Login-attempt retention
+
+- Date: 2026-11-26
+- Tier: 3
+- Status: implemented
+- Requester: security/architecture review (WP3)
+- Decider: Founder
+- Approver(s): Founder
+- Context: `login_attempts` stores attacker-supplied email/username/phone identifiers and had no retention or cap.
+- Options: 24 hours; 30 days (chosen); 90 days.
+- Decision: Keep attempt rows for 30 days, prune touched keys on each login, and run a bounded global prune of rows older than 30 days.
+- Rationale: Enough history for abuse investigation while bounding personal-data retention and table growth.
+- Consequences: Older attack patterns are no longer queryable; the lock window itself is only 15 minutes.
+- Rollback: Change the retention constant and the prune helper.
+- Follow-ups: WP8 adds an edge/IP throttle for cross-identifier floods.
+- Links: WP3 repair round, PD-01, `packages/auth/src/login-attempts.ts`.
+- Supersedes: none
+
+### DEC-0010 — Multi-outlet scoped staff may switch outlets
+
+- Date: 2026-11-26
+- Tier: 2
+- Status: implemented
+- Requester: architecture review (WP3)
+- Decider: Product owner
+- Approver(s): Founder
+- Context: FR-001 and FR-004 allow any staff member to have multiple outlet assignments and to switch the active outlet; the WP3 brief only required the Owner case, and the guard initially denied scoped roles.
+- Options: Allow switching for any role with more than one assigned active outlet (chosen); restrict scoped roles to exactly one outlet.
+- Decision: The active-outlet switch is available to any authenticated role with more than one active outlet. A single-outlet user gets no switcher; an out-of-scope target is denied and audited.
+- Rationale: Follows the normative PRD without changing the permission matrix.
+- Consequences: WP4+ outlet-scoped reads must filter by the session's active outlet, not the full assigned list.
+- Rollback: Restrict switching to Owner/Admin and enforce single-outlet assignment for scoped roles.
+- Follow-ups: WP4 query helpers must consume `activeOutletId` for `O`-scoped actions.
+- Links: WP3 repair round, PRD FR-001/FR-004, `packages/auth/src/guard.ts`.
+- Supersedes: none
+
+### DEC-0011 — Bounded per-IP login throttle
+
+- Date: 2026-11-26
+- Tier: 3
+- Status: implemented
+- Requester: security review (WP3)
+- Decider: Founder
+- Approver(s): Founder
+- Context: The Founder's lockout-recovery choice bundled an Owner unlock with a per-IP attempt limit. The account-keyed lockout still allowed a caller rotating identifiers to spend the whole credential budget from one address.
+- Options: In-process NAT-aware 30 failures / 15 minutes (chosen); 20 or 50 per 15 minutes; defer to an edge/reverse-proxy throttle.
+- Decision: The public login route checks a bounded in-process per-IP counter before account resolution. The 30th failure blocks that address for 15 minutes with `RATE_LIMITED` and a countdown; successes do not reset it; the map is capped and time-pruned and never stores an IP in the database or logs. Edge/IP throttling across multiple app replicas remains WP8.
+- Rationale: Closes the rotating-identifier half of the founder-approved control without penalising a normal shared office NAT.
+- Consequences: A single aggressive client address is blocked for 15 minutes; a multi-process deployment needs the WP8 edge throttle for cross-replica coverage.
+- Rollback: Remove the throttle module and its route wiring; the account lockout remains.
+- Follow-ups: WP8 edge/IP throttle and monitoring; keep the Bahasa countdown copy.
+- Links: WP3 repair round 2, `packages/auth/src/ip-rate-limit.ts`, `apps/web/lib/auth/http.ts`.
+- Supersedes: none
+
 Log rules:
 
 - Append only. Correct a mistake by adding a new entry that supersedes the old one and explains the correction.
@@ -268,7 +476,7 @@ Log rules:
 Illustrative entry (not a real decision):
 
 ```text
-### DEC-0007 — Keep tax rounding at the line level
+### DEC-9999 (illustrative, not a real decision) — Keep tax rounding at the line level
 
 - Date: 2026-11-26
 - Tier: 2

@@ -7,14 +7,21 @@ ENV NEXT_TELEMETRY_DISABLED=1
 FROM base AS deps
 COPY package.json package-lock.json ./
 COPY apps/web/package.json ./apps/web/package.json
+COPY packages/auth/package.json ./packages/auth/package.json
+COPY packages/contracts/package.json ./packages/contracts/package.json
+COPY packages/db/package.json ./packages/db/package.json
 RUN npm ci --no-audit --no-fund
 
 FROM base AS dev
 ENV NODE_ENV=development
 COPY package.json package-lock.json ./
 COPY apps/web/package.json ./apps/web/package.json
+COPY packages/auth/package.json ./packages/auth/package.json
+COPY packages/contracts/package.json ./packages/contracts/package.json
+COPY packages/db/package.json ./packages/db/package.json
 RUN npm ci --no-audit --no-fund
 COPY apps/web ./apps/web
+COPY packages ./packages
 EXPOSE 3000
 CMD ["npm", "run", "dev", "--workspace", "@workshop-pos/web", "--", "--hostname", "0.0.0.0", "--port", "3000"]
 
@@ -22,6 +29,7 @@ FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY package.json package-lock.json ./
 COPY apps/web ./apps/web
+COPY packages ./packages
 RUN npm run build --workspace @workshop-pos/web
 
 # Image optimization is disabled (next.config.mjs). Remove sharp and its

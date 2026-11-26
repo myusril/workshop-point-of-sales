@@ -32,6 +32,9 @@ services:
       NODE_ENV: development
       NEXT_TELEMETRY_DISABLED: "1"
       DATABASE_URL: postgresql://${POSTGRES_USER:-workshop}:${POSTGRES_PASSWORD:-workshop}@db:5432/${POSTGRES_DB:-workshop_pos}
+      APP_URL: ${APP_URL:-http://localhost:3000}
+      # Disposable development-only secret. Override with a real value outside dev.
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-dev-only-workshop-pos-secret-change-me-32chars}
     command:
       - npm
       - run
