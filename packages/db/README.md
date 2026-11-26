@@ -88,6 +88,13 @@ asserts, as the owner, that `app_rw` can `SELECT` every table in schema
 `public`, that `app_rw` has no `TRUNCATE`, and that the grant set matches the
 three groups above exactly.
 
+`payments` deliberately has **no `DELETE`** grant: FR-048 corrects a mis-keyed
+pre-`PAID` row in place (method, amount, or reference note), and money on a
+`PAID` order is reversed by whole-order void/refund rows, never removed.
+`order_lines` keeps `DELETE` because removing a line while the order is editable
+is part of FR-044; the `0002` trigger blocks it once the order is
+`PAID`/`VOID`.
+
 Accepted on purpose (kept so the schema does not drift into half-RBAC):
 
 - `app_rw` may `UPDATE` `user` including `role`/`businessId`, and may
@@ -113,13 +120,15 @@ schema resets behind the `_test` guard, never `TRUNCATE`.
 | `0000_init` | Enums, all 23 tables, named checks/uniques/indexes/FKs. | Forward-fix only. Destructive changes (drop/rename) ship one release after reads stop using the old shape (ADR-0001 §5.3). To undo wholly, drop the schema objects the file creates; there is no data-safe down script. |
 | `0001_append_only_guard` | `app_rw` role (create-if-absent), schema usage, explicit table grants, `prevent_append_only_mutation()` and its two triggers. | Drop both triggers, drop the function, revoke grants. Keeping the role is fine. |
 | `0002_financial_history_guard` | `refunds.payment_id NOT NULL`; SHA-256 hex checks (`device_tokens.token_hash`, `idempotency_keys.request_hash`); four stock-ledger entry/source consistency checks; an `app_rw` role-safety assertion; paid/VOID immutability triggers on `orders`, `payments`, `order_lines`; whole-refund match trigger; server-assigned `created_at` triggers on `stock_ledger`, `audit_log`, `order_status_events`. | Drop the seven triggers and five functions, drop each named CHECK, then `ALTER TABLE refunds ALTER COLUMN payment_id DROP NOT NULL;`. Forward-fix only once applied: never edit the file. |
+| `0003_payment_move_guard` | Replaces `enforce_paid_payment_immutability()` so an `UPDATE` validates the payment's source (`OLD`) order and any destination (`NEW`) order; a payment can no longer be moved out of a `PAID`/`VOID` order into an editable one. | Re-apply the function body from `0002_financial_history_guard.sql` (the narrower check). No table, grant, or trigger changes. |
 
 `0000` and `0001` are frozen; `0002` was generated from the Drizzle schema diff
 and then extended with hand-written policy SQL (trigger bodies, role assertion),
-so `drizzle-kit generate` reports no drift against it. Every trigger is
-dropped-if-exists before creation, so re-running the file on a fresh schema is
-safe. `drizzle-kit migrate` records applied migrations in
-`drizzle.__drizzle_migrations`; a second run applies nothing.
+so `drizzle-kit generate` reports no drift against it. `0003` is a hand-written
+`--custom` function replacement with no snapshot: it changes behavior, not the
+schema. Every trigger is dropped-if-exists before creation, so re-running the
+files on a fresh schema is safe. `drizzle-kit migrate` records applied
+migrations in `drizzle.__drizzle_migrations`; a second run applies nothing.
 
 Migrations run as the **owner**. `app_rw` is application-only.
 
@@ -234,8 +243,10 @@ adds row triggers for every role (including the owner):
   money field, `paid_at`, or `created_by` in the same statement. A `VOID` order
   is terminal.
 - `payments`: `UPDATE`/`DELETE` rejected while the parent order is `PAID` or
-  `VOID`. FR-048 corrections happen before `PAID`; post-`PAID` money movement is
-  a refund row, not an edit.
+  `VOID`. An `UPDATE` also validates the source (`OLD`) and any destination
+  (`NEW`) order, so a payment cannot be moved out of a paid receipt into an
+  editable order (`0003_payment_move_guard`). FR-048 corrections happen before
+  `PAID`; post-`PAID` money movement is a refund row, not an edit.
 - `order_lines`: `INSERT`/`UPDATE`/`DELETE` rejected while the parent order is
   `PAID` or `VOID`, so a paid receipt cannot gain, lose, or reprice a line.
 

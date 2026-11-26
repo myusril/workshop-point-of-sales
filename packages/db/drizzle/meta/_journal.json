@@ -22,6 +22,13 @@
       "when": 1795677486520,
       "tag": "0002_financial_history_guard",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1795678684300,
+      "tag": "0003_payment_move_guard",
+      "breakpoints": true
     }
   ]
 }

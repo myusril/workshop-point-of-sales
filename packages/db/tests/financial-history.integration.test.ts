@@ -211,6 +211,28 @@ describe("payments of paid and void orders", () => {
     expect(deleteError.code).toBe("P0001");
   });
 
+  it("rejects moving a payment out of a PAID order into an editable order", async () => {
+    const paidOrder = await createOrder();
+    const payment = await createPayment(paidOrder.id);
+    await markPaid(paidOrder.id);
+    const draftOrder = await createOrder();
+
+    const error = await expectDatabaseError(() =>
+      db
+        .update(payments)
+        .set({ orderId: draftOrder.id })
+        .where(eq(payments.id, payment.id)),
+    );
+    expect(error.code).toBe("P0001");
+    expect(error.message).toContain("immutable");
+
+    const [stored] = await db
+      .select({ orderId: payments.orderId })
+      .from(payments)
+      .where(eq(payments.id, payment.id));
+    expect(stored?.orderId).toBe(paidOrder.id);
+  });
+
   it("rejects payment changes once the order is VOID", async () => {
     const order = await createOrder();
     const payment = await createPayment(order.id);

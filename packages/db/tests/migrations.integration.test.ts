@@ -27,7 +27,7 @@ describe("migrations", () => {
   it("applies the schema and guard migrations", async () => {
     handle = await migrateTestDatabase();
 
-    expect(await appliedMigrationCount(handle.pool)).toBe(3);
+    expect(await appliedMigrationCount(handle.pool)).toBe(4);
 
     const { rows: tableRows } = await handle.pool.query<{ count: string }>(
       `select count(*)::text as count
