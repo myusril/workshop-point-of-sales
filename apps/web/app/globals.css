@@ -1,0 +1,123 @@
+@import "tailwindcss";
+
+/*
+ * WP1 skeleton styling only. The design-system shell, component library, and
+ * self-hosted Inter / IBM Plex Mono fonts arrive in WP4; these values map the
+ * minimal light-theme subset needed to prove the render path.
+ */
+:root {
+  color-scheme: light;
+  --skeleton-canvas: #f4f5f2;
+  --skeleton-surface: #ffffff;
+  --skeleton-text-primary: #14191b;
+  --skeleton-text-secondary: #4a5559;
+  --skeleton-border: #c9d0cb;
+  --skeleton-link: #0a5b54;
+  --skeleton-link-hover: #084b46;
+  --skeleton-focus-ring: #0e6e66;
+  --skeleton-font-sans: Inter, "Segoe UI", system-ui, sans-serif;
+}
+
+body {
+  background: var(--skeleton-canvas);
+  color: var(--skeleton-text-primary);
+  font-family: var(--skeleton-font-sans);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  -webkit-font-smoothing: antialiased;
+}
+
+.skeleton {
+  display: grid;
+  min-height: 100dvh;
+  place-items: center;
+  padding: 1.5rem;
+}
+
+.skeleton__sheet {
+  width: min(40rem, 100%);
+  padding: 2.5rem;
+  background: var(--skeleton-surface);
+  border: 1px solid var(--skeleton-border);
+  border-radius: 0.25rem;
+}
+
+.skeleton__title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+  line-height: 2rem;
+}
+
+.skeleton__lead {
+  max-width: 68ch;
+  margin: 1rem 0 0;
+  color: var(--skeleton-text-secondary);
+  font-size: 1rem;
+  line-height: 1.5rem;
+}
+
+.skeleton__facts {
+  display: grid;
+  margin: 2rem 0;
+  border-top: 1px solid var(--skeleton-border);
+}
+
+.skeleton__fact {
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--skeleton-border);
+}
+
+.skeleton__fact dt {
+  color: var(--skeleton-text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.skeleton__fact dd {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.25rem;
+  text-align: right;
+}
+
+.skeleton__link {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  padding: 0 0.125rem;
+  color: var(--skeleton-link);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.25rem;
+}
+
+.skeleton__link:hover {
+  color: var(--skeleton-link-hover);
+}
+
+.skeleton__link:focus-visible {
+  border-radius: 0.25rem;
+  outline: 2px solid var(--skeleton-focus-ring);
+  outline-offset: 2px;
+}
+
+@media (max-width: 30rem) {
+  .skeleton__sheet {
+    padding: 1.5rem;
+  }
+
+  .skeleton__fact {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .skeleton__fact dd {
+    text-align: left;
+  }
+}

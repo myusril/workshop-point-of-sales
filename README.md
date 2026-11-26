@@ -1,6 +1,6 @@
 # Workshop POS
 
-> **Current status: planning artifacts only.** This repository contains the product requirements, architecture decision record, design system, work packages, and handover documentation. **No application code exists yet** — Work Package 1 (WP1) will create the monorepo, tooling, and every command described below. No command in this document has been executed or verified in this repository.
+> **Current status: WP1 walking skeleton implemented and verified on branch `feat/wp1-walking-skeleton` (2026-11-26); not yet merged into `main`.** The npm-workspace harness, dev/prod Compose stacks, `/api/v1/health` endpoint, license report, and aggregate gate exist; the individual gate steps were executed. WP2+ product code — database schema, auth, catalog, orders, receipts, and the mobile app — has not started, so the capability list below is the product target, not current functionality.
 
 A point-of-sale system for vehicle workshops (bengkel) in Indonesia.
 
@@ -47,7 +47,9 @@ Not built now, and not to be built speculatively: full accounting/payroll; suppl
 
 Rationale, alternatives, trust boundaries, offline-sync design, and rollback strategy: [`docs/adr/0001-stack-and-architecture.md`](docs/adr/0001-stack-and-architecture.md).
 
-## Repository layout (planned)
+## Repository layout
+
+WP1 created `apps/web/`, `docker/`, `scripts/`, `compose.yaml`, and `compose.dev.yaml`. `apps/mobile/` and the `packages/*` workspaces are created by later WPs and do not exist yet.
 
 | Path | Contents |
 |---|---|
@@ -75,44 +77,50 @@ Exact file ownership per work package: [`docs/plan/work-packages.md`](docs/plan/
 
 ## Setup
 
-> **Delivered by WP1.** The commands below are the agreed setup contract; the files they depend on (`.env.example`, `package.json`, `compose.dev.yaml`, `scripts/`) do not exist in this repository yet and will be created by WP1. Nothing here has been run.
+The commands below are implemented by WP1. Run them under Node 26.13.1 (for example `fnm exec --using=26.13.1 -- npm ci`). The dev database uses disposable local credentials and publishes port **55432**; the integration test database `workshop_pos_test` is created by `docker/initdb/01-test-database.sql` on a fresh volume.
 
 ```sh
-cp .env.example .env        # then fill in local values — placeholders only, never commit .env
+cp .env.example .env        # placeholders only; .env is gitignored and never committed
 npm ci                      # install workspace dependencies from the lockfile
-docker compose -f compose.dev.yaml up -d   # start PostgreSQL (dev stack)
-npm run db:migrate          # apply database migrations
-npm run db:seed             # load synthetic seed fixtures
-npm run dev                 # start the web back-office (and mobile tooling, as wired by WP1)
+docker compose -f compose.dev.yaml up -d --wait db   # PostgreSQL on 127.0.0.1:55432
+npm run db:migrate          # prints the WP2 hand-off message until packages/db exists
+npm run db:seed             # prints the WP2 hand-off message until packages/db exists
+npm run dev                 # Next.js on 127.0.0.1:3000; reads the root .env
 ```
 
-`.env` is gitignored; only `.env.example` (placeholders + comments) is tracked. Never put real credentials in the repository.
+To run the whole dev stack in containers instead, use `docker compose -f compose.dev.yaml up -d --build` and open <http://127.0.0.1:3000>. In that mode skip `npm run dev`, because the web container owns port 3000. Both the root `npm run dev` script and Compose-published ports bind to loopback.
+
+WP1 uses the documented token values but the system font fallback; self-hosted Inter / IBM Plex Mono are WP4/WP9 work.
+
+`.env` is gitignored; only `.env.example` (placeholders + comments) is tracked. Never put real credentials in the repository. `apps/web/next.config.mjs` loads the root `.env` for host-run Next.js commands; Compose-injected variables take precedence.
 
 ## Quality gate
 
-> **Delivered by WP1** as npm scripts plus the aggregate runner. None of these commands has been executed in this repository.
+The npm scripts and aggregate runner exist. The individual steps and the aggregate runner were executed on 2026-11-26; `bash scripts/check.sh` passed on a fresh development volume after review. The aggregate gate starts the dev database with `--wait`, waits for `workshop_pos_test` itself, then runs the steps in order. `scripts/check.sh` fails loudly when Docker is unavailable; it never skips a step.
 
 | Command | Scope |
 |---|---|
 | `npm run typecheck` | TypeScript strict type checking across workspaces |
-| `npm run lint` | Lint |
-| `npm run test:unit` | Unit tests (pure domain: money, lifecycle, stock, plate) |
-| `npm run test:integration` | API/DB integration tests against the Compose test database |
-| `npm run test:e2e:web` | Playwright web end-to-end tests |
-| `npm run build` | Production build (web + mobile typecheck/build) |
-| `bash scripts/check.sh` | **Aggregate gate** — runs all of the above in that exact order |
+| `npm run lint` | ESLint 10 flat config (`eslint-config-next`) |
+| `npm run test:unit` | Unit tests (WP1: health payload mapping and migration labels) |
+| `npm run test:integration` | Database integration test against the Compose test database |
+| `npm run test:e2e:web` | Playwright Chromium test for the walking-skeleton page |
+| `npm run build` | Next.js production build with standalone output |
+| `bash scripts/check.sh` | **Aggregate gate** — all of the above in that exact order, plus Docker preflight and test-DB readiness |
 
-Runner parity rule: automation must run exactly these commands in this order; nothing may pass locally and fail elsewhere.
+Runner parity rule: automation must run exactly these commands in this order; nothing may pass locally and fail elsewhere. Stop any running `npm run dev` before the aggregate gate; Next.js allows one dev server per project, and the E2E step starts its own on port 3100.
 
-**CI workflows and git hooks are intentionally not part of this kickoff.** They are introduced later as a gate inside WP8; until then `scripts/check.sh` is the only aggregate gate and runs locally.
+**CI workflows and git hooks are intentionally not part of this kickoff.** They are introduced later as a gate inside WP8; until then `scripts/check.sh` is the only aggregate gate and runs locally. The aggregate gate passed on the frozen candidate.
+
+Verified on 2026-11-26: `npm ci`, typecheck, lint (ESLint 10.15.0), 5 unit tests, 1 integration test against PostgreSQL 19.0, 1 Playwright Chromium test, production build, license report, Compose config parsing, and production-image health checks. Chromium viewports 320, 390, 768, and 1440 px were measured; real devices, Firefox, WebKit, and OS dark mode are **NOT VERIFIED**.
 
 ## Deployment summary
 
-- **Compose services:** `web` (Next.js standalone; runs DB migrations on start, before serving), `db` (PostgreSQL with a named persistent volume), `proxy` (Caddy: TLS, compression, security headers), optional `backup` (scheduled `pg_dump` sidecar). No Redis, no mandatory cloud service.
-- **Health checks:** `/api/v1/health` (DB roundtrip + migration version) wired into Compose healthchecks; the proxy waits for a healthy app.
-- **Migrations before app start:** the web entrypoint applies migrations and aborts startup on failure, so the app never serves against an un-migrated schema.
-- **Backups:** `pg_dump` on a 15-minute schedule to a backup volume plus an off-host copy, encrypted at rest; restore procedure is documented and rehearsed at handover (targets: RPO ≤ 15 min, RTO ≤ 2 h — targets, not yet measured).
-- **Upgrades and rollback:** versioned app images; snapshot the DB volume before every upgrade; schema migrations are forward-fixable by policy.
+- **Compose services:** `web` (Next.js standalone), `db` (PostgreSQL 19 with a named persistent volume), `proxy` (Caddy 2: TLS, compression, security headers). The optional `backup` sidecar exists only as a commented block in `compose.yaml`; scheduled backups are WP9 work. No Redis, no mandatory cloud service.
+- **Health checks:** `/api/v1/health` (DB roundtrip + migration version) is used by the Compose healthcheck and returns 503 with `database:"down"` when PostgreSQL is unreachable. The proxy waits for a healthy web container.
+- **Migrations before app start:** not implemented in WP1. `scripts/db-migrate.sh` delegates to `packages/db` once WP2 creates it; until then it prints a hand-off message and exits 0. Do not treat the current image as migration-safe for production data.
+- **Backups:** planned for WP9 (`pg_dump` schedule, off-host copy, encryption, restore drill); nothing is scheduled by WP1.
+- **Upgrades and rollback:** image tags and the DB-volume snapshot rule are design requirements (ADR §5.3); the upgrade/rollback rehearsal is not yet executed.
 
 Details: [`docs/adr/0001-stack-and-architecture.md`](docs/adr/0001-stack-and-architecture.md) §3.9 and §5.
 
@@ -147,12 +155,12 @@ From handover onward the **buyer is the Data Controller** under Indonesia's UU P
 
 ## Handover status
 
-**Current status: planning artifacts only.** Requirements, architecture, design system, work packages, and handover documentation exist. No application code, CI pipeline, or git hook has been created; no command above has been run.
+**Current status: WP1 verified on `feat/wp1-walking-skeleton`, not yet merged.** Requirements, architecture, design system, work packages, and handover documentation exist. WP1 added the monorepo harness, web skeleton, health endpoint, Compose stacks, license report, and aggregate gate. No CI pipeline or git hook exists; the mobile app, database schema, auth, and business screens have not started.
 
 | Milestone | Scope | Status |
 |---|---|---|
-| **M1 — Walking skeleton** (WP1) | Clone-and-run monorepo harness, Compose stack, health endpoint, aggregate gate, license report | Not started — planning artifacts only |
-| **M2 — MVP** (WP2–WP8) | Schema and seed; auth/RBAC/outlets; catalog and inventory ledger; customers, vehicles, plate history; orders, payments, receipts; Android offline app with sync; reports, audit, export, settings, hardening gate | Not started — planning artifacts only |
-| **M3 — Handover-ready** (WP9) | Backup restore drill, accessibility sign-off, fresh-clone deployment rehearsal, license re-audit, executed handover checklist and evidence bundle | Not started — planning artifacts only |
+| **M1 — Walking skeleton** (WP1) | Clone-and-run monorepo harness, Compose stack, health endpoint, aggregate gate, license report | **Verified on the task branch (2026-11-26), not yet merged** |
+| **M2 — MVP** (WP2–WP8) | Schema and seed; auth/RBAC/outlets; catalog and inventory ledger; customers, vehicles, plate history; orders, payments, receipts; Android offline app with sync; reports, audit, export, settings, hardening gate | Not started |
+| **M3 — Handover-ready** (WP9) | Backup restore drill, accessibility sign-off, fresh-clone deployment rehearsal, license re-audit, executed handover checklist and evidence bundle | Not started |
 
 Milestone definitions and exit criteria are maintained in [`docs/STATUS.md`](docs/STATUS.md); work-package acceptance criteria in [`docs/plan/work-packages.md`](docs/plan/work-packages.md) define the detailed proof. Handover is executed against [`docs/ops/handover-checklist.md`](docs/ops/handover-checklist.md) on a frozen candidate commit.

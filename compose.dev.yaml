@@ -1,0 +1,68 @@
+name: workshop-pos-dev
+
+services:
+  db:
+    image: postgres:19-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-workshop}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-workshop}
+      POSTGRES_DB: ${POSTGRES_DB:-workshop_pos}
+    ports:
+      # Host port 55432 is deliberate: 5433 is taken on the reference workstation.
+      # Loopback only: the dev database uses disposable credentials.
+      - "127.0.0.1:55432:5432"
+    volumes:
+      # PostgreSQL 19 images keep PGDATA below /var/lib/postgresql.
+      - workshop_pos_dev_db:/var/lib/postgresql
+      - ./docker/initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 5s
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/web.Dockerfile
+      target: dev
+    environment:
+      NODE_ENV: development
+      NEXT_TELEMETRY_DISABLED: "1"
+      DATABASE_URL: postgresql://${POSTGRES_USER:-workshop}:${POSTGRES_PASSWORD:-workshop}@db:5432/${POSTGRES_DB:-workshop_pos}
+    command:
+      - npm
+      - run
+      - dev
+      - --workspace
+      - "@workshop-pos/web"
+      - --
+      - --hostname
+      - 0.0.0.0
+      - --port
+      - "3000"
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - ./apps/web:/app/apps/web
+      - /app/apps/web/.next
+      - /app/node_modules
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://127.0.0.1:3000/api/v1/health >/dev/null 2>&1 || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    restart: unless-stopped
+
+volumes:
+  workshop_pos_dev_db:
