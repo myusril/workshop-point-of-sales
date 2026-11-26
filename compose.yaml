@@ -1,0 +1,118 @@
+name: workshop-pos
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  db:
+    image: postgres:19-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
+    volumes:
+      # PostgreSQL 19 images keep PGDATA below /var/lib/postgresql.
+      - workshop_pos_db:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    security_opt:
+      - no-new-privileges:true
+    logging: *default-logging
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/web.Dockerfile
+      target: runner
+    image: workshop-pos-web:${APP_VERSION:-local}
+    environment:
+      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: "1"
+      # Built from the database credentials so the host-scoped .env value
+      # (localhost:55432) can never leak into the container network.
+      # Keep POSTGRES_PASSWORD URL-safe: it is embedded in this URL.
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      APP_URL: ${APP_URL:-http://localhost}
+      APP_DOMAIN: ${APP_DOMAIN:-localhost}
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/api/v1/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    logging: *default-logging
+    restart: unless-stopped
+
+  proxy:
+    image: caddy:2-alpine
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      - workshop_pos_caddy_data:/data
+      - workshop_pos_caddy_config:/config
+    depends_on:
+      web:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    logging: *default-logging
+    restart: unless-stopped
+
+  # Optional pg_dump sidecar. Uncomment once the backup volume and the
+  # off-host copy procedure in docs/ops are in place.
+  #
+  # backup:
+  #   image: postgres:19-alpine
+  #   environment:
+  #     PGHOST: db
+  #     PGUSER: ${POSTGRES_USER}
+  #     PGPASSWORD: ${POSTGRES_PASSWORD}
+  #     PGDATABASE: ${POSTGRES_DB}
+  #   volumes:
+  #     - workshop_pos_backups:/backups
+  #   entrypoint:
+  #     - /bin/sh
+  #     - -c
+  #     - |
+  #       while true; do
+  #         pg_dump --format=custom --file="/backups/workshop-pos-$$(date -u +%Y%m%dT%H%M%SZ).dump"
+  #         sleep 900
+  #       done
+  #   depends_on:
+  #     db:
+  #       condition: service_healthy
+  #   restart: unless-stopped
+
+volumes:
+  workshop_pos_db:
+  workshop_pos_caddy_data:
+  workshop_pos_caddy_config:
+  # workshop_pos_backups:

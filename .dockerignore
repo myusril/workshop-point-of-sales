@@ -1,0 +1,45 @@
+# Keep the build context to what the web image needs.
+
+.git
+.gitignore
+.gitattributes
+
+# Local environment and editor state
+.env
+.env.*
+!.env.example
+.brief/
+.omp/
+.vscode/
+.idea/
+.DS_Store
+
+# Installed dependencies and build output
+node_modules/
+**/node_modules/
+.next/
+**/.next/
+out/
+dist/
+build/
+coverage/
+web-build/
+*.tsbuildinfo
+
+# Tests, evidence, and local reports
+apps/web/tests/
+**/playwright-report/
+**/test-results/
+**/blob-report/
+**/coverage/
+junit*.xml
+*.log
+
+# Documentation and repository metadata
+docs/
+README.md
+**/AGENTS.md
+LICENSE
+THIRD_PARTY_NOTICES.md
+orca.yaml
+.worktreeinclude
