@@ -14,6 +14,18 @@ const nextConfig = {
   output: "standalone",
   outputFileTracingRoot: fileURLToPath(new URL("../..", import.meta.url)),
   reactStrictMode: true,
+  experimental: {
+    // Enables forbidden()/forbidden.tsx so an unauthorized direct URL answers
+    // with a real 403 instead of a 200 page that merely looks denied.
+    authInterrupts: true,
+  },
+  // Workspace packages ship TypeScript sources (no build step), so Next must
+  // transpile them in both dev and production builds.
+  transpilePackages: [
+    "@workshop-pos/auth",
+    "@workshop-pos/contracts",
+    "@workshop-pos/db",
+  ],
   // Next 16 writes apps/web/AGENTS.md on every `next dev` unless disabled.
   // That file is framework tooling, not a WP1 deliverable.
   agentRules: false,

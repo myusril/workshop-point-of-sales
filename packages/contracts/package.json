@@ -1,0 +1,27 @@
+{
+  "name": "@workshop-pos/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Zod request/response contracts shared by web, mobile, and tests.",
+  "license": "MIT",
+  "type": "module",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test:unit": "vitest run --config vitest.config.ts tests/*.unit.test.ts"
+  },
+  "dependencies": {
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.11",
+    "eslint": "10.15.0",
+    "typescript": "7.0.2",
+    "typescript-eslint": "8.74.0",
+    "vitest": "5.1.2"
+  }
+}

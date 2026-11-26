@@ -3,13 +3,13 @@
 | Field | Value |
 |---|---|
 | Product | Workshop POS (working name; buyer may rebrand) |
-| Phase | WP2 (database schema, migrations, seed) on the task branch |
+| Phase | WP3 (auth, RBAC, outlets) on the task branch |
 | Date | 2026-11-26 |
-| Code status | WP1 is merged. `packages/db` (schema, migrations, seed, outlet-scoped query helpers) is on the task branch. Auth, catalog, orders, and mobile code do not exist yet |
-| Next gate | WP2 acceptance gates in `docs/plan/work-packages.md` — focused database tests, review gates, then one aggregate `scripts/check.sh` run on the frozen candidate |
+| Code status | WP1 and WP2 are merged to `main`. WP3 auth/RBAC/outlets code is on `feat/wp3-auth-rbac-outlets` and is not merged. Catalog, orders, reports, and mobile code do not exist yet |
+| Next gate | WP3 acceptance gates in `docs/plan/work-packages.md` — focused auth/RBAC tests, reviewer + security review, then one aggregate `scripts/check.sh` run on the frozen candidate |
 | Source of truth | `docs/product/PRD.md`, `docs/adr/0001-stack-and-architecture.md`, `docs/plan/work-packages.md` |
 
-> **Honesty rule.** This page reports what exists and what has been verified. Documents are not proof that the product works. WP1 commands were executed on 2026-11-26 on branch `feat/wp1-walking-skeleton`, including the aggregate `scripts/check.sh` gate on a fresh development volume, and WP1 was merged to `main` as PR #1 (`a96ffcb`). Anything not listed in §7 as verified is **NOT VERIFIED** — including the WP2 schema, migrations, and seed on `feat/wp2-database-schema`, whose verification is not recorded here yet.
+> **Honesty rule.** This page reports what exists and what has been verified. Documents are not proof that the product works. WP1 commands were executed on 2026-11-26 on branch `feat/wp1-walking-skeleton`, including the aggregate `scripts/check.sh` gate on a fresh development volume, and WP1 was merged to `main` as PR #1 (`a96ffcb`). WP2 (schema, migrations, seed, outlet-scoped query helpers) was merged to `main` as PR #2 (`88252dc`); its tests are re-run by the aggregate gate recorded in §7. Anything not listed in §7 as verified is **NOT VERIFIED** — including WP3 until its gate result is recorded here.
 
 ---
 
@@ -18,7 +18,7 @@
 | Milestone | Scope | Exit criteria | Status |
 |---|---|---|---|
 | **M1 — Walking skeleton** | WP1: npm-workspaces monorepo, pinned Node, `.env.example`, Compose dev/prod, Postgres, Dockerfiles, `scripts/check.sh`, license report, health endpoint, minimal page/API | A fresh clone reaches a healthy web + database stack with standard Docker/Node tooling; `scripts/check.sh` exits 0; license report has no blocker | **Verified 2026-11-26 and merged to `main` as PR #1 (`a96ffcb`)** |
-| **M2 — MVP** | WP2–WP8: schema/seed, auth/RBAC/outlets, catalog + stock ledger, customers/vehicles/history, mixed orders + payments + receipts, offline mobile POS + sync, reports/audit/export/settings, hardening gate | Every PRD story US-01–US-20 passes its acceptance criteria; offline/conflict, money, stock, and RBAC tests are green; no license blocker; WCAG 2.2 AA checks pass on agreed screens | **Not started** |
+| **M2 — MVP** | WP2–WP8: schema/seed, auth/RBAC/outlets, catalog + stock ledger, customers/vehicles/history, mixed orders + payments + receipts, offline mobile POS + sync, reports/audit/export/settings, hardening gate | Every PRD story US-01–US-20 passes its acceptance criteria; offline/conflict, money, stock, and RBAC tests are green; no license blocker; WCAG 2.2 AA checks pass on agreed screens | **In progress** — WP2 merged to `main` as PR #2 (`88252dc`); WP3 on `feat/wp3-auth-rbac-outlets` |
 | **M3 — Handover-ready** | WP9: accessibility sign-off, backup/restore drill, fresh-clone deployment rehearsal, license re-audit, documentation and credential handover | `docs/ops/handover-checklist.md` is fully checked with captured evidence; restore drill meets RPO/RTO targets; buyer accepts the signed manifest | **Not started** |
 
 ---
@@ -31,13 +31,13 @@
 | `docs/ui/research/kickoff-2026-11-26.md` | Desk research, task flows, heuristics, accessibility risks | Draft; evidence and assumptions separated |
 | `docs/marketing/competitors.md` | Cited Indonesian workshop POS landscape and positioning | Draft; vendor claims labeled, gaps marked `NOT VERIFIED` |
 | `docs/adr/0001-stack-and-architecture.md` | Stack, data, auth, offline sync, deployment, cost range, rejected alternatives | Proposed |
-| `docs/ops/license-inventory.md` | Dependency/license/transferability evidence | Updated for WP1 (`pg`, optional `sharp`/libvips, `caniuse-lite`, `lightningcss`); Epson SDK remains `REVIEW` |
+| `docs/ops/license-inventory.md` | Dependency/license/transferability evidence | Updated through WP3 (`better-auth` 1.7.28, `zod` 4.6.7; lockfile report re-run in the gate); Epson SDK remains `REVIEW` |
 | `docs/product/personal-data.md` | Buyer-as-Controller obligations and engineering controls | Draft; counsel review required |
 | `docs/ui/DESIGN.md`, `state-matrix.md`, `tokens.json` | Original clean-room design system shared by web and mobile | Draft for review; WP1 uses only a minimal light-theme subset |
 | `docs/plan/work-packages.md` | WP1–WP9, owned paths, dependencies, acceptance gates, PRD traceability | Proposed |
 | `docs/ops/handover-checklist.md` | Seller pre-delivery verification and evidence checklist | Draft; **not executed** |
 | `docs/ops/decision-policy.md` | Tier 1/2/3 decision authority for the buyer's team | Draft |
-| `README.md`, `AGENTS.md` | Buyer setup guide and engineering rules | README updated with WP1 status and verified commands; AGENTS.md still describes the repository as planning-only and needs a post-merge refresh |
+| `README.md`, `AGENTS.md` | Buyer setup guide and engineering rules | README carries the verified setup/gate commands and the WP3 dev-login note; AGENTS.md still describes the repository as planning-only and needs a post-merge refresh |
 | `.omp/`, `orca.yaml`, `.worktreeinclude` | Optional development aids | Present; may be stripped at handover |
 
 ---
@@ -157,6 +157,52 @@
 | Docker base images | **PASS** — `postgres:19-alpine`, `node:26.13.1-alpine`, and `caddy:2-alpine` pulled; `caddy validate` on `docker/Caddyfile` returned "Valid configuration" |
 | Script syntax and DB entrypoints | **PASS** — `bash -n` clean on all `scripts/*.sh`; `npm run db:migrate` and `npm run db:seed` print the WP2 hand-off message and exit 0 |
 
+### 7.3 WP3 execution checks (2026-11-26, branch `feat/wp3-auth-rbac-outlets`)
+
+Focused checks were run before review. The aggregate `scripts/check.sh` gate is run once on the frozen candidate; its result is recorded in §7.4 after that run.
+
+| Check | Result |
+|---|---|
+| `npm run test:unit --workspace @workshop-pos/contracts` | **PASS** — 26 tests (contracts round-trip, Bahasa messages, phone/username normalization, OWNER exclusion, password policy reuse, unlock schemas) |
+| `npm run test:unit --workspace @workshop-pos/auth` | **PASS** — 204 tests in 3 files (Appendix A matrix literal transcription, lockout arithmetic/keying, request guard) |
+| `npm run test:integration --workspace @workshop-pos/auth` (Compose test DB) | **PASS** — 39 tests (login by email/username/phone, 5th-failure 429, alias lockout + reset, concurrent burst, deactivation, idle web + mobile bearer, outlet scope/switch, cross-outlet audit, device-token hash/revoke, staff CRUD/unlock, last-active-outlet guard, retention prune) |
+| `npm run test:unit --workspace @workshop-pos/web` | **PASS** — 29 tests (health, safe next path, HTTP origin/body/redirect helpers, page loading skeleton) |
+| `npm run test:integration --workspace @workshop-pos/web` | **PASS** — 13 tests (health + every discovered `/api/v1/**` route rejects a request without a credential) |
+| `npm run test:e2e:web` (Chromium) | **PASS** — 22 tests (login/invalid/lockout/deactivated/expired, Owner creates+edits+deactivates+unlocks staff, Cashier 403 pages and API, outlet create/edit/switch including a multi-outlet Cashier, 320 px overflow) |
+| `npm run typecheck` / `npm run lint` (auth, contracts, web) | **PASS** — 0 errors, 0 warnings |
+| `bash scripts/license-report.sh` | **PASS** — 749 locked packages; `better-auth` 1.7.28 and its MIT transitive tree; no disallowed runtime license. The classifier now treats npm `devOptional` packages as dev-only and reports the build-only `lightningcss` native children explicitly |
+| `docker compose -f compose.dev.yaml config` / `docker compose -f compose.yaml config` | **PASS** — both parse; production requires `BETTER_AUTH_SECRET` with no default |
+| Dev-login provisioning | **PASS** — seed accounts provisioned from a runtime password; counts only, no plaintext output |
+| 403 denial | **PASS (next dev)** — Cashier direct `/users` and `/outlets` return HTTP 403 with the Bahasa forbidden boundary; verified by Playwright response status |
+| Design evidence | **PASS (Chromium)** — 1440/1024/768/390/320 px: no horizontal overflow; 400 px login card; 44 px targets; keyboard focus ring; token-aligned light palette. Real Android/iOS, Firefox, WebKit, OS dark mode, and a hardware printer: **NOT VERIFIED** |
+
+**Known gaps recorded, not silently accepted**
+
+- Phone uniqueness is enforced in the WP3 service, but `packages/db` has no unique constraint on `(businessId, phone)`; concurrent creation can still race until WP2 adds one. WP3 does not edit `packages/db`.
+- `login_attempts` rows are pruned for touched keys and globally after 30 days. A distributed flood of distinct identifiers is bounded only by that retention; an edge/IP throttle belongs to WP8.
+- ADR-0001 §3.4's per-user device list/revocation endpoint is not part of WP3; only token issuance, idle revocation, logout, and deactivation revocation exist. Assign the endpoint to WP7/WP8.
+- The production `next build`/`next start` 403 status and the Docker image build are **NOT VERIFIED** until the aggregate gate/build and an image build are run.
+- The `(back-office)/loading.tsx` route-group skeleton was removed because it forced a 200 before `forbidden()`; page-level Suspense now provides `Memuat…` states below the permission check.
+- The auth pool uses the WP2 helper's default timeouts; WP1's health pool has tighter statement/query timeouts. Not changed here.
+- Production first-Owner onboarding is not implemented in WP3. `provision:seed` targets only the four synthetic seed rows and refuses production unless explicitly overridden; a real installation needs a deliberate Owner-bootstrap runbook (WP8/WP9). Do not describe the seed CLI as a production onboarding path.
+
+### 7.4 WP3 aggregate gate (2026-11-26, frozen candidate)
+
+`fnm exec --using=26.13.1 -- bash scripts/check.sh` was run once on the frozen candidate after the completion audit. It exited 0.
+
+| Gate step | Observed result |
+|---|---|
+| Preflight / Compose database | **PASS** — dev database recreated and healthy; `workshop_pos_test` reachable |
+| `npm run typecheck` | **PASS** — web, auth, contracts, db; 0 errors |
+| `npm run lint` | **PASS** — all four workspaces; 0 errors/warnings |
+| `npm run test:unit` | **PASS** — web 29, auth 204, contracts 26, db 11 (270 total) |
+| `npm run test:integration` | **PASS** — web 13, auth 39, db 63 (115 total) |
+| `npm run test:e2e:web` | **PASS** — 22 Chromium tests; E2E reset guarded to the disposable dev DB; Cashier `/users` and `/outlets` return HTTP 403; Owner unlock and multi-outlet Cashier switch covered |
+| `npm run build` | **PASS** — Next.js 16.4.6 production build; all API routes dynamic, `/login`, `/users`, `/outlets` dynamic; Proxy compiled |
+
+The only post-gate edit was this documentation row (no code, config, test, or dependency changed). The E2E dev server logged one non-fatal `destination stream errored while writing data` after an intentionally aborted navigation; no test failed and it did not reproduce in the final run.
+
+
 ---
 
 ## 8. Approved kickoff decisions
@@ -181,5 +227,5 @@ Recorded 2026-11-26 from the product owner. These close the corresponding open q
 
 1. Obtain buyer counsel review for the Epson SDK redistribution terms, the privacy notice, retention duration, and tax rounding; record the signed outcomes.
 2. WP1 is merged to `main` (PR #1, `a96ffcb`); no merge action remains.
-3. Complete WP2 (database schema, migrations, seed) per `docs/plan/work-packages.md` on `feat/wp2-database-schema`; shared contracts and schema land before consumers.
-4. Keep CI workflows and git hooks in WP8; do not add them to WP1.
+3. WP2 is merged to `main` (PR #2, `88252dc`). WP3 (auth, RBAC, outlets) passed its focused gates and the aggregate gate on `feat/wp3-auth-rbac-outlets`; the founder reviews the diff, merges, and then WP4 starts from `main`. The branch is not merged yet.
+4. Keep CI workflows and git hooks in WP8; do not add them before then.

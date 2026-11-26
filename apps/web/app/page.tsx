@@ -1,30 +1,105 @@
-export default function HomePage() {
+import { can } from "@workshop-pos/auth";
+import type { Metadata } from "next";
+import Link from "next/link";
+
+import { AppBar } from "@/components/auth/AppBar";
+import { ROLE_LABELS } from "@/components/auth/labels";
+import { getSessionPayload, requirePageAuthContext } from "@/lib/auth/server";
+
+export const metadata: Metadata = {
+  title: "Beranda — Workshop POS",
+};
+
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  // The guard explains an idle-timeout sign-out (reason=expired) on /login.
+  const authContext = await requirePageAuthContext();
+  const session = await getSessionPayload(authContext);
+  const roleLabel = ROLE_LABELS[session.user.role];
+  const activeOutlet = session.outlets.find((outlet) => outlet.id === session.session.activeOutletId) ?? null;
+  const canManageUsers = can(session.user.role, "manage_users");
+  const canManageOutlets = can(session.user.role, "manage_outlets");
+  const seesAllOutlets = session.user.role === "OWNER" || session.user.role === "ADMIN";
+
   return (
-    <main className="skeleton">
-      <div className="skeleton__sheet">
-        <h1 className="skeleton__title">Workshop POS</h1>
-        <p className="skeleton__lead">
-          Kerangka aplikasi untuk bengkel: satu transaksi mencampur spare part dan jasa,
-          dengan riwayat kendaraan per nomor polisi.
-        </p>
-        <dl className="skeleton__facts">
-          <div className="skeleton__fact">
-            <dt>Web</dt>
-            <dd>Next.js App Router</dd>
+    <>
+      <AppBar session={session} current="home" />
+      <main className="wp3-page">
+        <header className="wp3-page__header">
+          <div>
+            <h1 className="wp3-page__title">Workshop POS</h1>
+            <p className="wp3-page__lead">
+              Masuk sebagai {session.user.name}, {roleLabel}
+              {activeOutlet ? `, ${activeOutlet.name}` : ""}.
+            </p>
           </div>
-          <div className="skeleton__fact">
-            <dt>Data</dt>
-            <dd>PostgreSQL</dd>
-          </div>
-          <div className="skeleton__fact">
-            <dt>Infrastruktur</dt>
-            <dd>Docker Compose</dd>
-          </div>
-        </dl>
-        <a className="skeleton__link" href="/api/v1/health">
-          Periksa status sistem
-        </a>
-      </div>
-    </main>
+        </header>
+
+        <div className="wp3-page__body">
+          <section className="wp3-panel" aria-labelledby="home-access-title">
+            <div className="wp3-panel__header">
+              <h2 className="wp3-panel__title" id="home-access-title">
+                Akses Anda
+              </h2>
+            </div>
+            <div className="wp3-panel__body">
+              <dl className="wp3-facts">
+                <div className="wp3-facts__row">
+                  <dt>Peran</dt>
+                  <dd>{roleLabel}</dd>
+                </div>
+                <div className="wp3-facts__row">
+                  <dt>Cakupan outlet</dt>
+                  <dd>
+                    {seesAllOutlets
+                      ? "Semua outlet bisnis"
+                      : session.outlets.map((outlet) => outlet.name).join(", ") || "Belum ada outlet yang ditugaskan"}
+                  </dd>
+                </div>
+                <div className="wp3-facts__row">
+                  <dt>Outlet aktif</dt>
+                  <dd>{activeOutlet?.name ?? "Belum dipilih"}</dd>
+                </div>
+              </dl>
+            </div>
+          </section>
+
+          <section className="wp3-panel" aria-labelledby="home-next-title">
+            <div className="wp3-panel__header">
+              <h2 className="wp3-panel__title" id="home-next-title">
+                Pengelolaan back-office
+              </h2>
+            </div>
+            <div className="wp3-panel__body">
+              {canManageUsers || canManageOutlets ? (
+                <>
+                  <p className="wp3-state__body">
+                    Kelola akses staf dan outlet dari halaman berikut. Setiap perubahan akses dicatat di log audit.
+                  </p>
+                  <div className="wp3-state__actions">
+                    {canManageUsers ? (
+                      <Link className="wp3-btn wp3-btn--primary" href="/users">
+                        Kelola pengguna
+                      </Link>
+                    ) : null}
+                    {canManageOutlets ? (
+                      <Link className="wp3-btn" href="/outlets">
+                        Kelola outlet
+                      </Link>
+                    ) : null}
+                  </div>
+                </>
+              ) : (
+                <p className="wp3-state__body">
+                  Peran {roleLabel} tidak mengelola pengguna atau outlet. Pencatatan penjualan dan servis akan
+                  tersedia di aplikasi mobile pada rilis berikutnya.
+                </p>
+              )}
+            </div>
+          </section>
+        </div>
+      </main>
+    </>
   );
 }

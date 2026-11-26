@@ -121,3 +121,1011 @@ body {
     text-align: left;
   }
 }
+
+/* ==========================================================================
+   WP3 auth and back-office surfaces (login, session bar, users, outlets).
+   Scoped to `.wp3-` and driven by `--auth-*` variables mapped from the light
+   theme in docs/ui/tokens.json. The WP4 shell and component library replace
+   this layer; nothing here is a shared primitive.
+   ========================================================================== */
+
+:root {
+  --auth-canvas: #f4f5f2;
+  --auth-surface: #ffffff;
+  --auth-surface-sunken: #edf0ed;
+  --auth-hover: #f0f2ef;
+  --auth-selected: #e3f1ee;
+  --auth-disabled: #ecefec;
+  --auth-text: #14191b;
+  --auth-text-secondary: #4a5559;
+  --auth-text-muted: #5f6b66;
+  --auth-text-disabled: #5a6560;
+  --auth-text-inverse: #ffffff;
+  --auth-border: #c9d0cb;
+  --auth-border-subtle: #e1e5e1;
+  --auth-accent: #0e6e66;
+  --auth-accent-hover: #0a5b54;
+  --auth-accent-active: #084b46;
+  --auth-accent-subtle: #e3f1ee;
+  --auth-accent-text: #0a5b54;
+  --auth-success-fg: #17603a;
+  --auth-success-bg: #e6f2ea;
+  --auth-success-border: #9acfae;
+  --auth-warning-fg: #7a4a00;
+  --auth-warning-bg: #fdf0da;
+  --auth-warning-border: #d8a94f;
+  --auth-danger-fg: #a3231b;
+  --auth-danger-bg: #fbe9e7;
+  --auth-danger-border: #d98a83;
+  --auth-info-fg: #33474d;
+  --auth-info-bg: #eaf0f1;
+  --auth-info-border: #9fb8bd;
+  --auth-focus: #0e6e66;
+  --auth-radius-control: 4px;
+  --auth-radius-panel: 6px;
+  --auth-radius-dialog: 8px;
+  --auth-font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
+  --auth-row-height: 44px;
+}
+
+.wp3-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* The WP4 design system ships global box sizing; keep this layer correct on
+   its own so widths plus padding never exceed a 320px viewport. */
+.wp3-login-card,
+.wp3-panel,
+.wp3-state,
+.wp3-alert,
+.wp3-input,
+.wp3-select,
+.wp3-btn,
+.wp3-dialog,
+.wp3-table-scroll,
+.wp3-checkbox-list {
+  box-sizing: border-box;
+}
+
+/* --- Login ---------------------------------------------------------------- */
+
+.wp3-login-shell {
+  display: grid;
+  min-height: 100dvh;
+  place-items: center;
+  padding: 24px;
+  background: var(--auth-canvas);
+}
+
+.wp3-login-card {
+  width: min(400px, 100%);
+  max-width: 100%;
+  padding: 32px;
+  background: var(--auth-surface);
+  border: 1px solid var(--auth-border);
+  border-radius: var(--auth-radius-panel);
+}
+
+.wp3-brand {
+  margin: 0;
+  color: var(--auth-text);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 20px;
+}
+
+.wp3-login-title {
+  margin: 20px 0 0;
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+  line-height: 32px;
+}
+
+.wp3-login-lead {
+  max-width: 46ch;
+  margin: 8px 0 0;
+  color: var(--auth-text-secondary);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.wp3-login-form {
+  display: grid;
+  gap: 20px;
+  margin-top: 24px;
+}
+
+.wp3-login-message {
+  margin: 20px 0 0;
+}
+
+.wp3-login-footer {
+  margin: 24px 0 0;
+  padding-top: 20px;
+  border-top: 1px solid var(--auth-border-subtle);
+  color: var(--auth-text-muted);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+/* --- Forms ---------------------------------------------------------------- */
+
+.wp3-field {
+  display: grid;
+  gap: 6px;
+}
+
+.wp3-field--inline {
+  min-width: 0;
+}
+
+.wp3-label {
+  color: var(--auth-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+}
+
+.wp3-reason {
+  color: var(--auth-text-muted);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.wp3-input,
+.wp3-select {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  color: var(--auth-text);
+  font: inherit;
+  font-size: 14px;
+  line-height: 20px;
+  background: var(--auth-surface);
+  border: 1px solid var(--auth-border);
+  border-radius: var(--auth-radius-control);
+}
+
+.wp3-select {
+  padding-right: 32px;
+}
+
+.wp3-input::placeholder {
+  color: var(--auth-text-muted);
+  opacity: 1;
+}
+
+.wp3-input:hover,
+.wp3-select:hover {
+  border-color: #7c8a83;
+}
+
+.wp3-input[aria-invalid="true"],
+.wp3-select[aria-invalid="true"] {
+  border-color: var(--auth-danger-fg);
+}
+
+.wp3-input:focus-visible,
+.wp3-select:focus-visible,
+.wp3-btn:focus-visible,
+.wp3-link:focus-visible,
+.wp3-switch:focus-visible {
+  outline: 2px solid var(--auth-focus);
+  outline-offset: 2px;
+}
+
+.wp3-field-error {
+  color: var(--auth-danger-fg);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.wp3-form-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+}
+
+.wp3-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-top: 20px;
+}
+
+.wp3-fieldset {
+  margin: 16px 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.wp3-fieldset > legend {
+  margin-bottom: 8px;
+  padding: 0;
+}
+
+.wp3-checkbox-list {
+  display: grid;
+  gap: 2px;
+  max-height: 264px;
+  margin-top: 8px;
+  overflow-y: auto;
+  border: 1px solid var(--auth-border);
+  border-radius: var(--auth-radius-control);
+}
+
+.wp3-checkbox {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-height: 44px;
+  padding: 8px 12px;
+  font-size: 13px;
+  line-height: 18px;
+  cursor: pointer;
+}
+
+.wp3-checkbox:hover {
+  background: var(--auth-hover);
+}
+
+.wp3-checkbox input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--auth-accent);
+}
+
+.wp3-checkbox span {
+  overflow-wrap: anywhere;
+}
+
+/* --- Buttons and links ---------------------------------------------------- */
+
+.wp3-btn {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 16px;
+  color: var(--auth-text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  background: var(--auth-surface);
+  border: 1px solid var(--auth-border);
+  border-radius: var(--auth-radius-control);
+  transition: background-color 120ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.wp3-btn:hover {
+  background: var(--auth-hover);
+}
+
+.wp3-btn--primary {
+  color: var(--auth-text-inverse);
+  background: var(--auth-accent);
+  border-color: var(--auth-accent);
+}
+
+.wp3-btn--primary:hover {
+  background: var(--auth-accent-hover);
+  border-color: var(--auth-accent-hover);
+}
+
+.wp3-btn--primary:active {
+  background: var(--auth-accent-active);
+  border-color: var(--auth-accent-active);
+}
+
+.wp3-btn--danger {
+  color: var(--auth-danger-fg);
+  border-color: var(--auth-danger-border);
+  background: var(--auth-surface);
+}
+
+.wp3-btn--danger:hover {
+  background: var(--auth-danger-bg);
+}
+
+.wp3-btn--quiet {
+  min-height: 44px;
+  padding: 0 12px;
+  font-weight: 500;
+  color: var(--auth-accent-text);
+  background: transparent;
+  border-color: transparent;
+}
+
+.wp3-btn--quiet:hover {
+  background: var(--auth-accent-subtle);
+}
+
+.wp3-btn:disabled,
+.wp3-btn[aria-disabled="true"] {
+  color: var(--auth-text-disabled);
+  cursor: not-allowed;
+  background: var(--auth-disabled);
+  border-color: var(--auth-border);
+}
+
+.wp3-btn--block {
+  width: 100%;
+}
+
+.wp3-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--auth-accent-text);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.wp3-link:hover {
+  color: var(--auth-accent-active);
+}
+
+/* --- Alerts, notices, states --------------------------------------------- */
+
+.wp3-alert {
+  padding: 12px 16px;
+  font-size: 13px;
+  line-height: 18px;
+  border: 1px solid;
+  border-left-width: 3px;
+  border-radius: var(--auth-radius-control);
+}
+
+.wp3-alert p {
+  margin: 0;
+}
+
+.wp3-alert p + p,
+.wp3-alert ul {
+  margin-top: 6px;
+}
+
+.wp3-alert ul {
+  margin-bottom: 0;
+  padding-left: 18px;
+}
+
+.wp3-alert--danger {
+  color: var(--auth-danger-fg);
+  background: var(--auth-danger-bg);
+  border-color: var(--auth-danger-border);
+}
+
+.wp3-alert--success {
+  color: var(--auth-success-fg);
+  background: var(--auth-success-bg);
+  border-color: var(--auth-success-border);
+}
+
+.wp3-alert--warning {
+  color: var(--auth-warning-fg);
+  background: var(--auth-warning-bg);
+  border-color: var(--auth-warning-border);
+}
+
+.wp3-alert--info {
+  color: var(--auth-info-fg);
+  background: var(--auth-info-bg);
+  border-color: var(--auth-info-border);
+}
+
+.wp3-state {
+  padding: 32px 24px;
+  background: var(--auth-surface);
+  border: 1px solid var(--auth-border);
+  border-radius: var(--auth-radius-panel);
+}
+
+.wp3-state__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 26px;
+}
+
+.wp3-state__body {
+  max-width: 60ch;
+  margin: 8px 0 0;
+  color: var(--auth-text-secondary);
+  font-size: 14px;
+  line-height: 20px;
+  overflow-wrap: anywhere;
+}
+
+.wp3-state__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+/* Suspense fallback: mirrors the loaded page body so content swaps in place. */
+.wp3-loading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+  min-width: 0;
+}
+
+.wp3-skeleton-field {
+  flex: 1 1 160px;
+  min-width: 0;
+  height: 44px;
+  background: var(--auth-surface-sunken);
+  border-radius: 2px;
+}
+
+.wp3-skeleton-action {
+  height: 44px;
+  width: 148px;
+  max-width: 100%;
+  background: var(--auth-surface-sunken);
+  border-radius: 2px;
+}
+
+.wp3-skeleton-row {
+  height: 44px;
+  background: var(--auth-surface-sunken);
+  border-radius: 2px;
+}
+
+.wp3-skeleton-row + .wp3-skeleton-row {
+  margin-top: 1px;
+}
+
+.wp3-skeleton-stack {
+  display: grid;
+  gap: 12px;
+}
+
+.wp3-skeleton-title {
+  width: min(240px, 60%);
+  height: 28px;
+  background: var(--auth-surface-sunken);
+  border-radius: 2px;
+}
+
+.wp3-skeleton-line {
+  width: min(420px, 80%);
+  height: 12px;
+  background: var(--auth-surface-sunken);
+  border-radius: 2px;
+}
+
+.wp3-facts {
+  display: grid;
+  margin: 0;
+  border-top: 1px solid var(--auth-border-subtle);
+}
+
+.wp3-facts__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--auth-border-subtle);
+}
+
+.wp3-facts dt {
+  color: var(--auth-text-secondary);
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.wp3-facts dd {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
+  overflow-wrap: anywhere;
+}
+
+/* --- App bar and session ------------------------------------------------- */
+
+.wp3-appbar {
+  background: var(--auth-surface);
+  border-bottom: 1px solid var(--auth-border);
+}
+
+.wp3-appbar__inner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 10px 24px;
+}
+
+.wp3-appbar__brand {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--auth-text);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.wp3-appbar__start {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  min-width: 0;
+}
+
+.wp3-appbar__nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+.wp3-appbar__nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 10px;
+  color: var(--auth-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  border-radius: var(--auth-radius-control);
+}
+
+.wp3-appbar__nav a:hover {
+  background: var(--auth-hover);
+  color: var(--auth-text);
+}
+
+.wp3-appbar__nav a[aria-current="page"] {
+  color: var(--auth-accent-text);
+  background: var(--auth-accent-subtle);
+}
+
+.wp3-session {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
+}
+
+.wp3-session__feedback {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+.wp3-session__identity {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.wp3-session__name {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
+  overflow-wrap: anywhere;
+}
+
+.wp3-session__meta {
+  color: var(--auth-text-muted);
+  font-size: 12px;
+  line-height: 16px;
+  overflow-wrap: anywhere;
+}
+
+.wp3-session__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: end;
+}
+
+.wp3-session__controls .wp3-field {
+  gap: 4px;
+}
+
+.wp3-session__controls .wp3-select {
+  min-width: 168px;
+  max-width: 240px;
+}
+
+@media (max-width: 640px) {
+  .wp3-appbar__inner {
+    align-items: flex-start;
+    padding: 12px 16px;
+  }
+
+  .wp3-session {
+    gap: 10px;
+  }
+
+  .wp3-session__controls .wp3-select {
+    max-width: 100%;
+  }
+}
+
+/* --- Page scaffold -------------------------------------------------------- */
+
+.wp3-page {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.wp3-page__header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.wp3-page__title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+  line-height: 32px;
+}
+
+.wp3-page__lead {
+  max-width: 70ch;
+  margin: 6px 0 0;
+  color: var(--auth-text-secondary);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.wp3-page__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+  min-width: 0;
+}
+
+.wp3-panel {
+  min-width: 0;
+  background: var(--auth-surface);
+  border: 1px solid var(--auth-border);
+  border-radius: var(--auth-radius-panel);
+}
+
+.wp3-panel__header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--auth-border-subtle);
+}
+
+.wp3-panel__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
+}
+
+.wp3-panel__meta {
+  color: var(--auth-text-muted);
+  font-size: 12px;
+  line-height: 16px;
+  font-variant-numeric: tabular-nums;
+}
+
+.wp3-panel__body {
+  padding: 20px;
+}
+
+.wp3-panel__body--flush {
+  padding: 0;
+}
+
+/* --- Filter bar ----------------------------------------------------------- */
+
+.wp3-filterbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: end;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--auth-border-subtle);
+}
+
+.wp3-filterbar .wp3-field {
+  min-width: 160px;
+  flex: 1 1 160px;
+}
+
+.wp3-filterbar__actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.wp3-filterbar__actions .wp3-btn {
+  min-height: 44px;
+}
+
+/* --- Ruled table ---------------------------------------------------------- */
+
+.wp3-table-scroll {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.wp3-table {
+  width: 100%;
+  min-width: 680px;
+  border-collapse: collapse;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.wp3-table caption {
+  padding: 12px 20px;
+  color: var(--auth-text-secondary);
+  font-size: 13px;
+  text-align: left;
+}
+
+.wp3-table th {
+  padding: 8px 16px;
+  color: var(--auth-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+  text-align: left;
+  white-space: nowrap;
+  background: var(--auth-surface-sunken);
+  border-bottom: 1px solid var(--auth-border);
+}
+
+.wp3-table td {
+  padding: 13px 16px;
+  vertical-align: top;
+  border-bottom: 1px solid var(--auth-border-subtle);
+}
+
+.wp3-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.wp3-table tbody tr:hover {
+  background: var(--auth-hover);
+}
+
+.wp3-table__name {
+  font-weight: 600;
+}
+
+.wp3-table__detail {
+  color: var(--auth-text-muted);
+  font-size: 12px;
+  line-height: 16px;
+  overflow-wrap: anywhere;
+}
+
+.wp3-table__nowrap {
+  white-space: nowrap;
+}
+
+.wp3-table__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: flex-end;
+  min-width: 190px;
+}
+
+.wp3-table__actions .wp3-btn {
+  min-height: 44px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+.wp3-cell-long {
+  max-width: 32ch;
+  overflow-wrap: break-word;
+}
+
+.wp3-mono {
+  font-family: var(--auth-font-mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* --- Status text (color is always paired with a label) -------------------- */
+
+.wp3-status {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+.wp3-status::before {
+  width: 3px;
+  height: 14px;
+  content: "";
+  background: currentColor;
+  border-radius: 1px;
+}
+
+.wp3-status--active {
+  color: var(--auth-success-fg);
+}
+
+.wp3-status--inactive {
+  color: var(--auth-text-muted);
+}
+
+.wp3-role {
+  font-weight: 500;
+}
+
+/* --- Pagination ----------------------------------------------------------- */
+
+.wp3-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  border-top: 1px solid var(--auth-border-subtle);
+}
+
+.wp3-pagination__summary {
+  color: var(--auth-text-muted);
+  font-size: 12px;
+  line-height: 16px;
+  font-variant-numeric: tabular-nums;
+}
+
+.wp3-pagination__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+/* --- Dialogs -------------------------------------------------------------- */
+
+.wp3-dialog {
+  width: min(560px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  padding: 0;
+  color: var(--auth-text);
+  font: inherit;
+  background: var(--auth-surface);
+  border: 1px solid var(--auth-border);
+  border-radius: var(--auth-radius-dialog);
+}
+
+.wp3-dialog::backdrop {
+  background: rgba(20, 25, 27, 0.72);
+}
+
+.wp3-dialog__header {
+  padding: 20px 24px 0;
+}
+
+.wp3-dialog__title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.1px;
+  line-height: 28px;
+}
+
+.wp3-dialog__lead {
+  max-width: 60ch;
+  margin: 6px 0 0;
+  color: var(--auth-text-secondary);
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.wp3-dialog__body {
+  display: grid;
+  gap: 16px;
+  padding: 20px 24px;
+  overflow-y: auto;
+}
+
+.wp3-dialog__footer {
+  display: flex;
+  flex-wrap: wrap-reverse;
+  gap: 12px;
+  justify-content: flex-end;
+  padding: 16px 24px 20px;
+  border-top: 1px solid var(--auth-border-subtle);
+}
+
+.wp3-dialog__footer .wp3-btn {
+  flex: 0 1 auto;
+}
+
+@media (max-width: 30rem) {
+  .wp3-login-shell {
+    padding: 16px;
+  }
+
+  .wp3-login-card {
+    padding: 24px;
+  }
+
+  .wp3-page {
+    padding: 16px;
+  }
+
+  .wp3-page__header {
+    align-items: flex-start;
+  }
+
+  .wp3-panel__header,
+  .wp3-panel__body,
+  .wp3-filterbar {
+    padding: 16px;
+  }
+
+  .wp3-dialog__header,
+  .wp3-dialog__body {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .wp3-dialog__footer {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .wp3-dialog__footer .wp3-btn {
+    flex: 1 1 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wp3-btn {
+    transition: none;
+  }
+}
