@@ -246,6 +246,8 @@ Summary table:
 | DEC-0012 | 2026-11-27 | 2 | A payment row stores the money applied to the balance (not the cash tendered); change is `change_amount`; paid-total reads use `sum(amount)` | BR-009 defines balance due as total − sum(payments); the merged WP2 refund trigger requires refund amount = payment amount; WP5's `sum(amount − change)` was written before any payment existed | Product owner (reference-matching) | decision-reviewer | implemented | WP6 implementation; `vehicle-service.ts`, `customer-service.ts` read-site correction |
 | DEC-0013 | 2026-11-27 | 2 | `PAID` is terminal except `VOID` per BR-007 (AC6.2's later completion is rejected); partially paid voids refund every tender; a pre-`PAID` correction that covers the total reaches `PAID`; edits may not drop the total below collected money | BR-007/AC8.1, BR-009, BR-008, and D-11 settle these; AC6.2's narrative conflicts with the transition table | Product owner (reference-matching) | decision-reviewer | implemented | WP6 implementation |
 | DEC-0014 | 2026-11-27 | 2 | Keep an audited pre-`PAID` payment-row delete for Admin/Owner (beyond FR-048's method/amount/reference correction) and treat `SALINAN` as a print *attempt* | Duplicate or mis-keyed tenders need removal without voiding the sale; the browser cannot confirm paper output | Founder | Founder | implemented | WP6 design review; founder decision 2026-11-27 |
+| DEC-0015 | 2026-11-27 | 2 | A Cashier may resolve an offline sync conflict by VOID with a reason and a recorded cash refund; OVERRIDE still needs `override_stock` (Admin/Owner) | PRD AC15.3 scopes void to a user *without* override permission, and AC15.5 puts conflict resolution on the Cashier's sync screen; Appendix A still governs normal order voids | Product owner (reference-matching) | decision-reviewer | implemented | WP6.1 implementation |
+| DEC-0016 | 2026-11-27 | 2 | Offline sales above the cashier discount cap or with a device tax rate different from the outlet setting apply with local money and an audit row (`sync.discount_above_cap`, `sync.tax_rate_mismatch`), not a block | AC15.4/AC3.7 make paid money local-authoritative; ADR §3.6's conflict taxonomy is exhaustive and has no discount/tax code; blocking would strand an already-paid sale | Product owner (reference-matching) | decision-reviewer | implemented | WP6.1 implementation |
 
 Status values: `proposed`, `approved`, `rejected`, `implemented`, `reverted`, `superseded`.
 
@@ -551,6 +553,42 @@ Illustrative entry (not a real decision):
 - Rollback: remove the DELETE route/handler and the dialog action; the stored audit rows remain append-only.
 - Follow-ups: WP8 may add a "sudah tercetak" confirmation if the buyer wants confirmed-print tracking (owner: WP8 lead).
 - Links: WP6 brief; founder decision 2026-11-27; WP6 payment tests.
+- Supersedes: none
+
+### DEC-0015 — A Cashier may void an offline sync conflict (not a normal order)
+
+- Date: 2026-11-27
+- Tier: 2
+- Status: implemented
+- Requester: engineering (WP6.1)
+- Decider: product owner (reference-matching)
+- Approver(s): decision-reviewer
+- Context: Appendix A gives Cashier `void_unpaid = N` and `void_paid = N`, but PRD AC15.3 says "Given no override permission, When the user chooses to void the offline sale with a reason", and AC15.5 places unresolved conflicts on the Cashier's sync screen. The queued sale was never a server-side order when the conflict resolves.
+- Options: (a) require `void_unpaid` (Admin/Owner), stranding a Cashier-only shift; (b) gate the sync-conflict void on `create_sale`, leaving normal order voids unchanged.
+- Decision: option (b). `POST /api/v1/sync/[clientKey]/resolve` requires `override_stock` for `OVERRIDE` and `create_sale` for `VOID`; the void records payment rows plus per-tender refunds and no stock decrement. A Mechanic is denied and audited. `voidOrder` still requires `void_unpaid`/`void_paid`.
+- Rationale: AC15.3's precondition is unsatisfiable under an Admin/Owner-only reading (both hold `override_stock`), and AC15.5 assigns the resolution surface to the Cashier. The narrower action is recorded in the audit log with the resolving actor and reason.
+- Consequences: a Cashier can void a queued offline sale in their outlet without the Owner re-authentication that a paid server-side order requires; this is limited to unresolved sync conflicts and is audited. Normal voids are unaffected.
+- Rollback: change the `VOID` gate back to `void_unpaid`; the conflict row and audit trail remain append-only.
+- Follow-ups: the WP7 sync screen must label the action as voiding a queued sale and require a reason; Owner reporting may surface these refunds with the day report (WP8).
+- Links: PRD AC15.3/AC15.5, Appendix A; ADR-0001 §3.6; WP6.1 sync tests.
+- Supersedes: none
+
+### DEC-0016 — Offline discount-cap and tax-rate deviations are audited, not blocked
+
+- Date: 2026-11-27
+- Tier: 2
+- Status: implemented
+- Requester: engineering (WP6.1)
+- Decider: product owner (reference-matching)
+- Approver(s): decision-reviewer
+- Context: FR-032 requires an Admin/Owner for a discount above the cashier cap, and FR-070 makes tax a per-outlet setting. An offline sale is already paid when it syncs, AC15.4 makes the paid money local-authoritative, and ADR §3.6 declares the conflict taxonomy exhaustive with no discount or tax code.
+- Options: (a) reject the sale and strand the paid transaction; (b) apply it with local money and append an audit row naming the deviation; (c) silently apply it.
+- Decision: option (b). `applyOfflineSale` writes `sync.discount_above_cap` (cap, subtotal, discount, whether the actor holds `override_discount`) and `sync.tax_rate_mismatch` (device rate, outlet setting, total) inside the order transaction.
+- Rationale: (a) contradicts AC15.4 and the no-silent-loss invariant; (c) removes the evidence an Owner needs. The audit rows keep the deviation reviewable without rewriting the price the customer paid.
+- Consequences: an offline discount or tax-rate abuse is visible to the Owner after the fact rather than blocked at the counter. Online order entry still enforces the cap and the setting immediately.
+- Rollback: remove the two audit branches; the order figures stay unchanged because they were never derived from these checks.
+- Follow-ups: WP8 day-report reconciliation should surface both audit actions, like `CASH_REPORTING` (owner: WP8 lead).
+- Links: PRD AC15.4/AC3.7, FR-032, FR-070, BR-003; ADR-0001 §3.6; WP6.1 sync tests.
 - Supersedes: none
 
 ## 8. Suggested turnaround

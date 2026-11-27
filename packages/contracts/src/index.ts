@@ -6,5 +6,6 @@ export * from "./orders.ts";
 export * from "./outlets.ts";
 export * from "./payments.ts";
 export * from "./receipts.ts";
+export * from "./sync.ts";
 export * from "./users.ts";
 export * from "./vehicles.ts";
