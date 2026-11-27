@@ -66,16 +66,22 @@ function assertDisposableDatabase(url: string): void {
   const hostname = parsed.hostname.toLowerCase();
   const port = parsed.port || "5432";
   const database = decodeURIComponent(parsed.pathname.replace(/^\//, ""));
+  // Local runs must stay on the documented disposable stack. CI (WP_CI=1)
+  // may point at the ephemeral service database by name; the job's database is
+  // created fresh for that run and is never a shared environment.
+  const ciEphemeral = process.env.WP_CI === "1" && database === DISPOSABLE_DATABASE;
 
   if (
     (protocol !== "postgres" && protocol !== "postgresql") ||
-    !LOOPBACK_HOSTS[hostname] ||
-    port !== DISPOSABLE_PORT ||
-    database !== DISPOSABLE_DATABASE
+    (!ciEphemeral &&
+      (!LOOPBACK_HOSTS[hostname] ||
+        port !== DISPOSABLE_PORT ||
+        database !== DISPOSABLE_DATABASE))
   ) {
     throw new Error(
       `Refusing to reset a non-disposable database (${redact(url)}). ` +
-        `E2E requires a loopback host, port ${DISPOSABLE_PORT}, and database ${DISPOSABLE_DATABASE}.`,
+        `E2E requires a loopback host, port ${DISPOSABLE_PORT}, and database ${DISPOSABLE_DATABASE}, ` +
+        "or an explicit WP_CI=1 ephemeral CI database.",
     );
   }
 }

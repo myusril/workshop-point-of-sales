@@ -1,6 +1,6 @@
 # AGENTS.md — Engineering Guide
 
-> **Repository state: WP1–WP6.1 merged on `main`.** WP1 (walking skeleton/tooling, PR #1), WP2 (schema/migrations/seed, PR #2), WP3 (auth/RBAC/users/outlets, PR #3), WP4 (web shell, domain core, catalog, inventory, PR #4 `cdf3036`), WP5 (customers, vehicles, plate history, PR #5 `8a2a550`), WP6 (orders, pricing, payments, receipts, PR #6 `9f2fc8f`), and WP6.1 (server offline-sync seam, PR #7 `c8a38ec`) are merged. WP7 (mobile offline POS) is implemented on `feat/wp7-mobile-offline-pos`: Expo app, SQLite outbox, idempotent sync, conflict decisions, receipt share/PDF with a thermal transport seam. CI workflows and git hooks are intentionally absent until WP8 — `scripts/check.sh` is the only aggregate gate. Every command below is executable against this tree; only results recorded in `docs/STATUS.md` §7 count as verified.
+> **Repository state: WP1–WP7 merged on `main`.** WP1 (walking skeleton/tooling, PR #1), WP2 (schema/migrations/seed, PR #2), WP3 (auth/RBAC/users/outlets, PR #3), WP4 (web shell, domain core, catalog, inventory, PR #4 `cdf3036`), WP5 (customers, vehicles, plate history, PR #5 `8a2a550`), WP6 (orders, pricing, payments, receipts, PR #6 `9f2fc8f`), WP6.1 (server offline-sync seam, PR #7 `c8a38ec`), and WP7 (mobile offline POS, PR #8 `589418d`) are merged. WP8 (reports, CSV export, audit log, settings/branding, hardening gate) is implemented on `feat/wp8-reports-audit-settings-hardening`: Asia/Jakarta report read models, CSV export, Owner-only audit and settings, CI, and git hooks. Every command below is executable against this tree; only results recorded in `docs/STATUS.md` §7 count as verified.
 
 ## Product and stack
 
@@ -46,7 +46,9 @@ npm run test:unit
 npm run test:integration     # Compose test DB (workshop_pos_test); refuses any name without the _test suffix
 npm run test:e2e:web         # Playwright; resets the disposable dev DB (loopback:55432/workshop_pos only)
 npm run build
-bash scripts/check.sh        # aggregate gate: typecheck → lint → test:unit → test:integration → test:e2e:web → build, in that order
+bash scripts/check.sh        # aggregate gate: license → typecheck → lint → test:unit → test:integration → test:e2e:web → build, in that order
+bash scripts/install-hooks.sh # one-time per clone: core.hooksPath=.githooks (pre-commit guard, pre-push gate)
+WP_CI=1 DATABASE_URL=… INTEGRATION_DATABASE_URL=… bash scripts/check.sh  # CI mode: no Docker; provided Postgres
 
 # Mobile workspace (included by the root typecheck/lint/test:unit workspace runs)
 npm run typecheck --workspace @workshop-pos/mobile
@@ -59,13 +61,15 @@ npx expo run:android --device                           # never boot or use an e
 
 - Runner parity: automation must run exactly these commands in this order. Nothing may pass locally and fail elsewhere.
 - **No emulator testing.** Never create, boot, or use an Android emulator/AVD for testing. Run `adb devices`; only a real device in `device` state may be used. If no real device is connected, skip device-only checks and report `NOT VERIFIED` with the reason; never substitute emulator results.
-- **CI workflows and git hooks are intentionally not part of this kickoff.** They land later as a gate inside WP8. Until then `scripts/check.sh` is the only aggregate gate. Never weaken it: no skipped steps, no `--no-verify`, no loosening of gates to make a change pass.
+- **CI and git hooks run the same gate.** `.woodpecker/ci.yml` runs a Gitleaks secret scan, `npm ci`, browser provisioning, and exactly `bash scripts/check.sh` with `WP_CI=1`; it fails on a red gate, a license blocker, or a secret finding. `scripts/install-hooks.sh` sets `core.hooksPath=.githooks`; `pre-commit` runs the staged secret/whitespace guard and typecheck, `pre-push` runs `scripts/check.sh`. Never weaken a gate: no skipped steps, no `--no-verify`, no loosening of gates to make a change pass.
 
 ## Repository conventions
 
 - **TypeScript strict.** No `any` escapes in domain or API code; contracts are Zod-first — validate at the boundary, then trust the types.
 - **Money: no floating point, ever.** All amounts are integer rupiah (`bigint`-mode columns). Rounding is half-up, implemented once in `packages/core` and unit-tested against the PRD worked example (AC3.1). No floats in the money path, in APIs, or in CSV exports.
 - **Payment rows carry applied money.** `payments.amount` is what reduced the balance (never the cash tendered); a cash overpayment stores the returned difference in `change_amount`. A whole-order void refunds `amount` per row, so a receipt prints the tendered figure as `amount + change`. Do not reintroduce `amount − change` in paid-total aggregates.
+- **Reports are recomputed, never cached.** A report figure is derived from `orders`, `payments`, `refunds`, `order_lines`, and `stock_ledger` in integer rupiah; business dates are the Asia/Jakarta calendar day of `paid_at` (or `created_at` when unpaid). Expected cash = cash payments − cash refunds with change inside the cash row. An empty date returns explicit zeros, never invented rows. CSV export reuses the same read model, starts with a UTF-8 BOM, quotes per RFC 4180, uses Bahasa Indonesia headers, integer money, `+07:00` timestamps, and prefixes formula-leading text cells.
+- **Settings and audit are Owner-only.** Every settings/branding change is audited with before/after and never rewrites an existing order (orders keep their tax snapshot). `audit_log` has no product write path beyond the audited action; the UI/API expose reads only.
 - **Server-authoritative stock.** Devices may propose; only the server ledger decrements stock, inside the order's transaction. Conflicts are surfaced with an explicit user action — never silently resolved. Local stock displays are marked provisional while offline.
 - **Idempotency.** Every client-generated transaction carries an idempotency key; a replay returns the original result and creates no duplicate order, payment, or ledger row (double-tap, retry, and offline sync all rely on this).
 - **Append-only ledgers.** `stock_ledger` and `audit_log` are append-only: no edit or delete path, enforced by grants and triggers, not just convention.
@@ -80,7 +84,7 @@ npx expo run:android --device                           # never boot or use an e
 
 ## File ownership map (current)
 
-Owned by `docs/plan/work-packages.md`; two work packages never own the same path concurrently. WP1–WP6 rows are delivered and merged; WP6.1 is the active row. Summary:
+Owned by `docs/plan/work-packages.md`; two work packages never own the same path concurrently. WP1–WP7 rows are delivered and merged; WP8 is the active row. Summary:
 
 | Path | Owner (WP) |
 |---|---|
@@ -90,9 +94,9 @@ Owned by `docs/plan/work-packages.md`; two work packages never own the same path
 | `packages/core/src/{money,stock,plate}.ts`, catalog + inventory API/screens, `packages/contracts/src/{catalog,inventory}.ts`; web shell; `apps/web/components/ui/`, `components.json`, `lib/utils.ts`; `packages/design-tokens/` | WP4 (merged) |
 | customers/vehicles contracts, API, and screens (composes the WP4 shell) | WP5 (merged) |
 | `packages/core/src/{lifecycle,receipt}.ts`, orders/payments/receipts API + screens | WP6 (merged) |
-| `packages/contracts/src/sync.ts`, `apps/web/app/api/v1/sync/**`, offline-sale application in `apps/web/lib/order-service.ts` | WP6.1 (active) |
-| `apps/mobile/` | WP7 (implemented on `feat/wp7-mobile-offline-pos`) |
-| reports/audit/settings/export contracts, API, screens; `.woodpecker/**`, `.githooks/**` | WP8 |
+| `packages/contracts/src/sync.ts`, `apps/web/app/api/v1/sync/**`, offline-sale application in `apps/web/lib/order-service.ts` | WP6.1 (merged) |
+| `apps/mobile/` | WP7 (merged, `589418d`) |
+| reports/audit/settings/export contracts, API, screens; `packages/core/src/report-period.ts`; `.woodpecker/**`, `.githooks/**`, `scripts/install-hooks.sh` | WP8 (active) |
 | `docs/ops/backup-runbook.md`, `docs/ops/handover-evidence.md`, `docs/ui/a11y-audit.md`, `THIRD_PARTY_NOTICES.md`, `docker/backup.Dockerfile`, buyer quickstart verification | WP9 |
 | `README.md` (this kickoff creates it; WP9 re-verifies the quickstart) | WP9 (revision) |
 | `docs/product/**`, `docs/adr/**`, `docs/ops/handover-checklist.md`, `docs/plan/**` | PM / architect / reviewer roles — not an implementation WP |

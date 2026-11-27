@@ -78,6 +78,7 @@
 | Vitest | 5.1.2 | MIT | Unit + integration test runner | dev | YES | https://registry.npmjs.org/vitest/latest (`license: "MIT"`) | 2026-11-26 |
 | shadcn CLI | 4.23.1 | MIT | Adds/updates copied shadcn/ui components; not a runtime dependency | dev | YES | https://registry.npmjs.org/shadcn/latest (`license: "MIT"`) | 2026-11-26 |
 | Playwright | 1.65.1 | Apache-2.0 | Web E2E tests | dev | YES | https://registry.npmjs.org/playwright/latest (`license: "Apache-2.0"`) | 2026-11-26 |
+| @axe-core/playwright | 4.14.1 | MPL-2.0 | WCAG 2.2 AA automated checks in Playwright; test-only, never in the runtime image | dev | REVIEW — dev-only; no MPL source is copied into the runtime bundle | https://registry.npmjs.org/@axe-core/playwright/4.14.1 (`license: "MPL-2.0"`) | 2026-11-27 |
 | ESLint | 10.15.0 | MIT | Lint runner and flat config host | dev | YES | https://registry.npmjs.org/eslint/10.15.0 (`license: "MIT"`) | 2026-11-26 |
 | typescript-eslint | 8.74.0 | MIT | TypeScript parser and recommended+strict rules for the flat config | dev | YES | https://registry.npmjs.org/typescript-eslint/8.74.0 (`license: "MIT"`, pinned version) | 2026-11-26 |
 | eslint-config-next | 16.4.6 | MIT | Next.js core-web-vitals + TypeScript ESLint rules | dev | YES | https://registry.npmjs.org/eslint-config-next/16.4.6 (`license: "MIT"`) | 2026-11-26 |
@@ -88,6 +89,7 @@
 | @types/pg | 8.23.1 | MIT | node-postgres TypeScript declarations (DefinitelyTyped) | dev | YES | https://registry.npmjs.org/@types/pg/8.23.1 (`license: "MIT"`) | 2026-11-26 |
 | lightningcss | 1.33.0 | MPL-2.0 | CSS transform/native binding reached through `@tailwindcss/node`; build-only, not distributed in the runtime image | dev | REVIEW — file-level copyleft; no MPL source is shipped | https://registry.npmjs.org/lightningcss/1.33.0 (`license: "MPL-2.0"`) | 2026-11-26 |
 | axe-core | 4.14.1 | MPL-2.0 | Accessibility rule engine used by `eslint-plugin-jsx-a11y` during linting; build/lint-only, not distributed | dev | REVIEW — file-level copyleft; not shipped | https://registry.npmjs.org/axe-core/4.14.1 (`license: "MPL-2.0"`) | 2026-11-26 |
+| @csstools/color-helpers | 5.1.0 | MIT-0 | Transitive dev helper reached through the Playwright/axe test stack; not used by the app | dev | YES | `package-lock.json` entry; `bash scripts/license-report.sh` reports no disallowed runtime license | 2026-11-27 |
 | caniuse-lite | 1.0.30001828 | CC-BY-4.0 | Browser-support data for browserslist/PostCSS at build time; not executed by the running app (the lockfile marks it production because Next depends on browserslist) | dev (build-only) | YES with attribution — attribution recorded here; pinned as a license-report exception | https://registry.npmjs.org/caniuse-lite/1.0.30001828 (`license: "CC-BY-4.0"`) | 2026-11-26 |
 | @testing-library/react-native | 14.1.0 | MIT | Mobile component tests (RNTL) | dev | YES | https://registry.npmjs.org/@testing-library/react-native/14.1.0 (`license: "MIT"`) | 2026-11-27 |
 | jest-expo | 58.0.16 | MIT | Jest preset for Expo/React Native | dev | YES | https://registry.npmjs.org/jest-expo/58.0.16 (`license: "MIT"`) | 2026-11-27 |

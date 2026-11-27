@@ -1,0 +1,57 @@
+/**
+ * Bahasa Indonesia labels for append-only audit actions. Unknown actions fall
+ * back to their code so a new action is never silently hidden.
+ */
+export const AUDIT_ACTION_LABELS: Record<string, string> = {
+  "audit.backdated": "Audit dengan waktu mundur",
+  "branding.updated": "Merek produk diubah",
+  "catalog.product.cost_changed": "Biaya produk diubah",
+  "catalog.product.created": "Produk dibuat",
+  "catalog.product.price_changed": "Harga produk diubah",
+  "catalog.product.updated": "Produk diubah",
+  "catalog.service.created": "Jasa dibuat",
+  "catalog.service.price_changed": "Harga jasa diubah",
+  "catalog.service.updated": "Jasa diubah",
+  "create_sale": "Penjualan dibuat",
+  "customer.anonymized": "Pelanggan dianonimkan",
+  "customer.created": "Pelanggan dibuat",
+  "customer.exported": "Data pribadi pelanggan diekspor",
+  "customer.updated": "Pelanggan diubah",
+  "device_token.revoked": "Token perangkat dicabut",
+  "inventory.adjustment": "Penyesuaian stok",
+  "inventory.stock_in": "Stok masuk",
+  "order.discount_denied": "Diskon di atas batas ditolak",
+  "order.discount_override": "Diskon di atas batas disetujui",
+  "order.estimate_approved": "Estimasi disetujui",
+  "order.estimate_issued": "Estimasi diterbitkan",
+  "order.estimate_reverted": "Estimasi dikembalikan ke draf",
+  "order.payment_corrected": "Pembayaran dikoreksi",
+  "order.payment_deleted": "Pembayaran dihapus",
+  "order.price_corrected": "Harga transaksi dikoreksi",
+  "order.void_reauth_denied": "Otorisasi ulang void ditolak",
+  "outlet.created": "Outlet dibuat",
+  "outlet.updated": "Outlet diubah",
+  "rbac.cross_outlet_denied": "Akses lintas outlet ditolak",
+  "rbac.denied": "Izin aksi ditolak",
+  "receipt.printed": "Struk dicetak",
+  "record_payment": "Pembayaran dicatat",
+  "report.exported": "Laporan diekspor",
+  "ledger.exported": "Buku besar stok diekspor",
+  "session.outlet_switched": "Outlet aktif diganti",
+  "settings.updated": "Pengaturan outlet diubah",
+  "sync.cash_reporting_flagged": "Selisih kas sinkronisasi ditandai",
+  "sync.conflict_changed": "Status konflik sinkronisasi diubah",
+  "sync.conflict_raised": "Konflik sinkronisasi muncul",
+  "sync.discount_above_cap": "Diskon luring di atas batas",
+  "sync.tax_rate_mismatch": "Tarif pajak luring berbeda",
+  "user.created": "Pengguna dibuat",
+  "user.deactivated": "Pengguna dinonaktifkan",
+  "user.login_unlocked": "Login pengguna dibuka",
+  "user.updated": "Pengguna diubah",
+  "vehicle.created": "Kendaraan dibuat",
+  "vehicle.updated": "Kendaraan diubah",
+};
+
+export function auditActionLabel(action: string): string {
+  return AUDIT_ACTION_LABELS[action] ?? action;
+}

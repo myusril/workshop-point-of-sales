@@ -482,7 +482,7 @@ git grep -nIiE '(orca|omp|claude|codex|cursor|windsurf|\.brief)' -- \
   | tee "$EVIDENCE_DIR/C6-gate-tooling.log" || true
 ```
 
-Expected: no hits. If `.githooks/` exists, note that `git config core.hooksPath` is unset by default in a fresh clone; document how a new developer enables the hooks.
+Expected: no hits. `core.hooksPath` is unset in a fresh clone; `bash scripts/install-hooks.sh` enables `.githooks/pre-commit` (secret/whitespace/typecheck guard) and `.githooks/pre-push` (`scripts/check.sh`). Record the installer output in the evidence directory.
 
 - [ ] Run the gate a second time to confirm it is repeatable and does not depend on first-run state.
 

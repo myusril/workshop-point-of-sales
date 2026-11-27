@@ -1,0 +1,42 @@
+# CI pipeline: the same aggregate gate as a local run.
+#
+# Required repository secrets (no real value belongs in this file):
+#   postgres_password          — the CI PostgreSQL service password
+#   ci_database_url            — full URL to the ephemeral workshop_pos database
+#   ci_integration_database_url— full URL to an ephemeral database ending in _test
+#   better_auth_secret         — at least 32 characters, test-only
+#
+# `npm ci` and `bash scripts/check.sh` are the only gate commands. The browser
+# provisioning step installs the Playwright Chromium the E2E suite requires.
+when:
+  - event: [push, pull_request]
+
+services:
+  database:
+    image: postgres:19-alpine
+    environment:
+      POSTGRES_USER: workshop
+      POSTGRES_PASSWORD:
+        from_secret: postgres_password
+      POSTGRES_DB: workshop_pos
+
+steps:
+  - name: secrets
+    image: zricethezav/gitleaks:v8.28.0
+    commands:
+      - gitleaks dir . --no-banner --redact --exit-code 1
+
+  - name: gate
+    image: node:26-bookworm
+    environment:
+      WP_CI: "1"
+      DATABASE_URL:
+        from_secret: ci_database_url
+      INTEGRATION_DATABASE_URL:
+        from_secret: ci_integration_database_url
+      BETTER_AUTH_SECRET:
+        from_secret: better_auth_secret
+    commands:
+      - npm ci
+      - npx playwright install --with-deps chromium
+      - bash scripts/check.sh
