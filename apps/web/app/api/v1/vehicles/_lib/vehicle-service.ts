@@ -769,6 +769,11 @@ async function resolveHistoryScope(
   };
 }
 
+/**
+ * `payments.amount` is the money applied to the balance; a cash tender's
+ * returned change lives in `payments.changeAmount`, so it is never subtracted
+ * again here.
+ */
 async function paidTotalsForOrders(
   db: Database,
   orderIds: readonly string[],
@@ -778,7 +783,7 @@ async function paidTotalsForOrders(
   const rows = await db
     .select({
       orderId: payments.orderId,
-      paidTotal: sql<string>`coalesce(sum(${payments.amount} - ${payments.changeAmount}), 0)`,
+      paidTotal: sql<string>`coalesce(sum(${payments.amount}), 0)`,
     })
     .from(payments)
     .where(inArray(payments.orderId, [...orderIds]))
@@ -832,7 +837,7 @@ export async function getVehicleHistory(
     .select({
       orderId: payments.orderId,
       paidTotal:
-        sql<string>`coalesce(sum(${payments.amount} - ${payments.changeAmount}), 0)`.as(
+        sql<string>`coalesce(sum(${payments.amount}), 0)`.as(
           "paid_total",
         ),
     })

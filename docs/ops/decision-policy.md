@@ -243,6 +243,9 @@ Summary table:
 | DEC-0009 | 2026-11-26 | 3 | Login-attempt identifiers are retained for 30 days and then pruned | Identifier rows are personal data (PD-01) and grow from an unauthenticated path; 30 days supports abuse investigation | Founder | Founder | implemented | WP3 repair round |
 | DEC-0010 | 2026-11-26 | 2 | Any role assigned to more than one active outlet may switch the active outlet | FR-001/FR-004 are normative and not role-limited; WP4+ must filter outlet-scoped reads by the session's active outlet | Product owner | Founder | implemented | WP3 repair round |
 | DEC-0011 | 2026-11-26 | 3 | A bounded in-process per-IP throttle blocks 30 failed logins per 15 minutes; edge/IP throttling remains WP8 | The founder-approved unlock option also required an IP throttle; NAT-aware 30/15 keeps a shared office working | Founder | Founder | implemented | WP3 repair round 2 |
+| DEC-0012 | 2026-11-27 | 2 | A payment row stores the money applied to the balance (not the cash tendered); change is `change_amount`; paid-total reads use `sum(amount)` | BR-009 defines balance due as total − sum(payments); the merged WP2 refund trigger requires refund amount = payment amount; WP5's `sum(amount − change)` was written before any payment existed | Product owner (reference-matching) | decision-reviewer | implemented | WP6 implementation; `vehicle-service.ts`, `customer-service.ts` read-site correction |
+| DEC-0013 | 2026-11-27 | 2 | `PAID` is terminal except `VOID` per BR-007 (AC6.2's later completion is rejected); partially paid voids refund every tender; a pre-`PAID` correction that covers the total reaches `PAID`; edits may not drop the total below collected money | BR-007/AC8.1, BR-009, BR-008, and D-11 settle these; AC6.2's narrative conflicts with the transition table | Product owner (reference-matching) | decision-reviewer | implemented | WP6 implementation |
+| DEC-0014 | 2026-11-27 | 2 | Keep an audited pre-`PAID` payment-row delete for Admin/Owner (beyond FR-048's method/amount/reference correction) and treat `SALINAN` as a print *attempt* | Duplicate or mis-keyed tenders need removal without voiding the sale; the browser cannot confirm paper output | Founder | Founder | implemented | WP6 design review; founder decision 2026-11-27 |
 
 Status values: `proposed`, `approved`, `rejected`, `implemented`, `reverted`, `superseded`.
 
@@ -494,6 +497,61 @@ Illustrative entry (not a real decision):
 - Links: pull request and screenshots in the handover evidence.
 - Supersedes: none
 ```
+
+
+### DEC-0012 — Payment rows carry applied money
+
+- Date: 2026-11-27
+- Tier: 2
+- Status: implemented
+- Requester: engineering (WP6)
+- Decider: product owner (reference-matching)
+- Approver(s): decision-reviewer
+- Context: WP6 must record split payments, cash change, and whole-order refunds. BR-009 defines balance due as `total − sum(payments)` and AC7.4 stores change separately; the merged WP2 refund trigger requires a refund amount to equal its payment amount.
+- Options: (a) store the tendered cash and subtract change in every read; (b) store applied money and keep change in `change_amount`.
+- Decision: option (b). A cash tender above the balance is stored as the applied amount plus the returned change; receipts print the tendered figure (`amount + change`); refunds reverse `amount`.
+- Rationale: only (b) keeps `sum(payments) = total` at `PAID` and makes a whole-order refund return exactly the retained money. Option (a) over-refunds by the change amount and needs every caller to remember the subtraction.
+- Consequences: paid-total aggregates read `sum(payments.amount)`. The two WP5 read sites that subtracted change (`vehicle-service.ts`, `customer-service.ts`) were corrected to `sum(amount)` — a cross-ownership change ratified by this entry. New code must not reintroduce `amount − change`.
+- Rollback: revert the two read sites and the WP6 payment/receipt writers together; stored payment rows would need a data migration, so the convention is effectively one-way once real sales exist.
+- Follow-ups: WP8 reports and CSV exports must use `sum(amount)` and subtract refunds; WP7's offline sink must send applied money (owner: WP8/WP7 leads).
+- Links: WP6 brief; AGENTS.md "Payment rows carry applied money"; WP6 integration tests for cash change, split payment, and paid void refunds.
+- Supersedes: none
+
+### DEC-0013 — Settlement, void, and correction invariants for orders
+
+- Date: 2026-11-27
+- Tier: 2
+- Status: implemented
+- Requester: engineering (WP6)
+- Decider: product owner (reference-matching)
+- Approver(s): decision-reviewer
+- Context: AC6.2 describes an order paid while in progress and "later completed", but BR-007's transition table has no `PAID → COMPLETED` and AC8.1 requires rejecting every pair outside the table. Partially paid orders can also be voided, and payment correction (D-11) can bring an order to a zero balance.
+- Options: (a) allow `PAID → COMPLETED` as a benign extra edge; (b) keep BR-007 literal and prove exactly-once settlement by rejecting the later completion; (c) block voiding until payments are removed.
+- Decision: option (b). `PAID` is terminal except `VOID`; stock settles at the earlier of `COMPLETED`/`PAID` through WP4's idempotent ledger write inside the order's transaction. A void refunds every recorded tender, including a partially paid order. A pre-`PAID` correction that covers the total sets `PAID`, `paid_at`, the timeline event, and stock. Line/header edits are rejected when the new total would fall below money already collected.
+- Rationale: BR-007 and AC8.1 are the normative table and the rejection rule; AC6.2's exactly-once invariant is satisfied at the earlier settlement point. Refunding every tender is the only way a voided, partially paid sale leaves the drawer and the report honest. Rejecting an under-total edit is the only option without partial refunds (BR-008).
+- Consequences: no partial refunds exist; a mis-keyed cash amount is corrected before `PAID`, never after. A PRD errata at the next revision should align AC6.2's wording with BR-007.
+- Rollback: revert the relevant service paths and tests; no schema change is involved, but a migrated dataset with settled `PAID` orders must not be reopened casually.
+- Follow-ups: PM adds the AC6.2 errata note (owner: product manager); WP8 excludes `VOID` orders from sales totals and uses refund rows for expected cash (owner: WP8 lead).
+- Links: WP6 brief; PRD BR-005/BR-007/BR-008/BR-009; WP6 integration tests for partial void, correction-to-PAID, rollback, and under-total edits.
+- Supersedes: none
+
+### DEC-0014 — Pre-`PAID` tender deletion and `SALINAN` semantics
+
+- Date: 2026-11-27
+- Tier: 2
+- Status: implemented
+- Requester: engineering (WP6)
+- Decider: Founder
+- Approver(s): Founder
+- Context: FR-048 lists method/amount/reference correction but not row deletion, yet a duplicate tender is a real counter mistake. Separately, the browser print path cannot prove that paper was produced, so the reprint stamp's meaning had to be chosen.
+- Options: (a) restrict pre-`PAID` fixes to correction only; (b) keep an audited delete for Admin/Owner. For the stamp: (c) mark the next print attempt; (d) require a manual "printed" confirmation.
+- Decision: option (b) and (c). Admin/Owner may delete a pre-`PAID` payment row with a reason and a before/after audit entry; the order lock keeps the balance consistent. `SALINAN` marks a repeat print attempt, and the first attempt of a document is the original.
+- Rationale: (b) handles duplicate tenders without voiding the whole sale and keeps the audit trail; (c) is the only honest signal a browser can produce, and it never changes a figure.
+- Consequences: post-`PAID` tenders stay immutable (the DB trigger and the service refuse); deletion is whole-row only, never a partial refund. A cashier who cancels the print dialog still consumes one attempt.
+- Rollback: remove the DELETE route/handler and the dialog action; the stored audit rows remain append-only.
+- Follow-ups: WP8 may add a "sudah tercetak" confirmation if the buyer wants confirmed-print tracking (owner: WP8 lead).
+- Links: WP6 brief; founder decision 2026-11-27; WP6 payment tests.
+- Supersedes: none
 
 ## 8. Suggested turnaround
 

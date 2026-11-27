@@ -13,6 +13,8 @@ import type { BackOfficeNavItem } from "./navigation";
 export function backOfficeNavItems(role: StaffRole): BackOfficeNavItem[] {
   const items: BackOfficeNavItem[] = [
     { href: "/", label: "Beranda", icon: "home" },
+    // A Mechanic's work list is the same route, filtered to their assignments.
+    { href: "/orders", label: "Transaksi", icon: "catalog" },
     { href: "/catalog", label: "Produk & Jasa", icon: "catalog" },
     // Reads are open to every authenticated role (writes stay behind
     // `manage_customers`); Mechanic keeps history access through

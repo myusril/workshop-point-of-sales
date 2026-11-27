@@ -1,6 +1,6 @@
 # AGENTS.md — Engineering Guide
 
-> **Repository state: WP1–WP4 merged on `main`.** WP1 (walking skeleton/tooling, PR #1), WP2 (schema/migrations/seed, PR #2), WP3 (auth/RBAC/users/outlets, PR #3), and WP4 (web shell, domain core, catalog, inventory, PR #4 `cdf3036`) are merged. WP5 (customers, vehicles, plate history) is in progress on `feat/wp5-customers-vehicles-history`; orders, payments, receipts, reports, and the mobile app do not exist yet. CI workflows and git hooks are intentionally absent until WP8 — `scripts/check.sh` is the only aggregate gate. Every command below is executable against this tree; only results recorded in `docs/STATUS.md` §7 count as verified.
+> **Repository state: WP1–WP5 merged on `main`.** WP1 (walking skeleton/tooling, PR #1), WP2 (schema/migrations/seed, PR #2), WP3 (auth/RBAC/users/outlets, PR #3), WP4 (web shell, domain core, catalog, inventory, PR #4 `cdf3036`), and WP5 (customers, vehicles, plate history, PR #5 `8a2a550`) are merged. WP6 (orders, pricing, payments, receipts) is implemented on `feat/wp6-orders-payments-receipts`; reports, mobile sync, and the native printer sink do not exist yet. CI workflows and git hooks are intentionally absent until WP8 — `scripts/check.sh` is the only aggregate gate. Every command below is executable against this tree; only results recorded in `docs/STATUS.md` §7 count as verified.
 
 ## Product and stack
 
@@ -56,6 +56,7 @@ bash scripts/check.sh        # aggregate gate: typecheck → lint → test:unit 
 
 - **TypeScript strict.** No `any` escapes in domain or API code; contracts are Zod-first — validate at the boundary, then trust the types.
 - **Money: no floating point, ever.** All amounts are integer rupiah (`bigint`-mode columns). Rounding is half-up, implemented once in `packages/core` and unit-tested against the PRD worked example (AC3.1). No floats in the money path, in APIs, or in CSV exports.
+- **Payment rows carry applied money.** `payments.amount` is what reduced the balance (never the cash tendered); a cash overpayment stores the returned difference in `change_amount`. A whole-order void refunds `amount` per row, so a receipt prints the tendered figure as `amount + change`. Do not reintroduce `amount − change` in paid-total aggregates.
 - **Server-authoritative stock.** Devices may propose; only the server ledger decrements stock, inside the order's transaction. Conflicts are surfaced with an explicit user action — never silently resolved. Local stock displays are marked provisional while offline.
 - **Idempotency.** Every client-generated transaction carries an idempotency key; a replay returns the original result and creates no duplicate order, payment, or ledger row (double-tap, retry, and offline sync all rely on this).
 - **Append-only ledgers.** `stock_ledger` and `audit_log` are append-only: no edit or delete path, enforced by grants and triggers, not just convention.
@@ -69,7 +70,7 @@ bash scripts/check.sh        # aggregate gate: typecheck → lint → test:unit 
 
 ## File ownership map (current)
 
-Owned by `docs/plan/work-packages.md`; two work packages never own the same path concurrently. WP1–WP4 rows are delivered and merged; WP5 is the active row. Summary:
+Owned by `docs/plan/work-packages.md`; two work packages never own the same path concurrently. WP1–WP5 rows are delivered and merged; WP6 is the active row. Summary:
 
 | Path | Owner (WP) |
 |---|---|
@@ -77,8 +78,8 @@ Owned by `docs/plan/work-packages.md`; two work packages never own the same path
 | `packages/db/` (schema, migrations, seed, query helpers) | WP2 (merged) |
 | `packages/auth/`, API + screens for auth/users/outlets | WP3 (merged) |
 | `packages/core/src/{money,stock,plate}.ts`, catalog + inventory API/screens, `packages/contracts/src/{catalog,inventory}.ts`; web shell; `apps/web/components/ui/`, `components.json`, `lib/utils.ts`; `packages/design-tokens/` | WP4 (merged) |
-| customers/vehicles contracts, API, and screens (composes the WP4 shell; active branch `feat/wp5-customers-vehicles-history`) | WP5 (active) |
-| `packages/core/src/{lifecycle,receipt}.ts`, orders/payments/receipts API + screens | WP6 |
+| customers/vehicles contracts, API, and screens (composes the WP4 shell) | WP5 (merged) |
+| `packages/core/src/{lifecycle,receipt}.ts`, orders/payments/receipts API + screens (active branch `feat/wp6-orders-payments-receipts`) | WP6 (active) |
 | `apps/mobile/`, `packages/contracts/src/sync.ts` | WP7 |
 | reports/audit/settings/export contracts, API, screens; `.woodpecker/**`, `.githooks/**` | WP8 |
 | `docs/ops/backup-runbook.md`, `docs/ops/handover-evidence.md`, `docs/ui/a11y-audit.md`, `THIRD_PARTY_NOTICES.md`, `docker/backup.Dockerfile`, buyer quickstart verification | WP9 |
