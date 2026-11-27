@@ -16,7 +16,7 @@ import {
 import { Client } from "pg";
 
 import { formatIdr } from "../../lib/format";
-import { databaseUrl } from "./env";
+import { databaseUrl, readTestPassword } from "./env";
 import {
   createStaffViaApi,
   expectNoHorizontalOverflow,
@@ -357,6 +357,7 @@ test("Owner voids a paid order with full refunds and a DIBATALKAN reprint", asyn
 
   const dialog = page.getByRole("dialog");
   await expect(dialog.getByText(/Pengembalian dana Tunai/)).toBeVisible();
+  await dialog.getByLabel("Kata sandi Pemilik").fill(readTestPassword());
   await dialog.getByLabel("Alasan pembatalan").fill("Pelanggan membatalkan pekerjaan");
   await dialog.getByRole("button", { name: "Batalkan transaksi" }).click();
 

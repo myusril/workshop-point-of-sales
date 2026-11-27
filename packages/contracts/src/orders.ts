@@ -200,6 +200,11 @@ export const voidOrderSchema = z.object({
     .trim()
     .min(1, "Alasan pembatalan wajib diisi.")
     .max(500, "Alasan pembatalan maksimal 500 karakter."),
+  /** Required for a `PAID` order; verified server-side, never stored. */
+  password: z
+    .string()
+    .max(200, "Kata sandi terlalu panjang.")
+    .optional(),
 });
 export type VoidOrderRequest = z.infer<typeof voidOrderSchema>;
 

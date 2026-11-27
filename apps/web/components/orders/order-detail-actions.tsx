@@ -18,6 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { formatIdr } from "@/lib/format";
 import { PAYMENT_METHOD_LABELS } from "@/lib/order-labels";
@@ -41,6 +42,7 @@ export function OrderDetailActions({ order }: OrderDetailActionsProps) {
   const [revertReason, setRevertReason] = useState("");
   const [voidOpen, setVoidOpen] = useState(false);
   const [voidReason, setVoidReason] = useState("");
+  const [voidPassword, setVoidPassword] = useState("");
 
   async function transition(to: TransitionTarget, reason?: string, key: string = to) {
     setPending(key);
@@ -74,7 +76,10 @@ export function OrderDetailActions({ order }: OrderDetailActionsProps) {
       const response = await fetch(`/api/v1/orders/${order.id}/void`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ reason: voidReason }),
+        body: JSON.stringify({
+          reason: voidReason,
+          ...(order.status === "PAID" ? { password: voidPassword } : {}),
+        }),
       });
       if (!response.ok) {
         const failure = await readApiError(response);
@@ -83,6 +88,7 @@ export function OrderDetailActions({ order }: OrderDetailActionsProps) {
       }
       setVoidOpen(false);
       setVoidReason("");
+      setVoidPassword("");
       setMessage("Transaksi dibatalkan.");
       router.refresh();
     } catch {
@@ -200,7 +206,7 @@ export function OrderDetailActions({ order }: OrderDetailActionsProps) {
                 variant={order.status === "PAID" || order.status === "VOID" ? "primary" : "secondary"}
               >
                 <a
-                  href={`/print/receipt/${order.id}?print=1`}
+                  href={`/print/receipt/${order.id}`}
                   target="_blank"
                   rel="noreferrer"
                 >
@@ -299,6 +305,25 @@ export function OrderDetailActions({ order }: OrderDetailActionsProps) {
                 : "Tidak ada stok yang perlu dikembalikan."}
             </p>
           </div>
+
+          {order.status === "PAID" ? (
+            <Field
+              label="Kata sandi Pemilik"
+              htmlFor="void-password"
+              required
+              hint="Masukkan kata sandi akun Pemilik untuk mengonfirmasi. Tidak disimpan."
+            >
+              <Input
+                id="void-password"
+                type="password"
+                autoComplete="current-password"
+                value={voidPassword}
+                onChange={(event) => {
+                  setVoidPassword(event.target.value);
+                }}
+              />
+            </Field>
+          ) : null}
 
           <Field
             label="Alasan pembatalan"

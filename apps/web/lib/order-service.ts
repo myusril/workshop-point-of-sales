@@ -1137,7 +1137,9 @@ export async function createOrder(
     });
   }
 
-  const technicianId = input.technicianId?.trim() ?? null;
+  const technicianId =
+    input.technicianId?.trim() ??
+    (context.user.role === "MECHANIC" ? context.user.id : null);
   if (technicianId) {
     await requireTechnician(db, context.user.businessId, technicianId, "technicianId");
   }
@@ -1387,14 +1389,20 @@ export async function updateOrderHeader(
     const settingsRow = await loadSettingsRow(db, scope.businessId, order.outletId);
     const operational = settingsFallback(settingsRow);
 
-    const overrideReason = await assertDiscountAllowed(db, scope, context, {
-      entityId: order.id,
-      outletId: order.outletId,
-      subtotal: pricing.subtotal,
-      discountTotal: pricing.discountTotal,
-      capPercent: operational.cashierDiscountCapPercent,
-      reason: input.discountReason ?? null,
-    });
+    const discountRequested =
+      input.discountPercent !== undefined || input.discountAmount !== undefined;
+    const discountChanged =
+      discountRequested && pricing.orderDiscountTotal !== existingOrderDiscount;
+    const overrideReason = discountChanged
+      ? await assertDiscountAllowed(db, scope, context, {
+          entityId: order.id,
+          outletId: order.outletId,
+          subtotal: pricing.subtotal,
+          discountTotal: pricing.discountTotal,
+          capPercent: operational.cashierDiscountCapPercent,
+          reason: input.discountReason ?? null,
+        })
+      : null;
 
     await assertTotalCoversPayments(tx, order.id, pricing.total);
 
@@ -2283,6 +2291,7 @@ export async function voidOrder(
   context: AuthContext,
   orderId: string,
   input: VoidOrderRequest,
+  verifyOwnerPassword?: (password: string) => Promise<boolean>,
 ): Promise<OrderResponse> {
   const existing = await loadScopedOrder(db, context, orderId);
   const scope = scopeOf(context);
@@ -2308,6 +2317,30 @@ export async function voidOrder(
     reason = normalizeVoidReason(input.reason, operational.voidReasonMinLength);
   } catch (error) {
     lifecycleToAuthError(error);
+  }
+
+  if (existing.status === "PAID") {
+    const password = input.password?.trim() ?? "";
+    if (password.length === 0) {
+      throw AuthError.validation({
+        password: ["Kata sandi Pemilik wajib diisi untuk membatalkan transaksi yang sudah dibayar."],
+      });
+    }
+    if (!verifyOwnerPassword) {
+      throw AuthError.internal("Verifikasi kata sandi Pemilik tidak tersedia.");
+    }
+    const matches = await verifyOwnerPassword(password);
+    if (!matches) {
+      await appendAuditEntry(db, scope, {
+        action: "order.void_reauth_denied",
+        entityType: "order",
+        entityId: orderId,
+        actorId: context.user.id,
+        outletId: existing.outletId,
+        reason: "owner password verification failed",
+      });
+      throw AuthError.forbidden("Kata sandi Pemilik tidak cocok.");
+    }
   }
 
   return db.transaction(async (tx) => {

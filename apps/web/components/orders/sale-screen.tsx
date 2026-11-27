@@ -412,7 +412,7 @@ export function SaleScreen({
               <ReceiptPreviewDialog orderId={created.id} label="Pratinjau struk" />
               <Button asChild variant="primary">
                 <a
-                  href={`/print/receipt/${created.id}?print=1`}
+                  href={`/print/receipt/${created.id}`}
                   target="_blank"
                   rel="noreferrer"
                 >

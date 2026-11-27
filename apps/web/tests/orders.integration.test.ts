@@ -885,9 +885,31 @@ describe("void and refund (BR-008, AC9.1–AC9.5)", () => {
     const denial = await auditRows("rbac.denied", orderId);
     expect(denial.some((row) => row.actorId === ADMIN_ID)).toBe(true);
 
-    const voided = await orders.voidOrder(db, owner, orderId, {
-      reason: "Pelanggan membatalkan pekerjaan",
-    });
+    await expectRejection(
+      () =>
+        orders.voidOrder(db, owner, orderId, { reason: "Pelanggan membatalkan pekerjaan" }, async () => true),
+      "VALIDATION_ERROR",
+    );
+    await expectRejection(
+      () =>
+        orders.voidOrder(
+          db,
+          owner,
+          orderId,
+          { reason: "Pelanggan membatalkan pekerjaan", password: "salah" },
+          async (password) => password === "kunci-owner",
+        ),
+      "FORBIDDEN",
+    );
+    expect((await auditRows("order.void_reauth_denied", orderId)).length).toBe(1);
+
+    const voided = await orders.voidOrder(
+      db,
+      owner,
+      orderId,
+      { reason: "Pelanggan membatalkan pekerjaan", password: "kunci-owner" },
+      async (password) => password === "kunci-owner",
+    );
     expect(voided.item.status).toBe("VOID");
     expect(voided.item.receiptAvailable).toBe(true);
 
@@ -1235,6 +1257,47 @@ describe("review regressions", () => {
     expect(receipt.isReprint).toBe(false);
     expect(receipt.reprintCount).toBe(0);
     expect(receipt.rows.join("\n")).not.toContain("SALINAN");
+  });
+
+  it("assigns a Mechanic's own intake so it is readable immediately", async () => {
+    const created = await orders.createOrder(db, mechanic, {
+      kind: "SERVICE",
+      customerId: CUSTOMER_ID,
+      vehicleId: VEHICLE_ID,
+      lines: [{ lineType: "SERVICE", catalogItemId: SERVICE_OIL_ID, quantity: 1 }],
+      idempotencyKey: randomUUID(),
+    });
+
+    expect(created.item.technician?.id).toBe(MECHANIC_ID);
+    const detail = await orders.getOrderDetail(db, mechanic, created.item.id);
+    expect(detail.item.id).toBe(created.item.id);
+    const list = await orders.listOrders(db, mechanic, { page: 1, pageSize: 100 });
+    expect(list.items.map((item) => item.id)).toContain(created.item.id);
+  });
+
+  it("edits a discounted order header without re-approving the discount", async () => {
+    const created = await orders.createOrder(db, admin, mixedSaleInput());
+    expect((await auditRows("order.discount_override", created.item.id)).length).toBe(1);
+
+    const updated = await orders.updateOrderHeader(db, admin, created.item.id, {
+      notes: "Pelanggan menunggu di ruang tunggu",
+      technicianId: MECHANIC_ID,
+    });
+    expect(updated.item.notes).toBe("Pelanggan menunggu di ruang tunggu");
+    expect(updated.item.technician?.id).toBe(MECHANIC_ID);
+    expect(updated.item.total).toBe(created.item.total);
+    expect((await auditRows("order.discount_override", created.item.id)).length).toBe(1);
+
+    await expectRejection(
+      () => orders.updateOrderHeader(db, admin, created.item.id, { discountPercent: 20 }),
+      "VALIDATION_ERROR",
+    );
+    const reapproved = await orders.updateOrderHeader(db, admin, created.item.id, {
+      discountPercent: 20,
+      discountReason: "Pelanggan langganan",
+    });
+    expect(reapproved.item.total).not.toBe(created.item.total);
+    expect((await auditRows("order.discount_override", created.item.id)).length).toBe(2);
   });
 
   it("accepts only an active Mechanic as a technician", async () => {

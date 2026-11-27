@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { jsonError, jsonOk, parseJson, requireApiContext } from "@/lib/auth/http";
 import { getAuthRuntime } from "@/lib/auth/server";
+import { verifyUserPassword } from "@/lib/order-reauth";
 import { voidOrder } from "@/lib/order-service";
 
 export const runtime = "nodejs";
@@ -25,7 +26,13 @@ export async function POST(
       throw AuthError.notFound("Transaksi tidak ditemukan.");
     }
     const input = await parseJson(request, voidOrderSchema);
-    return jsonOk(await voidOrder(getAuthRuntime().db, context, id, input));
+    // A paid void re-asks for the Owner's password (verify-only).
+    const runtime = getAuthRuntime();
+    return jsonOk(
+      await voidOrder(runtime.db, context, id, input, (password) =>
+        verifyUserPassword(runtime.auth, context.user.id, password),
+      ),
+    );
   } catch (error) {
     return jsonError(error);
   }
