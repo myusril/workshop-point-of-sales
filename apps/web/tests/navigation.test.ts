@@ -16,8 +16,11 @@ describe("back-office navigation filtering", () => {
       { href: "/customers", label: "Pelanggan", icon: "users" },
       { href: "/vehicles", label: "Kendaraan", icon: "catalog" },
       { href: "/inventory", label: "Stok", icon: "inventory" },
+      { href: "/reports", label: "Laporan", icon: "reports" },
+      { href: "/audit", label: "Log audit", icon: "audit" },
       { href: "/users", label: "Pengguna", icon: "users" },
       { href: "/outlets", label: "Outlet", icon: "outlets" },
+      { href: "/settings", label: "Pengaturan", icon: "settings" },
     ]);
   });
 
@@ -29,6 +32,7 @@ describe("back-office navigation filtering", () => {
       "Pelanggan",
       "Kendaraan",
       "Stok",
+      "Laporan",
     ]);
     expect(labelsFor("CASHIER")).toEqual([
       "Beranda",
@@ -36,6 +40,7 @@ describe("back-office navigation filtering", () => {
       "Produk & Jasa",
       "Pelanggan",
       "Kendaraan",
+      "Laporan",
     ]);
     // Mechanic cannot write customers but may read them and view history.
     expect(labelsFor("MECHANIC")).toEqual([

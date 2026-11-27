@@ -142,7 +142,7 @@ describe("customer list", () => {
     const html = renderToStaticMarkup(<CustomersTable items={[maskedCustomer]} canManageCustomers={false} canManagePersonalData={false} />);
 
     expect(html).toContain(`href="/vehicles?customerId=${CUSTOMER_ID}"`);
-    expect(html).toContain('aria-label="Lihat kendaraan Budi Santoso"');
+    expect(html).toContain('aria-label="Lihat 2 kendaraan Budi Santoso"');
   });
 
   it("shows the anonymized sentinel, chip, and an em dash for the phone", () => {

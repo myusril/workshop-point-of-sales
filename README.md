@@ -1,6 +1,6 @@
 # Workshop POS
 
-> **Current status: WP1–WP6.1 are merged to `main`.** That covers the walking skeleton, schema/seed, auth/RBAC/outlets, the web shell + domain core + catalog/inventory, customers/vehicles/history, orders/pricing/payments/receipts, and the server offline-sync seam (`POST /api/v1/sync`). WP7 (the Android-first Expo app with a local outbox, conflict decisions, and receipt share/PDF) is implemented on `feat/wp7-mobile-offline-pos` and is not merged yet. Reports, settings screens, CI, and the native ESC/POS transport do not exist.
+> **Current status: WP1–WP7 are merged to `main`.** That covers the walking skeleton, schema/seed, auth/RBAC/outlets, the web shell + domain core + catalog/inventory, customers/vehicles/history, orders/pricing/payments/receipts, the server offline-sync seam (`POST /api/v1/sync`), and the Android-first Expo app with a local outbox, conflict decisions, and receipt share/PDF. WP8 (reports, CSV export, audit log, settings/branding, CI, git hooks, and the axe sweep) is implemented on `feat/wp8-reports-audit-settings-hardening` and awaits review. The native ESC/POS transport remains absent.
 
 A point-of-sale system for vehicle workshops (bengkel) in Indonesia.
 
@@ -49,7 +49,7 @@ Rationale, alternatives, trust boundaries, offline-sync design, and rollback str
 
 ## Repository layout
 
-WP1 created `apps/web/`, `docker/`, `scripts/`, `compose.yaml`, and `compose.dev.yaml`; WP2 added `packages/db/`; WP3 added `packages/auth/` and `packages/contracts/`; WP4 added `packages/core/`, `packages/design-tokens/`, the back-office shell, and catalog/inventory screens; WP5 added customers/vehicles/history; WP6 added orders/payments/receipts; WP6.1 added the sync seam; WP7 added `apps/mobile/`.
+WP1 created `apps/web/`, `docker/`, `scripts/`, `compose.yaml`, and `compose.dev.yaml`; WP2 added `packages/db/`; WP3 added `packages/auth/` and `packages/contracts/`; WP4 added `packages/core/`, `packages/design-tokens/`, the back-office shell, and catalog/inventory screens; WP5 added customers/vehicles/history; WP6 added orders/payments/receipts; WP6.1 added the sync seam; WP7 added `apps/mobile/`; WP8 added reports/export/audit/settings, `.woodpecker/`, and `.githooks/`.
 
 | Path | Contents |
 |---|---|
@@ -72,7 +72,7 @@ Exact file ownership per work package: [`docs/plan/work-packages.md`](docs/plan/
 
 - **Node.js 26 LTS** (pinned via `.node-version`) and **npm** with workspaces support
 - **Docker Engine + Docker Compose** (v2) for PostgreSQL and the deployment stack
-- **Android tooling** for mobile builds: JDK 17 + Android SDK (platform 36, build-tools) and an Android 8.0+ emulator (API 26+) — the app builds locally with `expo prebuild` + Gradle; no paid build service is required
+- **Android tooling** for mobile builds: JDK 17 + Android SDK (platform 36, build-tools) and a physical Android 8.0+ device — the app builds locally with `expo prebuild` + Gradle; no paid build service is required. Emulator/AVD testing is not used
 - A 58 mm or 80 mm ESC/POS thermal printer and a physical Android device for the printer pilot (buyer-supplied). The shipped build does not include a native printer transport; receipt share and PDF work offline
 
 ## Setup
@@ -132,7 +132,8 @@ npm run typecheck --workspace @workshop-pos/mobile
 npm run lint --workspace @workshop-pos/mobile
 npm run test:unit --workspace @workshop-pos/mobile     # Jest + React Native Testing Library
 npx expo prebuild --platform android                   # generates android/ (gitignored)
-npx expo run:android                                   # debug APK on an emulator/device
+npx expo run:android --device                          # real device only; never an emulator
+adb devices                                             # proceed only for a device in "device" state
 ```
 
 Release signing, Play Store packaging, APK size, cold-start time, and real thermal printing are buyer/hardware tasks and are **not verified** in this repository. The printer SDK (`react-native-esc-pos-printer` / Epson ePOS terms) remains `REVIEW`; the app talks to a `PrinterTransport` interface so a pilot can add the native adapter without touching receipt layout. Share and PDF are the always-available fallback.
@@ -149,11 +150,13 @@ The npm scripts and aggregate runner exist. The individual steps and the aggrega
 | `npm run test:integration` | Database integration tests against the Compose test database (web, auth, db) |
 | `npm run test:e2e:web` | Playwright Chromium journeys for the back-office and counter flows |
 | `npm run build` | Next.js production build with standalone output |
-| `bash scripts/check.sh` | **Aggregate gate** — all of the above in that exact order, plus Docker preflight and test-DB readiness |
+| `bash scripts/check.sh` | **Aggregate gate** — license report, typecheck, lint, unit, integration, E2E, build; Docker preflight (local) or a provided PostgreSQL service (`WP_CI=1`) |
 
 Runner parity rule: automation must run exactly these commands in this order; nothing may pass locally and fail elsewhere. Stop any running `npm run dev` before the aggregate gate; Next.js allows one dev server per project, and the E2E step starts its own on port 3100.
 
-**CI workflows and git hooks are intentionally not part of this kickoff.** They are introduced later as a gate inside WP8; until then `scripts/check.sh` is the only aggregate gate and runs locally. The aggregate gate passed on the frozen candidate.
+**CI and git hooks run the same gate.** `.woodpecker/ci.yml` runs a Gitleaks secret scan, `npm ci`, Playwright browser provisioning, and exactly `bash scripts/check.sh` with `WP_CI=1` against the pipeline's ephemeral PostgreSQL service; it fails on a red gate, a license blocker, or a secret finding. Locally, install the repository hooks once with `bash scripts/install-hooks.sh` (`git config core.hooksPath .githooks`). `pre-commit` runs a staged secret/whitespace guard plus the workspace typecheck; `pre-push` runs the full aggregate gate. Never use `--no-verify`.
+
+The aggregate gate passed on the frozen candidate. CI's first remote run is **NOT VERIFIED** when no runner is connected; the workflow and `scripts/check.sh` CI mode are provider-neutral.
 
 Observed results and exact counts for each work package are recorded in [`docs/STATUS.md`](docs/STATUS.md) §7; this README does not restate unverified numbers. Real Android devices, a thermal printer, Firefox, WebKit, screen readers, and OS font scaling remain **NOT VERIFIED**.
 

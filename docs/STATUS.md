@@ -3,10 +3,10 @@
 | Field | Value |
 |---|---|
 | Product | Workshop POS (working name; buyer may rebrand) |
-| Phase | WP7 (mobile offline POS) on the task branch |
+| Phase | WP8 (reports, audit, export, settings, hardening gate) on the task branch |
 | Date | 2026-11-27 |
-| Code status | WP1–WP6.1 are merged to `main` (WP6 `9f2fc8f`; WP6.1 `c8a38ec`, PR #7). WP7 (Expo mobile app: SQLite cache/outbox, idempotent sync, conflict decisions, receipt share/PDF) is implemented on `feat/wp7-mobile-offline-pos`; focused results are in §7.13 and the aggregate gate in §7.14. Reports, settings screens, CI/git hooks, and the native ESC/POS transport do not exist yet |
-| Next gate | Founder reviews the WP7 diff and merges. Carry the WP4 input/select boundary-contrast fix (1.57:1 → 3:1) into WP8; the mobile printer pilot, APK size, cold start, and device testing remain hardware/buyer verification |
+| Code status | WP1–WP7 are merged to `main` (WP7 `589418d`, PR #8). WP8 (reports, CSV export, audit UI, settings/branding, CI pipeline, git hooks, axe sweep) is implemented on `feat/wp8-reports-audit-settings-hardening`; focused results are in §7.15 and the aggregate gate in §7.16. The native ESC/POS transport, APK/device measurements, and printer hardware remain absent/`NOT VERIFIED` |
+| Next gate | Founder reviews the WP8 diff and merges. Device/printer/APK verification remains hardware/buyer work; CI's first remote run is `NOT VERIFIED` when no runner is connected |
 | Source of truth | `docs/product/PRD.md`, `docs/adr/0001-stack-and-architecture.md`, `docs/plan/work-packages.md` |
 
 > **Honesty rule.** This page reports what exists and what has been verified. Documents are not proof that the product works. WP1 commands were executed on 2026-11-26 on branch `feat/wp1-walking-skeleton`, including the aggregate `scripts/check.sh` gate on a fresh development volume, and WP1 was merged to `main` as PR #1 (`a96ffcb`). WP2 (schema, migrations, seed, outlet-scoped query helpers) was merged to `main` as PR #2 (`88252dc`). WP3 (auth, RBAC, users, outlets) passed its focused gates and the aggregate gate, and was merged to `main` as PR #3 (`344de62`). WP4 (web shell, domain core, catalog, inventory) passed its focused checks and the aggregate gate and was merged to `main` as PR #4 (`cdf3036`); earlier tests are re-run by later aggregate gates. Anything not listed in §7 as verified is **NOT VERIFIED** — including WP6 until its full-suite gate result is recorded in §7.10. WP5 was merged to `main` as PR #5 (`8a2a550`).
@@ -18,7 +18,7 @@
 | Milestone | Scope | Exit criteria | Status |
 |---|---|---|---|
 | **M1 — Walking skeleton** | WP1: npm-workspaces monorepo, pinned Node, `.env.example`, Compose dev/prod, Postgres, Dockerfiles, `scripts/check.sh`, license report, health endpoint, minimal page/API | A fresh clone reaches a healthy web + database stack with standard Docker/Node tooling; `scripts/check.sh` exits 0; license report has no blocker | **Verified 2026-11-26 and merged to `main` as PR #1 (`a96ffcb`)** |
-| **M2 — MVP** | WP2–WP8: schema/seed, auth/RBAC/outlets, catalog + stock ledger, customers/vehicles/history, mixed orders + payments + receipts, offline mobile POS + sync, reports/audit/export/settings, hardening gate | Every PRD story US-01–US-20 passes its acceptance criteria; offline/conflict, money, stock, and RBAC tests are green; no license blocker; WCAG 2.2 AA checks pass on agreed screens | **In progress** — WP2 `88252dc`; WP3 `344de62`; WP4 `cdf3036`; WP5 `8a2a550`; WP6 `9f2fc8f`; WP6.1 `c8a38ec` (PR #7) merged. WP7 (mobile offline POS) implemented on `feat/wp7-mobile-offline-pos`, focused checks in §7.13, awaiting review/merge |
+| **M2 — MVP** | WP2–WP8: schema/seed, auth/RBAC/outlets, catalog + stock ledger, customers/vehicles/history, mixed orders + payments + receipts, offline mobile POS + sync, reports/audit/export/settings, hardening gate | Every PRD story US-01–US-20 passes its acceptance criteria; offline/conflict, money, stock, and RBAC tests are green; no license blocker; WCAG 2.2 AA checks pass on agreed screens | **In progress** — WP2 `88252dc`; WP3 `344de62`; WP4 `cdf3036`; WP5 `8a2a550`; WP6 `9f2fc8f`; WP6.1 `c8a38ec` (PR #7); WP7 `589418d` (PR #8) merged. WP8 implemented on `feat/wp8-reports-audit-settings-hardening`; focused checks in §7.15, awaiting review/merge |
 | **M3 — Handover-ready** | WP9: accessibility sign-off, backup/restore drill, fresh-clone deployment rehearsal, license re-audit, documentation and credential handover | `docs/ops/handover-checklist.md` is fully checked with captured evidence; restore drill meets RPO/RTO targets; buyer accepts the signed manifest | **Not started** |
 
 ---
@@ -37,8 +37,8 @@
 | `docs/plan/work-packages.md` | WP1–WP9, owned paths, dependencies, acceptance gates, PRD traceability | Proposed |
 | `docs/ops/handover-checklist.md` | Seller pre-delivery verification and evidence checklist | Draft; **not executed** |
 | `docs/ops/decision-policy.md` | Tier 1/2/3 decision authority for the buyer's team | Draft |
-| `README.md`, `AGENTS.md` | Buyer setup guide and engineering rules | README carries the verified setup/gate commands and the WP3 dev-login note; AGENTS.md now records WP1–WP6 as merged, the WP6.1 branch state, the executable setup/gate commands, the customer personal-data conventions, the payment-row money convention (`amount` is applied money, change is separate), and the sync conflict/idempotency seam |
-| `apps/mobile/` | Expo Android app + local SQLite cache/outbox + Jest/RNTL suite | Implemented in WP7; typecheck/lint/unit green; emulator/device/printer measurements `NOT VERIFIED` |
+| `README.md`, `AGENTS.md` | Buyer setup guide and engineering rules | README carries the verified setup/gate/CI commands and hook install; AGENTS.md records WP1–WP7 merged, the WP8 branch state, CI/hooks commands, the report/export/audit/settings ownership, customer personal-data conventions, the payment-row money convention (`amount` is applied money, change is separate), and the sync conflict/idempotency seam |
+| `apps/mobile/` | Expo Android app + local SQLite cache/outbox + Jest/RNTL suite | Merged in WP7 (`589418d`); typecheck/lint/unit green; emulator/device/printer measurements `NOT VERIFIED` |
 | `.omp/`, `orca.yaml`, `.worktreeinclude` | Optional development aids | Present; may be stripped at handover |
 
 ---
@@ -420,6 +420,57 @@ WP6.1 was merged to `main` as PR #7 (`c8a38ec`) before WP7 started. The mobile w
 
 **Post-gate edits:** only this §7.14 block and the non-behavioural documentation corrections above (no code, config, test, dependency, or lockfile change after the gate). `gitleaks dir .` was run on the source tree immediately before the gate: no leaks found (3.99 MB scanned).
 
+### 7.15 WP8 execution checks (2026-11-27, branch `feat/wp8-reports-audit-settings-hardening`)
+
+WP7 was merged to `main` as PR #8 (`589418d`) before WP8 started. WP8 adds `packages/core/src/report-period.ts`, the reports/audit/settings/export contracts, report and export read models, Owner-only settings/branding services, the reports/audit/settings screens, the WP4 input/select contrast fix, `.woodpecker/ci.yml`, `.githooks/`, and `scripts/install-hooks.sh`. `packages/db`, WP3 auth, WP4 shell/tokens, WP5 master-data logic, WP6 order/payment logic, WP6.1 sync, and WP7 mobile code were not rewritten; the only WP4/WP5 edits are the input/select boundary classes and one vehicle-link accessible name required by the axe sweep.
+
+| Check | Result |
+|---|---|
+| `npm run typecheck` | **PASS** — all seven workspaces (web, auth, contracts, core, db, design-tokens, mobile); 0 errors |
+| `npm run lint` | **PASS** — all seven workspaces; 0 errors/warnings |
+| `npm run test:unit` | **PASS** — mobile 72, web 116, auth 208, contracts 77, core 55, db 11, design-tokens 4 (**543 total**); WP8 adds 8 report-period tests, 11 report/settings/audit contract tests, and 9 report/audit DOM tests |
+| `npm run test:integration` | **PASS** — web 171, auth 41, db 63 (**275 total**). WP8 contributes 20 tests against `workshop_pos_test`: exact daily sales/status counts, explicit zero day, outlet isolation and prior-day exclusion, payment mix with refunds and change, service-vs-product allocation reconciling with net sales, technician completed orders/lines/labour, stock valuation at a stated date, end-of-day figures and void reasons, Cashier own-outlet read + audited cross-outlet denial, Mechanic denial, CSV BOM/Bahasa header/integer values, ledger CSV `+07:00`, formula guard, export denial and audit, audit filters, Owner-only audit, end-to-end append-only rejection, Owner-only settings with before/after audit and unchanged order snapshot, branding audit, and the NFR-013 performance fixture |
+| Report recomputation | **PASS** — fixtures: 3 paid orders, 1 voided paid, 1 completed unpaid, 1 draft on 2026-11-27; gross 500000, discounts 30000, tax 29700, net 499700; cash payments 424700 − refunds 75000 = expected cash 349700; product 349750 + service 149950 = 499700; technician 3 orders/3 lines/199950 labour; stock valuation 19×150000 + 5×50000 + 1×10000 = 3110000 |
+| Report performance (NFR-013 / acceptance 4) | **PASS (measured)** — 1,000 orders × 100 lines = 100,000 lines over 365 days, 20,000 vehicles, 1 product/outlet: p95 daily sales 13.7 ms, payment mix 38.6 ms, service-vs-product 299.0 ms, technician 365.3 ms, stock valuation 9.9 ms, end-of-day 44.0 ms (threshold 10,000 ms). The fixture is inside the integration test and prints these values |
+| `npm run test:e2e:web` | **PASS** — full Chromium suite 60 tests (WP4/WP5/WP6/WP7 53 + WP8 5 reports/settings/permissions + 2 axe); CSV download content asserted (BOM, Bahasa header, `Kas diharapkan`), settings success and audit filter, Cashier/Admin 403 on audit/settings/export APIs and pages, Cashier report read allowed by the PRD matrix |
+| axe (WCAG 2.2 AA) | **PASS** — `@axe-core/playwright` tags `wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`, `wcag22aa` on `/login` and every back-office route (`/`, `/orders`, `/catalog`, `/customers`, `/vehicles`, `/inventory`, `/reports`, two report tabs, `/audit`, `/settings`, `/users`, `/outlets`): zero violations. The sweep fixed one WP5 vehicle-link accessible-name mismatch (`Lihat kendaraan X` → `Lihat N kendaraan X`) |
+| Input/select contrast (carry-over) | **PASS** — default border `#C9D0CB` on `#FFFFFF` = **1.57:1**; the shared `Input`/`Textarea`, `.bo-select`, and `.wp3-input`/`.wp3-select` now use `#7C8A83` = **3.61:1** (WCAG 2.2 AA 1.4.11 minimum 3:1). Hover remains `#7C8A83`; invalid keeps the danger border with a 1 px outline |
+| License report | **PASS** — `bash scripts/license-report.sh` reports no disallowed runtime license. `@axe-core/playwright` 4.14.1 and its `axe-core` tree are dev-only MPL-2.0 REVIEW; `@csstools/color-helpers` MIT-0 is recorded; neither ships in the runtime image |
+| CI/hooks | **PASS (local evidence)** — `scripts/check.sh` runs license → typecheck → lint → unit → integration → E2E → build; local mode keeps Docker Compose, `WP_CI=1` uses provided `DATABASE_URL`/`INTEGRATION_DATABASE_URL`, creates the `_test` database if missing, and skips Docker only in that explicit mode. `.woodpecker/ci.yml` runs Gitleaks + `npm ci` + browser provisioning + exactly `scripts/check.sh`; `.githooks/pre-commit` scans staged secrets/whitespace and typechecks, `pre-push` runs the gate; `scripts/install-hooks.sh` sets `core.hooksPath`. The first remote CI run is **NOT VERIFIED** (no runner attached) |
+| Secret scan | **PASS** — `gitleaks dir .` on the source tree after removing gitignored `.next`/`test-results`; no leaks |
+| Bahasa Indonesia sweep | **PASS (review)** — every new report/audit/settings string, button, empty/error state, CSV header and validation message is product Bahasa; identifiers, comments, and commit messages remain English |
+
+**Known limits recorded, not silently accepted**
+
+- Daily sales figures count paid, non-void orders by `paid_at`; a paid order voided later is removed from the earlier day's figures and its refund lands on the refund day. This is the PRD's current-data recomputation model, not an immutable daily snapshot; an immutable end-of-day snapshot would need a schema addition (WP2).
+- A repeated void reason is stored once per order; the audit log carries the actor and timestamp. The report lists the void's current reason, which is immutable after `VOID`.
+- Stock valuation uses the ledger's server-assigned `created_at`. The integration fixture temporarily disables only `stock_ledger_server_created_at` to place historical fixture rows; production rows keep the server timestamp.
+- CSV export caps the stock ledger at 100,000 rows with an explicit error. Report exports are bounded by the 366-day request range; a larger ledger export must be split by date/product.
+- The audit log is business-wide for the Owner; the UI outlet filter is an optional narrowing control. Admin/Cashier are denied server-side and the denial is audited by the route guard.
+- Branding uses the existing `businesses.product_display_name` / `logo_path` columns; logo upload/storage is intentionally absent (a path or `https://` URL only). No schema migration was added.
+- Real Android/iOS devices, a thermal printer, APK size, cold start, Firefox, WebKit, screen readers, OS font scaling, and a live CI runner remain **NOT VERIFIED**.
+
+### 7.16 WP8 aggregate gate (2026-11-27, frozen candidate)
+
+`fnm exec --using=26.13.1 -- bash scripts/check.sh` was run once on the final tree after the focused fixes (signed-money rendering, strict audit/export date validation, blank-number settings guard, audit/report filter primitives, audited ledger cross-outlet denial). It exited 0 in 204.70 s (`All gates passed.`). Earlier runs during the same session were discarded because a source file changed while they were running; only this run counts.
+
+| Gate step | Observed result |
+|---|---|
+| Preflight / Compose database | **PASS** — Docker preflight, development database healthy, `workshop_pos_test` reachable |
+| License report | **PASS** — `PASS: no disallowed runtime licenses`; pinned `caniuse-lite` exception unchanged |
+| `npm run typecheck` | **PASS** — web, auth, contracts, core, db, design-tokens, mobile; 0 errors |
+| `npm run lint` | **PASS** — all seven workspaces; 0 errors/warnings |
+| `npm run test:unit` | **PASS** — mobile 72, web 116, auth 208, contracts 77, core 55, db 11, design-tokens 4 (**543 total**) |
+| `npm run test:integration` | **PASS** — web 171, auth 41, db 63 (**275 total**) |
+| `npm run test:e2e:web` | **PASS** — 60 Chromium tests (2.1 m) |
+| `npm run build` | **PASS** — Next.js 16.4.6 production build; `/reports`, `/audit`, `/settings`, the report/audit/settings/export API routes, and the existing order/catalog/customer/mobile-sync routes are dynamic |
+
+**Post-gate edits:** only this §7.16 block and the §7.15 count/status rows (no code, config, test, dependency, or lockfile change after the gate).
+
+**CI-mode status:** `WP_CI=1 DATABASE_URL=… INTEGRATION_DATABASE_URL=… bash scripts/check.sh` was also run on the final tree and exited 0 in 227.13 s (`All gates passed.`), proving the no-Docker, provided-PostgreSQL branch (including the `_test` database readiness check and the E2E CI database allowance). The remote Woodpecker pipeline itself is **NOT VERIFIED** because no runner is attached. The local default (Docker Compose) is the gate reported above.
+
+
+
 ---
 
 ## 8. Approved kickoff decisions
@@ -444,6 +495,6 @@ Recorded 2026-11-26 from the product owner. These close the corresponding open q
 
 1. Obtain buyer counsel review for the Epson SDK redistribution terms, the privacy notice, retention duration, and tax rounding; record the signed outcomes.
 2. WP1 is merged to `main` (PR #1, `a96ffcb`); no merge action remains.
-3. WP2 is merged to `main` (PR #2, `88252dc`); WP3 is merged to `main` (PR #3, `344de62`); WP4 (web shell, domain core, catalog, inventory) is merged to `main` (PR #4, `cdf3036`); WP5 (customers, vehicles, plate history) is merged to `main` (PR #5, `8a2a550`). WP6 (orders, pricing, payments, receipts) is merged to `main` as PR #6 (`9f2fc8f`). WP6.1 (server sync seam: local-price apply, idempotent replay, conflict list and resolution) passed focused checks and the aggregate gate on `feat/wp6-1-server-sync` (§7.11–§7.12); the founder reviews and merges, then WP7 starts from `main`.
-4. WP7 (mobile offline POS) is implemented on `feat/wp7-mobile-offline-pos`; founder reviews and merges. The printer pilot, APK size, cold start, and device/emulator verification remain open hardware/buyer tasks.
-5. Keep CI workflows and git hooks in WP8; do not add them before then.
+3. WP2 is merged to `main` (PR #2, `88252dc`); WP3 is merged to `main` (PR #3, `344de62`); WP4 (web shell, domain core, catalog, inventory) is merged to `main` (PR #4, `cdf3036`); WP5 (customers, vehicles, plate history) is merged to `main` (PR #5, `8a2a550`); WP6 (orders, pricing, payments, receipts) is merged to `main` as PR #6 (`9f2fc8f`); WP6.1 (server sync seam) is merged as PR #7 (`c8a38ec`); WP7 (mobile offline POS) is merged as PR #8 (`589418d`).
+4. The printer pilot, APK size, cold start, and real-device verification remain open hardware/buyer tasks; no emulator result is accepted as verification.
+5. WP8 (reports, export, audit, settings, CI, hooks, axe sweep) is implemented on `feat/wp8-reports-audit-settings-hardening`; founder reviews and merges. After merge, WP9 starts the handover checklist, backup drill, and license re-audit.

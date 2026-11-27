@@ -1,4 +1,12 @@
-export type BackOfficeNavIcon = "home" | "catalog" | "inventory" | "users" | "outlets";
+export type BackOfficeNavIcon =
+  | "home"
+  | "catalog"
+  | "inventory"
+  | "users"
+  | "outlets"
+  | "reports"
+  | "audit"
+  | "settings";
 
 export interface BackOfficeNavItem {
   href: string;

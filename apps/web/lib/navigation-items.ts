@@ -26,11 +26,20 @@ export function backOfficeNavItems(role: StaffRole): BackOfficeNavItem[] {
   if (can(role, "manage_stock")) {
     items.push({ href: "/inventory", label: "Stok", icon: "inventory" });
   }
+  if (can(role, "view_reports")) {
+    items.push({ href: "/reports", label: "Laporan", icon: "reports" });
+  }
+  if (can(role, "view_audit_log")) {
+    items.push({ href: "/audit", label: "Log audit", icon: "audit" });
+  }
   if (can(role, "manage_users")) {
     items.push({ href: "/users", label: "Pengguna", icon: "users" });
   }
   if (can(role, "manage_outlets")) {
     items.push({ href: "/outlets", label: "Outlet", icon: "outlets" });
+  }
+  if (can(role, "manage_settings")) {
+    items.push({ href: "/settings", label: "Pengaturan", icon: "settings" });
   }
 
   return items;

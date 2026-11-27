@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Pre-push runs the same aggregate gate as CI. Never skip it with --no-verify.
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
+
+exec bash scripts/check.sh

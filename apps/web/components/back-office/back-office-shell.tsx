@@ -2,12 +2,15 @@
 
 import type { OutletSummary, SessionPayload } from "@workshop-pos/contracts";
 import {
+  BarChart3,
   Boxes,
   LayoutDashboard,
   Menu,
   Package,
   PanelLeftClose,
   PanelLeftOpen,
+  ScrollText,
+  Settings,
   Store,
   SunMoon,
   Users,
@@ -82,6 +85,9 @@ const NAV_ICONS: Record<BackOfficeNavIcon, LucideIcon> = {
   inventory: Boxes,
   users: Users,
   outlets: Store,
+  reports: BarChart3,
+  audit: ScrollText,
+  settings: Settings,
 };
 
 interface BackOfficeShellProps {

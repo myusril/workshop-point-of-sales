@@ -124,7 +124,7 @@ export function CustomersTable({
             <Link
               className="inline-flex min-h-11 items-center justify-end text-accent-ink underline underline-offset-4 hover:text-accent-hover"
               href={`/vehicles?customerId=${item.id}`}
-              aria-label={`Lihat kendaraan ${displayName}`}
+              aria-label={`Lihat ${item.vehicleCount} kendaraan ${displayName}`}
             >
               {item.vehicleCount}
             </Link>

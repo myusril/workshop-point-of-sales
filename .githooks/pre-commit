@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# Fast pre-commit guard: staged secret scan, whitespace check, typecheck.
+# This hook never bypasses a gate; fix the finding instead of using --no-verify.
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
+
+STAGED="$(git diff --cached --name-only --diff-filter=ACM)"
+[ -n "$STAGED" ] || exit 0
+
+failed=0
+
+while IFS= read -r file; do
+  [ -n "$file" ] || continue
+  if [ "$(basename "$file")" = ".env" ] || [ "$(basename "$file")" = ".env.local" ]; then
+    printf "BLOCKED: %s must never be committed (use .env.example placeholders).\n" "$file" >&2
+    failed=1
+    continue
+  fi
+  [ -f "$file" ] || continue
+  grep -Iq . "$file" 2>/dev/null || continue
+
+  if grep -nEI \
+    '(-----BEGIN [A-Z ]*PRIVATE KEY-----|AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9]{20,}|xox[baprs]-[A-Za-z0-9-]{10,}|sk-[A-Za-z0-9]{20,})' \
+    "$file" >/dev/null 2>&1; then
+    printf "BLOCKED: potential secret in %s. Remove it and rotate the credential.\n" "$file" >&2
+    failed=1
+  fi
+done <<< "$STAGED"
+
+if ! git diff --cached --check; then
+  printf "BLOCKED: whitespace errors in staged changes.\n" >&2
+  failed=1
+fi
+
+if [ "$failed" -ne 0 ]; then
+  exit 1
+fi
+
+npm run typecheck

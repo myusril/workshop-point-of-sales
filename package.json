@@ -23,5 +23,8 @@
     "db:migrate": "bash scripts/db-migrate.sh",
     "db:seed": "bash scripts/db-seed.sh",
     "license:report": "bash scripts/license-report.sh"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.14.1"
   }
 }

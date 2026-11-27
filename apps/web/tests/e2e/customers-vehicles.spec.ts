@@ -627,7 +627,9 @@ test.describe("customer and vehicle screens", () => {
     await page.goto(`/customers?q=${encodeURIComponent(customer.name)}`);
     const customerRow = page.getByRole("row", { name: new RegExp(customer.name) });
     await expect(customerRow).toBeVisible();
-    await customerRow.getByRole("link", { name: `Lihat kendaraan ${customer.name}` }).click();
+    await customerRow
+      .getByRole("link", { name: new RegExp(`Lihat \\d+ kendaraan ${customer.name}`) })
+      .click();
     await expect(page).toHaveURL(new RegExp(`/vehicles\\?customerId=${customer.id}`));
     await expect(page.getByText("Hanya kendaraan milik satu pelanggan")).toBeVisible();
     await expect(page.getByRole("link", { name: "Hapus filter pelanggan" })).toBeVisible();
