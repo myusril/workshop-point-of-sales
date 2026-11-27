@@ -3,10 +3,10 @@
 | Field | Value |
 |---|---|
 | Product | Workshop POS (working name; buyer may rebrand) |
-| Phase | WP6.1 (server offline-sync seam) on the task branch |
+| Phase | WP7 (mobile offline POS) on the task branch |
 | Date | 2026-11-27 |
-| Code status | WP1–WP6 are merged to `main` (WP6 as PR #6, `9f2fc8f`). WP6.1 (`packages/contracts/src/sync.ts`, `/api/v1/sync` apply/resolve/conflict routes, offline sale application) is implemented and verified on `feat/wp6-1-server-sync`; focused results are in §7.11 and the aggregate gate in §7.12. It is not merged. Reports, settings screens, the mobile app, and the native printer sink do not exist yet |
-| Next gate | Founder reviews the WP6.1 diff and merges; WP7 (mobile offline POS) starts from `main` after the merge and consumes the merged sync contract. Carry the WP4 input/select boundary-contrast fix (1.57:1 → 3:1) as an explicit follow-up |
+| Code status | WP1–WP6.1 are merged to `main` (WP6 `9f2fc8f`; WP6.1 `c8a38ec`, PR #7). WP7 (Expo mobile app: SQLite cache/outbox, idempotent sync, conflict decisions, receipt share/PDF) is implemented on `feat/wp7-mobile-offline-pos`; focused results are in §7.13 and the aggregate gate in §7.14. Reports, settings screens, CI/git hooks, and the native ESC/POS transport do not exist yet |
+| Next gate | Founder reviews the WP7 diff and merges. Carry the WP4 input/select boundary-contrast fix (1.57:1 → 3:1) into WP8; the mobile printer pilot, APK size, cold start, and device testing remain hardware/buyer verification |
 | Source of truth | `docs/product/PRD.md`, `docs/adr/0001-stack-and-architecture.md`, `docs/plan/work-packages.md` |
 
 > **Honesty rule.** This page reports what exists and what has been verified. Documents are not proof that the product works. WP1 commands were executed on 2026-11-26 on branch `feat/wp1-walking-skeleton`, including the aggregate `scripts/check.sh` gate on a fresh development volume, and WP1 was merged to `main` as PR #1 (`a96ffcb`). WP2 (schema, migrations, seed, outlet-scoped query helpers) was merged to `main` as PR #2 (`88252dc`). WP3 (auth, RBAC, users, outlets) passed its focused gates and the aggregate gate, and was merged to `main` as PR #3 (`344de62`). WP4 (web shell, domain core, catalog, inventory) passed its focused checks and the aggregate gate and was merged to `main` as PR #4 (`cdf3036`); earlier tests are re-run by later aggregate gates. Anything not listed in §7 as verified is **NOT VERIFIED** — including WP6 until its full-suite gate result is recorded in §7.10. WP5 was merged to `main` as PR #5 (`8a2a550`).
@@ -18,7 +18,7 @@
 | Milestone | Scope | Exit criteria | Status |
 |---|---|---|---|
 | **M1 — Walking skeleton** | WP1: npm-workspaces monorepo, pinned Node, `.env.example`, Compose dev/prod, Postgres, Dockerfiles, `scripts/check.sh`, license report, health endpoint, minimal page/API | A fresh clone reaches a healthy web + database stack with standard Docker/Node tooling; `scripts/check.sh` exits 0; license report has no blocker | **Verified 2026-11-26 and merged to `main` as PR #1 (`a96ffcb`)** |
-| **M2 — MVP** | WP2–WP8: schema/seed, auth/RBAC/outlets, catalog + stock ledger, customers/vehicles/history, mixed orders + payments + receipts, offline mobile POS + sync, reports/audit/export/settings, hardening gate | Every PRD story US-01–US-20 passes its acceptance criteria; offline/conflict, money, stock, and RBAC tests are green; no license blocker; WCAG 2.2 AA checks pass on agreed screens | **In progress** — WP2 merged as PR #2 (`88252dc`); WP3 merged as PR #3 (`344de62`); WP4 merged as PR #4 (`cdf3036`); WP5 merged as PR #5 (`8a2a550`); WP6 merged as PR #6 (`9f2fc8f`); WP6.1 (sync seam) verified on `feat/wp6-1-server-sync` (§7.11–§7.12), awaiting review and merge |
+| **M2 — MVP** | WP2–WP8: schema/seed, auth/RBAC/outlets, catalog + stock ledger, customers/vehicles/history, mixed orders + payments + receipts, offline mobile POS + sync, reports/audit/export/settings, hardening gate | Every PRD story US-01–US-20 passes its acceptance criteria; offline/conflict, money, stock, and RBAC tests are green; no license blocker; WCAG 2.2 AA checks pass on agreed screens | **In progress** — WP2 `88252dc`; WP3 `344de62`; WP4 `cdf3036`; WP5 `8a2a550`; WP6 `9f2fc8f`; WP6.1 `c8a38ec` (PR #7) merged. WP7 (mobile offline POS) implemented on `feat/wp7-mobile-offline-pos`, focused checks in §7.13, awaiting review/merge |
 | **M3 — Handover-ready** | WP9: accessibility sign-off, backup/restore drill, fresh-clone deployment rehearsal, license re-audit, documentation and credential handover | `docs/ops/handover-checklist.md` is fully checked with captured evidence; restore drill meets RPO/RTO targets; buyer accepts the signed manifest | **Not started** |
 
 ---
@@ -31,13 +31,14 @@
 | `docs/ui/research/kickoff-2026-11-26.md` | Desk research, task flows, heuristics, accessibility risks | Draft; evidence and assumptions separated |
 | `docs/marketing/competitors.md` | Cited Indonesian workshop POS landscape and positioning | Draft; vendor claims labeled, gaps marked `NOT VERIFIED` |
 | `docs/adr/0001-stack-and-architecture.md` | Stack, data, auth, offline sync, deployment, cost range, rejected alternatives | Proposed |
-| `docs/ops/license-inventory.md` | Dependency/license/transferability evidence | Updated through WP4 (`better-auth` 1.7.28, `zod` 4.6.7, `@tanstack/react-table` 9.3.1 + MIT tree; lockfile report re-run in the gate); Epson SDK remains `REVIEW` |
+| `docs/ops/license-inventory.md` | Dependency/license/transferability evidence | Updated through WP7 (Expo 58.1.0, React Native 0.88.1, expo-sqlite/secure-store/netinfo/print/sharing, Google font packages, RNTL/Jest); the license report passes with a founder-approved Expo-CLI build-only exception and SPDX `OR` semantics; Epson SDK remains `REVIEW` and is not installed |
 | `docs/product/personal-data.md` | Buyer-as-Controller obligations and engineering controls | Draft; counsel review required |
 | `docs/ui/DESIGN.md`, `state-matrix.md`, `tokens.json` | Original clean-room design system shared by web and mobile | Draft for review; WP4 generates `packages/design-tokens` and renders the back-office shell/catalog/inventory; WP5 composes the same shell/components for customers, vehicles, and history; WP6 adds the order list, counter sale, order detail, payment sheet, and paper-white receipt preview/print pages |
 | `docs/plan/work-packages.md` | WP1–WP9, owned paths, dependencies, acceptance gates, PRD traceability | Proposed |
 | `docs/ops/handover-checklist.md` | Seller pre-delivery verification and evidence checklist | Draft; **not executed** |
 | `docs/ops/decision-policy.md` | Tier 1/2/3 decision authority for the buyer's team | Draft |
 | `README.md`, `AGENTS.md` | Buyer setup guide and engineering rules | README carries the verified setup/gate commands and the WP3 dev-login note; AGENTS.md now records WP1–WP6 as merged, the WP6.1 branch state, the executable setup/gate commands, the customer personal-data conventions, the payment-row money convention (`amount` is applied money, change is separate), and the sync conflict/idempotency seam |
+| `apps/mobile/` | Expo Android app + local SQLite cache/outbox + Jest/RNTL suite | Implemented in WP7; typecheck/lint/unit green; emulator/device/printer measurements `NOT VERIFIED` |
 | `.omp/`, `orca.yaml`, `.worktreeinclude` | Optional development aids | Present; may be stripped at handover |
 
 ---
@@ -52,12 +53,13 @@
 | `lightningcss` and `axe-core` (MPL-2.0, build/lint-only) | **REVIEW — build/lint-only** | `lightningcss` is reached through Tailwind during build; `axe-core` is used by the ESLint accessibility plugin. No MPL source or binary is copied into the runtime image |
 | `caniuse-lite` (CC-BY-4.0 browser data) | REVIEW — attribution only | Build-time data; attribution is recorded in `docs/ops/license-inventory.md` and pinned in `scripts/license-report.mjs` |
 | Ecme Next template (ThemeForest) | **Not transferable for this package** | Excluded; clean-room visual language only. Do not copy source, demo assets, or brand assets |
-| Epson ePOS SDK (via thermal printer wrapper) | **REVIEW — legal decision** | Buyer counsel confirms redistribution terms before the native sink ships; otherwise ship the PDF/browser fallback |
+| Epson ePOS SDK (via thermal printer wrapper) | **REVIEW — not installed in WP7** | The app implements an ESC/POS encoder and a `PrinterTransport` seam; no `react-native-esc-pos-printer` dependency ships. Buyer counsel confirms redistribution terms before the native sink is added; PDF/share fallback ships regardless |
 | Docker Desktop | Informational | Production hosts should use Docker Engine on Linux; Desktop licensing is separate |
 | Maestro Studio / Cloud | Not included | CLI only, if adopted; do not add commercial tiers to cost assumptions |
 | shadcn/ui (web components) | MIT, copied source | Retain the MIT notice in `THIRD_PARTY_NOTICES.md`; listed in the license inventory |
-| Inter font | OFL-1.1 | Self-host with the license text; do not imply endorsement |
-| IBM Plex Mono font | OFL-1.1 | Self-host with the license text; used only for plates and receipt numerals |
+| Inter font | OFL-1.1 | Bundled in the Android app via `@expo-google-fonts/inter`; include the OFL text in the shipped notices at handover (WP9 owns `THIRD_PARTY_NOTICES.md`) |
+| IBM Plex Mono font | OFL-1.1 | Bundled via `@expo-google-fonts/ibm-plex-mono`; used for receipt numerals. Include the OFL text in the shipped notices |
+| Expo CLI build toolchain (`lightningcss` MPL-2.0, `node-forge` BSD-3-Clause OR GPL-2.0) | **Build-only, founder-approved 2026-11-27** | Pulled by `expo` → `@expo/cli`; not bundled into the APK. The license report selects the BSD-3-Clause alternative for `node-forge` and records `lightningcss` as an Expo-CLI build-time exception |
 | Illustrations, logo, sample data | Must be original or licensed | No template or stock assets without an inventory entry |
 
 **Rule:** a new dependency or asset is not accepted until it has a verified SPDX license and a transferability status in `docs/ops/license-inventory.md`.
@@ -111,7 +113,8 @@
 | Risk | Impact | Mitigation | Owner |
 |---|---|---|---|
 | Template licensing mistaken for transferable | Legal claim, forced rework, delivery delay | Clean-room design; license inventory blocker; written buyer acknowledgement | Seller + buyer counsel |
-| Offline sync loses or double-books a sale | Wrong stock and money; trust loss | Durable outbox, idempotency keys, server-authoritative stock, conflict UI, fault-injection tests | Engineering |
+| Offline sync loses or double-books a sale | Wrong stock and money; trust loss | Durable outbox, client-key replay, server-authoritative stock, explicit conflict UI, queued-sale preservation across 401, fault-injection tests | Engineering |
+| Outlet policy is stale on a fresh device | Wrong tax or discount cap until the first online refresh | Policy is learned from the newest server order on cache refresh and from every applied sale; the sale screen states when defaults are in use; server audits tax-rate deviations | Engineering |
 | Printer SDK terms or hardware incompatibility | Receipts fail at the counter | Sink interface with PDF/browser fallback; pilot a tested printer list | Engineering + buyer |
 | Scope grows beyond MVP | Delay and quality dilution | PRD out-of-scope list; change control via decision policy | Buyer product owner |
 | Personal-data obligations are underestimated | Regulatory exposure | Data inventory, counsel review, DPA, retention/anonymization tooling | Buyer as Controller |
@@ -355,6 +358,68 @@ WP6 was merged to `main` as PR #6 (`9f2fc8f`) before WP6.1 started. The seam add
 
 **Post-gate edits:** only this §7.11/§7.12 documentation block and the removal of generated `.next` output (no code, config, test, or dependency changed after the gate).
 
+### 7.13 WP7 execution checks (2026-11-27, branch `feat/wp7-mobile-offline-pos`)
+
+WP6.1 was merged to `main` as PR #7 (`c8a38ec`) before WP7 started. The mobile workspace consumes `packages/contracts/src/sync.ts` and the existing catalog/customer/vehicle/order/auth endpoints; no server route, schema, auth package, or web UI was edited. The thermal printer dependency remains uninstalled (`REVIEW`).
+
+| Check | Result |
+|---|---|
+| `npm ci` | **PASS** — reinstalled the tree from the committed lockfile after the mobile dependencies were added; exit 0 (67.65 s) |
+| `npm run typecheck` | **PASS** — all seven workspaces including `@workshop-pos/mobile`; 0 errors |
+| `npm run lint` | **PASS** — web/auth/contracts/core/db/design-tokens plus mobile; 0 errors/warnings |
+| `npm run test:unit` | **PASS** — web 107, auth 208, contracts 66, core 47, db 11, design-tokens 4, mobile 72 (**515 total**, 38 files) |
+| Mobile sync-contract test | **PASS** — the AC3.1 offline payload (`1×250000` product + `1×50000` service, 10% order discount, 11% PPN, cash 300000) parses with the shared `syncApplyRequestSchema`; total `299700`, tax `29700`, per-line tax `24750`/`4950`, payment `amount=299700`, `changeAmount=300` |
+| Offline sale and outbox | **PASS** — one SQLite transaction writes `local_orders` + `outbox`; the queue survives a real file reopen; a row left `SENDING` by a force-kill returns to `QUEUED`; cashier discount caps block before any row is written; a duplicate client key cannot create a second local order |
+| Sync engine (client) | **PASS** — deterministic `seq` order, single-flight run, replay of the same client key with the identical payload, jittered exponential backoff (2 s → 5 min cap), one transient/permanent failure not blocking the next row, conflict rows never retried, and a 401 aborting the run while leaving both queued sales intact |
+| Conflict decisions | **PASS** — `STOCK_INSUFFICIENT` shows product/local quantity/server stock/money; override is refused for a Cashier even when the API is reachable; void and override require the outlet minimum reason; unresolved conflicts persist across runs and are only cleared by an explicit resolve response |
+| Cache and erasure | **PASS** — catalog stock is cached as provisional; only masked customer phones are stored; vehicle history survives offline; 401 clears read-only personal caches but keeps paid-but-unsynced sales; explicit destructive sign-out purges the queue and every personal cache table |
+| Receipt | **PASS** — 35/48 columns, no row wider than the paper; offline stamp `SALINAN LOKAL — BELUM TERSINKRON`; final invoice number removes the stamp; `SALINAN` and `DIBATALKAN` stamps; ESC/POS bytes initialize, print, and cut; non-ASCII receipt punctuation is transliterated. Real printer output is **NOT VERIFIED** |
+| RNTL | **PASS** — 8 component tests: keypad `000`/backspace/limit/clear, sync-chip offline/conflict/online copy, offline banner, the conflict screen for Cashier (no override) and Admin (reason-gated override), and the inactivity lock/absolute expiry timers |
+| Auth-boundary and transport regression | **PASS** — 4 HTTP-client tests: a 401 with no bearer token (failed login) never clears the device session; a rejected bearer token triggers exactly one session clear and is sent only in the Authorization header; a server error never echoes the token; production `http://` fails closed while development loopback HTTP is accepted (NFR-007) |
+| License report | **PASS** — `bash scripts/license-report.sh` reports no disallowed runtime license. The founder approved the minimal WP1-gate change on 2026-11-27: SPDX `OR` alternatives are evaluated correctly (`node-forge` BSD-3-Clause chosen over GPL-2.0) and Expo-CLI `lightningcss` (MPL-2.0) is a recorded build-only exception because it is not bundled into the APK. The pre-existing dev/optional buckets remain review-only; WP1/WP8 must add a forbidden-license hard fail before handover |
+| Design QA (static) | **PASS after fixes (visual `NOT VERIFIED`)** — token-only palette/type, role-aware four tabs, 64 dp tab bar with safe-area inset, 56 dp header/sale summary, 48 dp control targets, 3:1 control boundaries and accent selected segment, paper-white receipt, pinned payment balance, bottom receipt action bar, honest loading/error/`—` states, WIB timestamps, shared order-status labels, and a conflict `PERLU TINJAUAN` stamp. Remaining design debt: lifecycle `StatusRail`, mono `PlateText`, header avatar/profile sheet, quantity keypad, native `Alert` → in-app sheet, visible search labels, theme toggle, tablet rail/two-pane, and long-content/font-scale visual captures. No screenshots or device renders exist |
+| Auth storage | **PASS (unit)** — the bearer token and session snapshot live in SecureStore; sign-out clears them; PIN enrollment stores only a salted SHA-256 verifier; five wrong attempts trigger a 60 s lock and two lockouts require the full credential. A stored session with an unreadable PIN verifier fails closed to full sign-in, and unlock checks absolute expiry. Device keystore behavior on a real Android build is **NOT VERIFIED** |
+| Decision log | DEC-0017–DEC-0022 recorded in `docs/ops/decision-policy.md`: 401 queue preservation, outlet-switch guard (founder 2026-11-27), learned outlet policy, destructive sign-out/erasure, production HTTPS with dev-only HTTP (founder 2026-11-27), and SPDX `OR`/Expo-CLI license exception (founder 2026-11-27, review 2027-05-31). DEC-0015 covers conflict void/override |
+
+**Behavior decisions recorded in the client**
+
+- Money is local-authoritative. The mirrored pricing module reproduces the server allocation/rounding rule exactly and the payload is validated with the shared contract before the local transaction.
+- Stock is server-authoritative. Local stock is always labelled provisional until a server refresh; a conflict is a persistent queue state, never a dismissed toast.
+- Outlet policy (tax, paper width, cashier discount cap, void-reason minimum) has no mobile endpoint. The app learns it from the newest server order on cache refresh and from every applied sale, and falls back to the documented server defaults (11% PPN, 58 mm, 0% cashier cap, 10-character void reason) until then. The sale screen names the default source; the server audits a tax-rate deviation.
+
+**Recorded limits and `NOT VERIFIED` items**
+
+- No Android emulator, physical device, APK build, cold-start measurement, or thermal printer was available. APK size ≤ 60 MB, cold start ≤ 5 s, print p95 ≤ 5 s, real 58/80 mm output, TalkBack, OS font scaling, tablet layout, auto-lock timing on a real device, and iOS are **NOT VERIFIED**.
+- The native printer transport is intentionally absent (Epson SDK `REVIEW`). `Cetak struk` reports "Printer tidak terhubung" and offers share/PDF, which work offline.
+- The destructive sign-out screen requires a reason, but no server audit endpoint exists for a local logout; the reason gates the action and is not transmitted. WP8/retention work should decide whether a local audit trail is required.
+- The local settings snapshot lacks receipt header/footer text until a server settings API exists; the receipt uses the header/footer learned from a previously synced order when available, otherwise none.
+- Conflict resolution is online-only by design; the screen keeps the conflict visible offline instead of queueing a decision that the server has not accepted.
+- Design QA remaining (not blockers after the fix round): lifecycle rail on cards, mono plate treatment, header avatar/profile sheet, quantity keypad sheet, in-app confirm sheets instead of native alerts, visible search labels, per-device theme toggle, and the 768–1024 dp rail/two-pane layout. These require visual/device work and are recorded as WP7 design debt.
+- The mobile app uses `expo-router` typed-route strings; no deep-link allowlist or universal-link configuration exists, and an unknown deep link lands on the route guard. App-link hardening is WP8/WP9 work.
+- No device-level rate limit exists for repeated PIN attempts beyond the in-app delay; Android keystore hardening and device management are handover/ops work. The PIN verifier is a salted SHA-256 (fast KDF) and is defense-in-depth only; a native KDF is a future hardening item.
+- An inactivity timer locks the device at the outlet's idle timeout, but DESIGN §7.7's shared-device user list, server-side PIN recovery/Admin unlock, and per-user cached views are not implemented; the shipped flow is a single cached user with a local 6-digit PIN and full sign-out to switch users. This is a recorded design gap for the next mobile iteration.
+- Queue rows are scoped by outlet but not by creating user: the next same-outlet staff member can see a predecessor's unsynced sale/receipt. The server attributes the applied order to the token that syncs it (the contract has no actor field). This is an accepted minimization/attribution limit; syncing before a shift change is the operational control.
+- Sign-out, PIN forgot, and session expiry make a best-effort `POST /api/v1/auth/logout` to revoke the bearer token; when offline the local credential is still removed but the server keeps the token until its idle/absolute TTL. Device revocation by an Owner remains the authoritative control.
+- Receipt exports are deleted after share and swept from the dedicated cache directory on sign-out/expiry/outlet switch. `app.json` sets `android.allowBackup = false`; the generated manifest was not inspected in a real Android build.
+- DESIGN §7.8's 768–1024 dp navigation rail is not implemented; the same four bottom tabs are used at every width. Tablet layout is **NOT VERIFIED**.
+- Haptics (supplementary per DESIGN §7.3) are not wired; visual feedback is always present.
+
+### 7.14 WP7 aggregate gate (2026-11-27, frozen candidate)
+
+`fnm exec --using=26.13.1 -- bash scripts/check.sh` ran once on the frozen candidate after `completion-auditor` returned `complete`. It exited 0 in 343.03 s (`All gates passed.`).
+
+| Gate step | Observed result |
+|---|---|
+| Preflight / Compose database | **PASS** — Docker preflight, development database healthy, `workshop_pos_test` reachable (the gate aborts otherwise) |
+| `npm run typecheck` | **PASS** — all seven workspaces including `@workshop-pos/mobile`; 0 errors (also re-run directly before the gate) |
+| `npm run lint` | **PASS** — all seven workspaces; 0 errors/warnings (also re-run directly before the gate) |
+| `npm run test:unit` | **PASS** — mobile 72, web 107, auth 208, contracts 66, core 47, db 11, design-tokens 4 (**515 total**, 38 files); the unit counts were captured from the direct run immediately before the gate |
+| `npm run test:integration` | **PASS** — no step failed; the gate log was tail-truncated, so this run's exact per-workspace counts were not captured (WP6.1 recorded web 139, auth 41, db 63 on the same server code) |
+| `npm run test:e2e:web` | **PASS** — no step failed; 53 Chromium tests were the last recorded count on the same web code, but this run's count was not captured from the truncated log |
+| `npm run build` | **PASS** — Next.js 16.4.6 production build; the full route table including `/api/v1/sync/**`, orders, payments, receipts, and back-office pages was printed |
+
+**Post-gate edits:** only this §7.14 block and the non-behavioural documentation corrections above (no code, config, test, dependency, or lockfile change after the gate). `gitleaks dir .` was run on the source tree immediately before the gate: no leaks found (3.99 MB scanned).
+
 ---
 
 ## 8. Approved kickoff decisions
@@ -380,4 +445,5 @@ Recorded 2026-11-26 from the product owner. These close the corresponding open q
 1. Obtain buyer counsel review for the Epson SDK redistribution terms, the privacy notice, retention duration, and tax rounding; record the signed outcomes.
 2. WP1 is merged to `main` (PR #1, `a96ffcb`); no merge action remains.
 3. WP2 is merged to `main` (PR #2, `88252dc`); WP3 is merged to `main` (PR #3, `344de62`); WP4 (web shell, domain core, catalog, inventory) is merged to `main` (PR #4, `cdf3036`); WP5 (customers, vehicles, plate history) is merged to `main` (PR #5, `8a2a550`). WP6 (orders, pricing, payments, receipts) is merged to `main` as PR #6 (`9f2fc8f`). WP6.1 (server sync seam: local-price apply, idempotent replay, conflict list and resolution) passed focused checks and the aggregate gate on `feat/wp6-1-server-sync` (§7.11–§7.12); the founder reviews and merges, then WP7 starts from `main`.
-4. Keep CI workflows and git hooks in WP8; do not add them before then.
+4. WP7 (mobile offline POS) is implemented on `feat/wp7-mobile-offline-pos`; founder reviews and merges. The printer pilot, APK size, cold start, and device/emulator verification remain open hardware/buyer tasks.
+5. Keep CI workflows and git hooks in WP8; do not add them before then.

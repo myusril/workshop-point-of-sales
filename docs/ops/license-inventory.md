@@ -24,9 +24,21 @@
 | Next.js | 16.4.6 | MIT | Web framework (back-office + API) | runtime | YES | https://registry.npmjs.org/next/latest (`license: "MIT"`) | 2026-11-26 |
 | React | 19.3.1 | MIT | UI library | runtime | YES | https://registry.npmjs.org/react/latest (`license: "MIT"`) | 2026-11-26 |
 | React DOM | 19.3.x | MIT | Web renderer | runtime | YES | https://registry.npmjs.org/react-dom/latest | 2026-11-26 |
-| Expo | 58.0.26 | MIT | Mobile app framework | runtime | YES | https://registry.npmjs.org/expo/latest (`license: "MIT"`) | 2026-11-26 |
-| expo-router | 58.0.32 | MIT | Mobile file-based routing | runtime | YES | https://registry.npmjs.org/expo-router/latest (`license: "MIT"`) | 2026-11-26 |
-| React Native | 0.88.1 | MIT | Mobile runtime | runtime | YES | https://registry.npmjs.org/react-native/latest (`license: "MIT"`) | 2026-11-26 |
+| Expo | 58.1.0 | MIT | Mobile app framework (Android) | runtime | YES | https://registry.npmjs.org/expo/58.1.0 (`license: "MIT"`) | 2026-11-27 |
+| expo-router | 58.0.33 | MIT | Mobile file-based routing | runtime | YES | https://registry.npmjs.org/expo-router/58.0.33 (`license: "MIT"`) | 2026-11-27 |
+| React Native | 0.88.1 | MIT | Mobile runtime (Expo workspace) | runtime | YES | https://registry.npmjs.org/react-native/0.88.1 (`license: "MIT"`, pinned) | 2026-11-27 |
+| expo-sqlite | 58.0.18 | MIT | On-device SQLite: read cache, local orders, outbox, conflicts | runtime | YES | https://registry.npmjs.org/expo-sqlite/58.0.18 (`license: "MIT"`) | 2026-11-27 |
+| expo-secure-store | 58.0.3 | MIT | Bearer token, session snapshot, salted PIN verifier | runtime | YES | https://registry.npmjs.org/expo-secure-store/58.0.3 (`license: "MIT"`) | 2026-11-27 |
+| expo-file-system | 58.0.15 | MIT | Writes the shareable receipt text file | runtime | YES | https://registry.npmjs.org/expo-file-system/58.0.15 (`license: "MIT"`) | 2026-11-27 |
+| expo-print | 58.0.9 | MIT | Receipt PDF fallback (`printToFileAsync`) | runtime | YES | https://registry.npmjs.org/expo-print/58.0.9 (`license: "MIT"`) | 2026-11-27 |
+| expo-sharing | 58.0.24 | MIT | Android share sheet for receipt text/PDF | runtime | YES | https://registry.npmjs.org/expo-sharing/58.0.24 (`license: "MIT"`) | 2026-11-27 |
+| expo-crypto | 58.0.9 | MIT | SHA-256 PIN verifier and random salt (no plaintext PIN) | runtime | YES | https://registry.npmjs.org/expo-crypto/58.0.9 (`license: "MIT"`) | 2026-11-27 |
+| expo-font, expo-constants, expo-linking, expo-splash-screen, expo-status-bar | 58.0.x pinned in `apps/mobile/package.json` | MIT | Expo runtime modules (fonts, config, routing links, splash, status bar) | runtime | YES | `package-lock.json` entries; npm registry metadata | 2026-11-27 |
+| @react-native-community/netinfo | 12.0.1 | MIT | Connectivity detection for the sync chip and auto-sync | runtime | YES | https://registry.npmjs.org/@react-native-community/netinfo/12.0.1 (`license: "MIT"`) | 2026-11-27 |
+| react-native-safe-area-context | 5.11.1 | MIT | Safe-area layout on notched devices | runtime | YES | https://registry.npmjs.org/react-native-safe-area-context/5.11.1 (`license: "MIT"`) | 2026-11-27 |
+| react-native-screens | 4.30.1 | MIT | expo-router native screen containers | runtime | YES | https://registry.npmjs.org/react-native-screens/4.30.1 (`license: "MIT"`) | 2026-11-27 |
+| react-native-svg | 15.16.0 | MIT | SVG renderer required by the icon set | runtime | YES | https://registry.npmjs.org/react-native-svg/15.16.0 (`license: "MIT"`); Expo SDK 58 bundled version | 2026-11-27 |
+| lucide-react-native | 1.81.0 | ISC | Mobile tab/action icons (same icon language as web) | runtime | YES | https://registry.npmjs.org/lucide-react-native/1.81.0 (`license: "ISC"`) | 2026-11-27 |
 | Tailwind CSS | 4.3.5 | MIT | Web styling | runtime | YES | https://registry.npmjs.org/tailwindcss/latest (`license: "MIT"`) | 2026-11-26 |
 | Radix UI (radix-ui umbrella package) | 1.8.1 | MIT | Accessible UI primitives | runtime | YES | https://registry.npmjs.org/radix-ui/latest (`license: "MIT"`) | 2026-11-26 |
 | shadcn/ui component source | copied at WP4 (no CLI run; source adapted to project tokens) | MIT | Web UI components copied into the repo and styled with project tokens; not a runtime vendor dependency | runtime | YES | https://raw.githubusercontent.com/shadcn-ui/ui/main/LICENSE.md ("MIT License, Copyright (c) 2023 shadcn"); notice retained at `apps/web/components/ui/LICENSE-shadcn.md` | 2026-11-27 |
@@ -77,7 +89,15 @@
 | lightningcss | 1.33.0 | MPL-2.0 | CSS transform/native binding reached through `@tailwindcss/node`; build-only, not distributed in the runtime image | dev | REVIEW — file-level copyleft; no MPL source is shipped | https://registry.npmjs.org/lightningcss/1.33.0 (`license: "MPL-2.0"`) | 2026-11-26 |
 | axe-core | 4.14.1 | MPL-2.0 | Accessibility rule engine used by `eslint-plugin-jsx-a11y` during linting; build/lint-only, not distributed | dev | REVIEW — file-level copyleft; not shipped | https://registry.npmjs.org/axe-core/4.14.1 (`license: "MPL-2.0"`) | 2026-11-26 |
 | caniuse-lite | 1.0.30001828 | CC-BY-4.0 | Browser-support data for browserslist/PostCSS at build time; not executed by the running app (the lockfile marks it production because Next depends on browserslist) | dev (build-only) | YES with attribution — attribution recorded here; pinned as a license-report exception | https://registry.npmjs.org/caniuse-lite/1.0.30001828 (`license: "CC-BY-4.0"`) | 2026-11-26 |
-| @testing-library/react-native | 14.1.0 | MIT | Mobile component tests | dev | YES | https://registry.npmjs.org/@testing-library/react-native/latest (`license: "MIT"`) | 2026-11-26 |
+| @testing-library/react-native | 14.1.0 | MIT | Mobile component tests (RNTL) | dev | YES | https://registry.npmjs.org/@testing-library/react-native/14.1.0 (`license: "MIT"`) | 2026-11-27 |
+| jest-expo | 58.0.16 | MIT | Jest preset for Expo/React Native | dev | YES | https://registry.npmjs.org/jest-expo/58.0.16 (`license: "MIT"`) | 2026-11-27 |
+| jest | 30.5.2 | MIT | Mobile test runner | dev | YES | https://registry.npmjs.org/jest/30.5.2 (`license: "MIT"`) | 2026-11-27 |
+| @react-native/jest-preset | 0.88.1 | MIT | React Native Jest preset required by jest-expo | dev | YES | https://registry.npmjs.org/@react-native/jest-preset/0.88.1 (`license: "MIT"`) | 2026-11-27 |
+| test-renderer | 1.3.0 | MIT | Renderer used by RNTL 14 | dev | YES | https://registry.npmjs.org/test-renderer/1.3.0 (`license: "MIT"`) | 2026-11-27 |
+| @types/jest | 30.0.0 | MIT | Jest TypeScript declarations | dev | YES | https://registry.npmjs.org/@types/jest/30.0.0 (`license: "MIT"`) | 2026-11-27 |
+| eslint-config-expo | 58.0.4 | MIT | Flat ESLint config for the mobile workspace | dev | YES | https://registry.npmjs.org/eslint-config-expo/58.0.4 (`license: "MIT"`) | 2026-11-27 |
+| ESLint (mobile workspace pin) | 9.39.5 | MIT | Lint runner compatible with `eslint-config-expo` 58; web remains on ESLint 10 | dev | YES | https://registry.npmjs.org/eslint/9.39.5 (`license: "MIT"`) | 2026-11-27 |
+| babel-preset-expo / @babel/* (Expo toolchain) | locked versions | MIT | Metro/Babel transform for the mobile bundle | dev | YES | `package-lock.json`; `scripts/license-report.sh` (no disallowed runtime license) | 2026-11-27 |
 | Maestro CLI | current (Apache-2.0 repo) | Apache-2.0 (CLI only — Maestro **Studio** and **Cloud** are commercial, not bundled) | Mobile E2E (optional; **candidate**, not committed) | dev | REVIEW | https://github.com/mobile-dev-inc/Maestro ("Maestro is open-source under the Apache 2.0 license"; Studio "is not an open-source project") | 2026-11-26 |
 | npm (workspaces) | bundled with Node 26 | Artistic License 2.0 (npm CLI; permissive, non-copyleft) | Package manager, single lockfile | dev | YES | https://github.com/npm/cli/blob/latest/LICENSE | 2026-11-26 |
 
@@ -95,8 +115,8 @@
 
 | Name | Source / Origin | License | Purpose | Tier | Buyer-transferable | Evidence | Verified |
 |---|---|---|---|---|---|---|---|
-| Inter font | https://github.com/rsms/inter | OFL-1.1 | UI typeface | asset | REVIEW | https://raw.githubusercontent.com/rsms/inter/master/LICENSE.txt | 2026-11-26 |
-| IBM Plex Mono font | https://github.com/IBM/plex | OFL-1.1 | Plate, document, and receipt numerals | asset | REVIEW | https://raw.githubusercontent.com/IBM/plex/master/LICENSE.txt | 2026-11-26 |
+| Inter font | https://github.com/rsms/inter; bundled via `@expo-google-fonts/inter@0.4.2` (`MIT AND OFL-1.1`) | OFL-1.1 | UI typeface (web fallback; Android bundles 400/500/600) | asset | REVIEW — OFL notice must ship | https://raw.githubusercontent.com/rsms/inter/master/LICENSE.txt; package `LICENSE_FONT` | 2026-11-27 |
+| IBM Plex Mono font | https://github.com/IBM/plex; bundled via `@expo-google-fonts/ibm-plex-mono@0.4.2` (`MIT AND OFL-1.1`) | OFL-1.1 | Receipt/document monospace numerals on Android | asset | REVIEW — OFL notice must ship | https://raw.githubusercontent.com/IBM/plex/master/LICENSE.txt; package `LICENSE_FONT` | 2026-11-27 |
 | Lucide icons | https://github.com/lucide-icons/lucide | ISC | Icon set | asset | YES | https://registry.npmjs.org/lucide-react/latest | 2026-11-26 |
 | Logo (product mark) | To be designed originally | n/a — buyer-owned on handover | Branding (FR-071) | asset | n/a (original work) | — | — |
 | Illustrations / empty-state art | To be designed originally | n/a — original work | UI polish | asset | n/a (original work) | — | — |
@@ -126,18 +146,21 @@
 | Ecme Next template (or any ThemeForest item) included in the handover | **BLOCKER** | Must not be included; build on MIT shadcn/ui + project tokens instead (§5) |
 | Epson ePOS SDK redistribution terms (via `react-native-esc-pos-printer-sdk`) | **REVIEW — Tier 3 founder/legal decision** | Buyer counsel confirms Epson SDK terms before the ESC/POS sink ships; otherwise use the PDF/browser fallback (§3) |
 | Optional `sharp` / `@img/sharp-libvips-*` payload (Next.js image optimization) | REVIEW — not shipped | Image optimization is disabled; the Dockerfile removes both paths from the standalone output and fails the build if they reappear. `scripts/license-report.sh` lists them as optional and image-excluded. Re-check after any Next.js upgrade (§1, §2) |
-| `lightningcss` / `axe-core` MPL-2.0 (build/lint-time) | REVIEW — build/lint-only | Present in the dev/build graph through Tailwind and the ESLint accessibility plugin; no MPL source or binary is copied into the runtime image. Do not add either as a runtime dependency without review (§2) |
+| `lightningcss` / `axe-core` MPL-2.0 (build/lint-time) | REVIEW — build/lint-only, founder-approved exception | Present in the dev/build graph through Tailwind, the ESLint accessibility plugin, and Expo's CLI (`expo` → `@expo/cli` → `lightningcss`). No MPL source or binary is bundled into the web image or the Android APK. `scripts/license-report.mjs` records the Expo-CLI path as a MOBILE BUILD-ONLY exception (founder-approved 2026-11-27); do not add either as an application runtime import (§1, §2) |
+| `node-forge` (BSD-3-Clause OR GPL-2.0) | REVIEW — permissive alternative chosen | Reached through Expo CLI dev-server certificates; not bundled in the APK. The license gate now evaluates SPDX `OR` correctly and accepts the BSD-3-Clause alternative (founder-approved 2026-11-27) |
 | `caniuse-lite` CC-BY-4.0 browser data | REVIEW — attribution only | Build-time data, not runtime behavior. The attribution is this inventory entry; `scripts/license-report.mjs` pins the exception so a license change fails the gate (§2) |
 | Docker Desktop licensing | REVIEW (informational) | Docker **Engine/Compose** are Apache-2.0 and fine for self-hosting; if the buyer's ops team wants Docker Desktop on macOS/Windows workstations, Docker Desktop is free only for small companies/personal use — recommend Linux hosts (engine) for production (§1 row "Docker Engine") |
 | Maestro Studio / Maestro Cloud | REVIEW (informational) | CLI is Apache-2.0; Studio and Cloud are commercial products and are **not** part of the delivery; do not add them to buyer cost assumptions (§2 row "Maestro CLI") |
-| Any non-permissive license appearing in a future lockfile audit | BLOCKER | WP1 acceptance includes generating a `license-checker`-style report from the lockfile; any GPL/AGPL/SSPL/FSL/commercial runtime dependency must be removed before handover |
+| Any non-permissive license appearing in a future lockfile audit | BLOCKER | WP1 acceptance includes generating a `license-checker`-style report from the lockfile; any GPL/AGPL/SSPL/FSL/commercial runtime dependency must be removed before handover. **Latent gap:** the report prints dev-only and optional buckets as review and does not fail on a forbidden license there; Metro can bundle a devDependency imported by app code. WP8/WP1 should add a forbidden-license hard fail in every bucket before handover |
 | Fonts other than Inter, if added later | REVIEW | Must be OFL/Apache-licensed; verify before adding |
 
 ## 7. Verification method (for reproducibility by the buyer)
 
 Every row's `license` value was read from one of these sources on the stated **verified** date:
 
-1. **npm registry metadata** — `https://registry.npmjs.org/<package>/latest`, JSON `license` field.
+1. **npm registry metadata** — `https://registry.npmjs.org/<package>/latest` or a pinned version URL, JSON `license` field.
+   - Mobile packages were verified on 2026-11-27 against the versions pinned in `apps/mobile/package.json` and `package-lock.json`.
+   - SPDX `OR` expressions are evaluated as a choice (`node-forge`: BSD-3-Clause chosen over GPL-2.0). `AND` requires every part to be permissive.
 2. **Project license file** — raw GitHub LICENSE/NOTICE in the default branch (e.g., Caddy, pgBackRest, Inter, Node.js).
 3. **Official licensing page** — PostgreSQL licence page, Docker components-and-licenses page, Envato Standard License/FAQ pages.
 

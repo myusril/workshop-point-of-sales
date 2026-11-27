@@ -1,6 +1,6 @@
 # AGENTS.md — Engineering Guide
 
-> **Repository state: WP1–WP6 merged on `main`.** WP1 (walking skeleton/tooling, PR #1), WP2 (schema/migrations/seed, PR #2), WP3 (auth/RBAC/users/outlets, PR #3), WP4 (web shell, domain core, catalog, inventory, PR #4 `cdf3036`), WP5 (customers, vehicles, plate history, PR #5 `8a2a550`), and WP6 (orders, pricing, payments, receipts, PR #6 `9f2fc8f`) are merged. WP6.1 (server offline-sync seam: sync contract, apply/resolve/conflict routes) is implemented on `feat/wp6-1-server-sync`; the mobile app, reports, and the native printer sink do not exist yet. CI workflows and git hooks are intentionally absent until WP8 — `scripts/check.sh` is the only aggregate gate. Every command below is executable against this tree; only results recorded in `docs/STATUS.md` §7 count as verified.
+> **Repository state: WP1–WP6.1 merged on `main`.** WP1 (walking skeleton/tooling, PR #1), WP2 (schema/migrations/seed, PR #2), WP3 (auth/RBAC/users/outlets, PR #3), WP4 (web shell, domain core, catalog, inventory, PR #4 `cdf3036`), WP5 (customers, vehicles, plate history, PR #5 `8a2a550`), WP6 (orders, pricing, payments, receipts, PR #6 `9f2fc8f`), and WP6.1 (server offline-sync seam, PR #7 `c8a38ec`) are merged. WP7 (mobile offline POS) is implemented on `feat/wp7-mobile-offline-pos`: Expo app, SQLite outbox, idempotent sync, conflict decisions, receipt share/PDF with a thermal transport seam. CI workflows and git hooks are intentionally absent until WP8 — `scripts/check.sh` is the only aggregate gate. Every command below is executable against this tree; only results recorded in `docs/STATUS.md` §7 count as verified.
 
 ## Product and stack
 
@@ -16,7 +16,7 @@
 |---|---|
 | Repository | npm workspaces monorepo, single lockfile |
 | Web + API | Next.js 16 App Router; REST route handlers under `/api/v1/...`; shadcn/ui (MIT) components copied into `apps/web/components/ui` |
-| Mobile | Expo 58 / React Native, expo-router, SQLite outbox |
+| Mobile | Expo 58 / React Native 0.88, expo-router, SQLite outbox, SecureStore bearer token |
 | Data | PostgreSQL + Drizzle ORM; integer-IDR money; append-only stock ledger and audit log |
 | Contracts | Zod schemas in `packages/contracts`, shared by web, mobile, and tests |
 | Auth | Better Auth — httpOnly cookie (web), hashed bearer token (mobile) |
@@ -47,6 +47,13 @@ npm run test:integration     # Compose test DB (workshop_pos_test); refuses any 
 npm run test:e2e:web         # Playwright; resets the disposable dev DB (loopback:55432/workshop_pos only)
 npm run build
 bash scripts/check.sh        # aggregate gate: typecheck → lint → test:unit → test:integration → test:e2e:web → build, in that order
+
+# Mobile workspace (included by the root typecheck/lint/test:unit workspace runs)
+npm run typecheck --workspace @workshop-pos/mobile
+npm run lint --workspace @workshop-pos/mobile
+npm run test:unit --workspace @workshop-pos/mobile     # Jest + RNTL, no emulator or Docker
+EXPO_PUBLIC_API_URL=http://10.0.2.2:3000 npm run start --workspace @workshop-pos/mobile
+npm run android --workspace @workshop-pos/mobile       # requires Android Studio/SDK and an emulator
 ```
 
 - Runner parity: automation must run exactly these commands in this order. Nothing may pass locally and fail elsewhere.
@@ -66,6 +73,7 @@ bash scripts/check.sh        # aggregate gate: typecheck → lint → test:unit 
 - **Customer personal data.** List and picker payloads carry a masked phone only (`maskPhone`); the full number appears only on the single-record edit read. Anonymization and personal-data export are Owner-only and audited; anonymized customers keep their financial, vehicle, and audit rows. Audit payloads for these actions record field names and counts, never the erased personal values. No PII in logs, error output, or client error text.
 - **UI copy is Bahasa Indonesia**; documentation, code identifiers, and commit messages are English. All UI strings are product strings, not browser/library defaults.
 - **One web UI kit.** Compose screens from the copied shadcn/ui components in `apps/web/components/ui/` and the shared tokens. Add a missing primitive there instead of introducing another UI library. Keep the shadcn/ui MIT notice; never add Ecme/ThemeForest source or assets.
+- **Mobile session and offline rules.** The bearer token and the staff snapshot live only in SecureStore. A 401 clears the read cache and asks for sign-in but **never deletes paid-but-unsynced sales**; only the explicit destructive sign-out confirmation purges the outbox. Sign-out/expiry make a best-effort server logout and sweep exported receipt files. Outlet switching is blocked while that outlet has pending sales; the queue is scoped per outlet. Outlet policy (tax, paper width, cashier cap, void-reason minimum) is learned from the newest applied order and falls back to the documented server defaults until then. The thermal printer transport is not shipped (Epson SDK is `REVIEW`); receipt share and PDF must keep working without internet. Production builds require an `https://` API URL; plain HTTP is development-only. A scheduled inactivity lock + absolute session expiry guard the shared device.
 - **Docs are English** and live under `docs/` per the ownership map below.
 
 ## File ownership map (current)
@@ -81,7 +89,7 @@ Owned by `docs/plan/work-packages.md`; two work packages never own the same path
 | customers/vehicles contracts, API, and screens (composes the WP4 shell) | WP5 (merged) |
 | `packages/core/src/{lifecycle,receipt}.ts`, orders/payments/receipts API + screens | WP6 (merged) |
 | `packages/contracts/src/sync.ts`, `apps/web/app/api/v1/sync/**`, offline-sale application in `apps/web/lib/order-service.ts` | WP6.1 (active) |
-| `apps/mobile/` | WP7 |
+| `apps/mobile/` | WP7 (implemented on `feat/wp7-mobile-offline-pos`) |
 | reports/audit/settings/export contracts, API, screens; `.woodpecker/**`, `.githooks/**` | WP8 |
 | `docs/ops/backup-runbook.md`, `docs/ops/handover-evidence.md`, `docs/ui/a11y-audit.md`, `THIRD_PARTY_NOTICES.md`, `docker/backup.Dockerfile`, buyer quickstart verification | WP9 |
 | `README.md` (this kickoff creates it; WP9 re-verifies the quickstart) | WP9 (revision) |

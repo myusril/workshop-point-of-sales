@@ -1,6 +1,6 @@
 # Workshop POS
 
-> **Current status: WP1 (walking skeleton), WP2 (database schema, migrations, seed), and WP3 (auth, RBAC, staff, outlets) are merged to `main`.** WP4 (web shell, domain core, catalog, inventory) is on `feat/wp4-web-shell-catalog-inventory` and is not merged. Orders, receipts, reports, and the mobile app have not started, so the capability list below is the product target, not current functionality.
+> **Current status: WP1–WP6.1 are merged to `main`.** That covers the walking skeleton, schema/seed, auth/RBAC/outlets, the web shell + domain core + catalog/inventory, customers/vehicles/history, orders/pricing/payments/receipts, and the server offline-sync seam (`POST /api/v1/sync`). WP7 (the Android-first Expo app with a local outbox, conflict decisions, and receipt share/PDF) is implemented on `feat/wp7-mobile-offline-pos` and is not merged yet. Reports, settings screens, CI, and the native ESC/POS transport do not exist.
 
 A point-of-sale system for vehicle workshops (bengkel) in Indonesia.
 
@@ -49,12 +49,12 @@ Rationale, alternatives, trust boundaries, offline-sync design, and rollback str
 
 ## Repository layout
 
-WP1 created `apps/web/`, `docker/`, `scripts/`, `compose.yaml`, and `compose.dev.yaml`; WP2 added `packages/db/`; WP3 added `packages/auth/` and `packages/contracts/`; WP4 added `packages/core/`, `packages/design-tokens/`, the back-office shell, and catalog/inventory screens. `apps/mobile/` is created by a later WP.
+WP1 created `apps/web/`, `docker/`, `scripts/`, `compose.yaml`, and `compose.dev.yaml`; WP2 added `packages/db/`; WP3 added `packages/auth/` and `packages/contracts/`; WP4 added `packages/core/`, `packages/design-tokens/`, the back-office shell, and catalog/inventory screens; WP5 added customers/vehicles/history; WP6 added orders/payments/receipts; WP6.1 added the sync seam; WP7 added `apps/mobile/`.
 
 | Path | Contents |
 |---|---|
 | `apps/web/` | Next.js App Router back-office UI + REST route handlers |
-| `apps/mobile/` | Expo / React Native Android app (offline outbox, sync, printing sink) |
+| `apps/mobile/` | Expo / React Native Android app: SQLite cache + outbox, idempotent sync, conflict decisions, receipt share/PDF with a thermal transport seam |
 | `packages/core/` | Pure domain logic: money math, order lifecycle, stock rules, plate normalization — no I/O |
 | `packages/db/` | Drizzle schema, migrations, seed fixtures, outlet-scoped query helpers |
 | `packages/contracts/` | Zod schemas + TypeScript types for every request/response/event |
@@ -72,12 +72,12 @@ Exact file ownership per work package: [`docs/plan/work-packages.md`](docs/plan/
 
 - **Node.js 26 LTS** (pinned via `.node-version`) and **npm** with workspaces support
 - **Docker Engine + Docker Compose** (v2) for PostgreSQL and the deployment stack
-- **Android tooling** for mobile builds: JDK + Android SDK — the app builds locally with `expo prebuild` + Gradle; no paid build service is required
-- A 58 mm or 80 mm ESC/POS thermal printer and Android 8.0+ devices for counter use (buyer-supplied)
+- **Android tooling** for mobile builds: JDK 17 + Android SDK (platform 36, build-tools) and an Android 8.0+ emulator (API 26+) — the app builds locally with `expo prebuild` + Gradle; no paid build service is required
+- A 58 mm or 80 mm ESC/POS thermal printer and a physical Android device for the printer pilot (buyer-supplied). The shipped build does not include a native printer transport; receipt share and PDF work offline
 
 ## Setup
 
-The commands below are implemented by WP1–WP4. Run them under Node 26.13.1 (for example `fnm exec --using=26.13.1 -- npm ci`). The dev database uses disposable local credentials and publishes port **55432**; the integration test database `workshop_pos_test` is created by `docker/initdb/01-test-database.sql` on a fresh volume.
+The commands below are implemented by WP1–WP7. Run them under Node 26.13.1 (for example `fnm exec --using=26.13.1 -- npm ci`). The dev database uses disposable local credentials and publishes port **55432**; the integration test database `workshop_pos_test` is created by `docker/initdb/01-test-database.sql` on a fresh volume.
 
 ```sh
 cp .env.example .env        # placeholders only; .env is gitignored and never committed
@@ -95,9 +95,47 @@ The generated design tokens are committed. After changing `docs/ui/tokens.json`,
 
 To run the whole dev stack in containers instead, use `docker compose -f compose.dev.yaml up -d --build` and open <http://127.0.0.1:3000>. In that mode skip `npm run dev`, because the web container owns port 3000. Both the root `npm run dev` script and Compose-published ports bind to loopback.
 
-WP4 maps the documented token values into shared CSS variables and uses the documented font fallback stack; self-hosted Inter / IBM Plex Mono are WP9 work.
+WP4 maps the documented token values into shared CSS variables; WP7 does the same for React Native and bundles Inter 400/500/600 and IBM Plex Mono 400 (both OFL) via `@expo-google-fonts`. The OFL notice must remain in the shipped third-party notices.
 
 `.env` is gitignored; only `.env.example` (placeholders + comments) is tracked. Never put real credentials in the repository. `apps/web/next.config.mjs` loads the root `.env` for host-run Next.js commands; Compose-injected variables take precedence.
+
+## Mobile app (Android-first)
+
+The mobile app is a separate Expo workspace (`@workshop-pos/mobile`). It never owns server money or stock: a paid sale is written to SQLite (order + outbox row in one transaction) with a client idempotency key, and the server applies it later. The app needs the web/API process running.
+
+```sh
+# 1. Start the API (host or Compose) on port 3000.
+npm run dev
+
+# 2. Point the app at the API. The Android emulator reaches the host at 10.0.2.2.
+EXPO_PUBLIC_API_URL=http://10.0.2.2:3000 npm run start --workspace @workshop-pos/mobile
+# Then press "a" in the Expo terminal, or use:
+npm run android --workspace @workshop-pos/mobile
+```
+
+For a physical device on the same network, use the host's LAN address (for example `http://192.168.1.20:3000`). The URL is public configuration, not a secret; never put credentials in it.
+
+**Production requires HTTPS.** `resolveApiBaseUrl` accepts plain HTTP only in a development build (`__DEV__`); a release build with an `http://` or missing `EXPO_PUBLIC_API_URL` fails closed with a clear message. Terminate TLS at the Caddy proxy (WP1) and point the app at the HTTPS hostname.
+
+First sign-in is online and uses an existing Owner/Admin/Cashier/Mechanic account. The app then asks for a six-digit device PIN and stores the bearer token and staff snapshot in SecureStore. After that the Jual tab works offline:
+
+- Catalog, masked-phone customers, vehicles, and opened vehicle history are cached in SQLite per signed-in outlet.
+- Stock from the cache is labelled "Stok sementara"; it is replaced by the server value after a sync refresh.
+- A completed sale prints/shares a local receipt stamped `SALINAN LOKAL — BELUM TERSINKRON`; after sync the server invoice number replaces the local reference.
+- Queued sales upload in creation order with jittered exponential backoff; a failing sale does not block later ones. `STOCK_INSUFFICIENT`, `PRICE_CHANGED`, `PLATE_REASSIGNED`, and `CASH_REPORTING` are surfaced; only an Admin/Owner can override stock, and a Cashier can void the queued sale with a reason.
+- A 401 signs the device out and clears read-only personal data but keeps paid-but-unsynced sales for the next sign-in. Only the explicit destructive sign-out (`Lainnya → Ganti pengguna/keluar`, then the reason screen) deletes the queue.
+
+Mobile commands (included in the root workspace runs):
+
+```sh
+npm run typecheck --workspace @workshop-pos/mobile
+npm run lint --workspace @workshop-pos/mobile
+npm run test:unit --workspace @workshop-pos/mobile     # Jest + React Native Testing Library
+npx expo prebuild --platform android                   # generates android/ (gitignored)
+npx expo run:android                                   # debug APK on an emulator/device
+```
+
+Release signing, Play Store packaging, APK size, cold-start time, and real thermal printing are buyer/hardware tasks and are **not verified** in this repository. The printer SDK (`react-native-esc-pos-printer` / Epson ePOS terms) remains `REVIEW`; the app talks to a `PrinterTransport` interface so a pilot can add the native adapter without touching receipt layout. Share and PDF are the always-available fallback.
 
 ## Quality gate
 
@@ -105,11 +143,11 @@ The npm scripts and aggregate runner exist. The individual steps and the aggrega
 
 | Command | Scope |
 |---|---|
-| `npm run typecheck` | TypeScript strict type checking across workspaces |
-| `npm run lint` | ESLint 10 flat config (`eslint-config-next`) |
-| `npm run test:unit` | Unit tests (health, contracts, RBAC matrix, lockout arithmetic, HTTP guards, loading skeleton) |
-| `npm run test:integration` | Database integration test against the Compose test database |
-| `npm run test:e2e:web` | Playwright Chromium test for the walking-skeleton page |
+| `npm run typecheck` | TypeScript strict type checking across all workspaces, including `apps/mobile` |
+| `npm run lint` | ESLint flat config: `eslint-config-next` on web (ESLint 10), `eslint-config-expo` on mobile (ESLint 9.39.5) |
+| `npm run test:unit` | Unit tests across packages (domain, contracts, RBAC, HTTP) and the mobile Jest/RNTL suite (offline sale, outbox, sync, conflicts, receipts, keypad) |
+| `npm run test:integration` | Database integration tests against the Compose test database (web, auth, db) |
+| `npm run test:e2e:web` | Playwright Chromium journeys for the back-office and counter flows |
 | `npm run build` | Next.js production build with standalone output |
 | `bash scripts/check.sh` | **Aggregate gate** — all of the above in that exact order, plus Docker preflight and test-DB readiness |
 
@@ -117,7 +155,7 @@ Runner parity rule: automation must run exactly these commands in this order; no
 
 **CI workflows and git hooks are intentionally not part of this kickoff.** They are introduced later as a gate inside WP8; until then `scripts/check.sh` is the only aggregate gate and runs locally. The aggregate gate passed on the frozen candidate.
 
-Verified on 2026-11-26: `npm ci`, typecheck, lint (ESLint 10.15.0), 5 unit tests, 1 integration test against PostgreSQL 19.0, 1 Playwright Chromium test, production build, license report, Compose config parsing, and production-image health checks. Chromium viewports 320, 390, 768, and 1440 px were measured; real devices, Firefox, WebKit, and OS dark mode are **NOT VERIFIED**.
+Observed results and exact counts for each work package are recorded in [`docs/STATUS.md`](docs/STATUS.md) §7; this README does not restate unverified numbers. Real Android devices, a thermal printer, Firefox, WebKit, screen readers, and OS font scaling remain **NOT VERIFIED**.
 
 ## Deployment summary
 
@@ -135,7 +173,7 @@ Details: [`docs/adr/0001-stack-and-architecture.md`](docs/adr/0001-stack-and-arc
 - **Web UI components: shadcn/ui (MIT)**, copied into the repository and restyled from project tokens; the MIT notice is retained. This is component source, not a commercial admin template.
 - **Dependencies: permissive only** — MIT / Apache-2.0 / ISC / BSD (plus PostgreSQL License and OFL for the font). No GPL/AGPL/SSPL/FSL or commercial runtime dependencies.
 - **No third-party admin-template source is included.** The Ecme/ThemeForest template referenced in earlier research is commercial and must never appear in this repository; the UI is an original implementation using MIT-licensed shadcn/ui components and project tokens.
-- **Thermal-printer SDK: REVIEW.** The ESC/POS printing candidate bundles the Epson ePOS SDK, whose redistribution terms require buyer-counsel confirmation before shipping; a browser/PDF fallback exists so this is a bounded swap, not a lock-in.
+- **Thermal-printer SDK: REVIEW, not installed.** WP7 ships an ESC/POS encoder and a `PrinterTransport` interface but no native printer package. The candidate (`react-native-esc-pos-printer`) bundles the Epson ePOS SDK, whose redistribution terms require buyer-counsel confirmation; share/PDF are the shipped fallback so a failed pilot is a bounded swap.
 
 Evidence, SPDX identifiers, and verification dates: [`docs/ops/license-inventory.md`](docs/ops/license-inventory.md).
 
@@ -160,12 +198,12 @@ From handover onward the **buyer is the Data Controller** under Indonesia's UU P
 
 ## Handover status
 
-**Current status: WP1, WP2, and WP3 merged to `main`; WP4 on `feat/wp4-web-shell-catalog-inventory`.** Requirements, architecture, design system, work packages, and handover documentation exist. WP1 added the monorepo harness, web skeleton, health endpoint, Compose stacks, license report, and aggregate gate; WP2 added the database schema, migrations, seed, and scoped query helpers; WP3 added auth, RBAC, staff, and outlets; WP4 adds the domain core, design tokens, back-office shell, catalog, and inventory ledger screens. No CI pipeline or git hook exists yet; the mobile app, orders, and reports have not started.
+**Current status: WP1–WP6.1 are merged to `main`; WP7 (mobile offline POS) is implemented on `feat/wp7-mobile-offline-pos` and awaits review/merge.** The web back-office, API, domain core, orders/payments/receipts, and the server sync seam exist and are tested. Reports, settings screens, CI, git hooks, and the native ESC/POS transport are not built yet.
 
 | Milestone | Scope | Status |
 |---|---|---|
 | **M1 — Walking skeleton** (WP1) | Clone-and-run monorepo harness, Compose stack, health endpoint, aggregate gate, license report | **Verified 2026-11-26 and merged to `main` as PR #1 (`a96ffcb`)** |
-| **M2 — MVP** (WP2–WP8) | Schema and seed; auth/RBAC/outlets; catalog and inventory ledger; customers, vehicles, plate history; orders, payments, receipts; Android offline app with sync; reports, audit, export, settings, hardening gate | **In progress** — WP2 merged (PR #2, `88252dc`); WP3 merged (PR #3, `344de62`); WP4 on `feat/wp4-web-shell-catalog-inventory` |
+| **M2 — MVP** (WP2–WP8) | Schema and seed; auth/RBAC/outlets; catalog and inventory ledger; customers, vehicles, plate history; orders, payments, receipts; Android offline app with sync; reports, audit, export, settings, hardening gate | **In progress** — WP2 `88252dc`; WP3 `344de62`; WP4 `cdf3036`; WP5 `8a2a550`; WP6 `9f2fc8f`; WP6.1 `c8a38ec` (PR #7) merged; WP7 on `feat/wp7-mobile-offline-pos` |
 | **M3 — Handover-ready** (WP9) | Backup restore drill, accessibility sign-off, fresh-clone deployment rehearsal, license re-audit, executed handover checklist and evidence bundle | Not started |
 
 Milestone definitions and exit criteria are maintained in [`docs/STATUS.md`](docs/STATUS.md); work-package acceptance criteria in [`docs/plan/work-packages.md`](docs/plan/work-packages.md) define the detailed proof. Handover is executed against [`docs/ops/handover-checklist.md`](docs/ops/handover-checklist.md) on a frozen candidate commit.

@@ -248,6 +248,13 @@ Summary table:
 | DEC-0014 | 2026-11-27 | 2 | Keep an audited pre-`PAID` payment-row delete for Admin/Owner (beyond FR-048's method/amount/reference correction) and treat `SALINAN` as a print *attempt* | Duplicate or mis-keyed tenders need removal without voiding the sale; the browser cannot confirm paper output | Founder | Founder | implemented | WP6 design review; founder decision 2026-11-27 |
 | DEC-0015 | 2026-11-27 | 2 | A Cashier may resolve an offline sync conflict by VOID with a reason and a recorded cash refund; OVERRIDE still needs `override_stock` (Admin/Owner) | PRD AC15.3 scopes void to a user *without* override permission, and AC15.5 puts conflict resolution on the Cashier's sync screen; Appendix A still governs normal order voids | Product owner (reference-matching) | decision-reviewer | implemented | WP6.1 implementation |
 | DEC-0016 | 2026-11-27 | 2 | Offline sales above the cashier discount cap or with a device tax rate different from the outlet setting apply with local money and an audit row (`sync.discount_above_cap`, `sync.tax_rate_mismatch`), not a block | AC15.4/AC3.7 make paid money local-authoritative; ADR §3.6's conflict taxonomy is exhaustive and has no discount/tax code; blocking would strand an already-paid sale | Product owner (reference-matching) | decision-reviewer | implemented | WP6.1 implementation |
+| DEC-0017 | 2026-11-27 | 2 | A 401/expired session clears read-only personal caches but preserves paid-but-unsynced sales; re-sign-in resumes sync with the same client keys | FR-006/PD-04 require clearing customer data on session end; BR-011 and the retention table keep the sync queue until confirmed, so deleting it would lose paid money | Product owner (reference-matching) | decision-reviewer | implemented | WP7 implementation |
+| DEC-0018 | 2026-11-27 | 2 | Outlet switching is blocked while the active outlet has pending sales; queue rows are outlet-scoped, and other-outlet rows are surfaced rather than auto-failed | Founder approved the restriction 2026-11-27 as the safer attribution control despite FR-004's unconditional switching; the sync token is pinned to one outlet | Founder | Founder | implemented | WP7 implementation; founder decision 2026-11-27 |
+| DEC-0019 | 2026-11-27 | 2 | The mobile app learns outlet policy from the newest server order and uses documented defaults (11% PPN, 58 mm, 0% cashier cap, 10-character void reason) until then; tax deviations remain server-audited per DEC-0016 | No mobile settings endpoint exists in WP3–WP7; all fallback values are PRD/FR-070 defaults, and the sale screen names the default source | Product owner (reference-matching) | decision-reviewer | implemented | WP7 implementation |
+| DEC-0020 | 2026-11-27 | 2 | Destructive local sign-out requires a reason and purges the queue/PII caches; sign-out, PIN-forgot, and expiry make a best-effort server token revocation and delete exported receipt files | FR-006 and the retention table require local erasure; the server logout route already revokes a bearer token; exported receipt files contain customer PII | Product owner (reference-matching) | decision-reviewer | implemented | WP7 implementation |
+| DEC-0021 | 2026-11-27 | 3 | Production builds fail closed unless the API URL is HTTPS; plain HTTP is allowed only in a development build for the emulator loopback | NFR-007 requires TLS for all traffic; founder approved the dev-only exception 2026-11-27 | Founder | Founder | implemented | WP7 implementation; founder decision 2026-11-27 |
+| DEC-0022 | 2026-11-27 | 3 | The license report evaluates SPDX `OR` as a choice and records Expo-CLI `lightningcss` (MPL-2.0) as a build-only exception; review date 2027-05-31 | Expo 58 ships its CLI as a production dependency, but the toolchain is not bundled into the APK; MPL-2.0 is file-level copyleft and not in the prohibited set | Founder | Founder | implemented | WP7 implementation; founder decision 2026-11-27; `scripts/license-report.mjs` |
+
 
 Status values: `proposed`, `approved`, `rejected`, `implemented`, `reverted`, `superseded`.
 
@@ -589,6 +596,115 @@ Illustrative entry (not a real decision):
 - Rollback: remove the two audit branches; the order figures stay unchanged because they were never derived from these checks.
 - Follow-ups: WP8 day-report reconciliation should surface both audit actions, like `CASH_REPORTING` (owner: WP8 lead).
 - Links: PRD AC15.4/AC3.7, FR-032, FR-070, BR-003; ADR-0001 §3.6; WP6.1 sync tests.
+- Supersedes: none
+
+
+### DEC-0017 — Session end clears personal caches but keeps paid offline sales
+
+- Date: 2026-11-27
+- Tier: 2
+- Status: implemented
+- Requester: engineering (WP7)
+- Decider: product owner (reference-matching)
+- Approver(s): decision-reviewer
+- Context: FR-006 and the personal-data retention table require customer data to be cleared on session end; BR-011 and the same table keep the device sync queue until sync is confirmed. A 401 during sync previously wiped the queue.
+- Options: (a) purge everything on 401; (b) keep everything; (c) clear read-only personal caches, keep the queue, and require sign-in to resume.
+- Decision: option (c). `handleUnauthorised` clears cached customers/vehicles/history/orders and the session, keeps `local_orders`/`outbox`, and reports the pending count. Only the explicit destructive sign-out purges the queue.
+- Rationale: money already taken is a fact; deleting it creates a silent business loss. The queue remains inaccessible behind the sign-in gate and syncs with the same client keys.
+- Consequences: same-outlet staff can see a predecessor's queued sale after re-signing in; the server attributes the applied order to the syncing token. Recorded as a minimization/attribution limit.
+- Rollback: purge the queue on 401; loses unsynced sales, so this is not recommended.
+- Follow-ups: WP8 may add per-actor queue display controls.
+- Links: PRD FR-006, BR-011; WP7 sync tests.
+- Supersedes: none
+
+### DEC-0018 — Outlet switching waits for the current outlet's queue
+
+- Date: 2026-11-27
+- Tier: 2
+- Status: implemented
+- Requester: engineering (WP7)
+- Decider: Founder
+- Approver(s): Founder
+- Context: FR-004/DEC-0010 allow multi-outlet staff to switch freely, but a mobile bearer token is pinned to one outlet and the server attributes a synced sale to the token that sends it.
+- Options: (a) keep switching unconditional and add cross-outlet sync machinery; (b) block switching while the current outlet has pending/failed/conflicted sales; (c) drop other-outlet rows.
+- Decision: option (b). Switching is refused with the pending count; queue rows are outlet-scoped, other-outlet rows are counted and surfaced with "ganti ke outlet tersebut", and the sync engine skips them rather than failing them.
+- Rationale: prevents wrong-outlet attribution without losing any paid sale. The founder approved the restriction on 2026-11-27.
+- Consequences: a cashier may wait for connectivity before switching; the screen explains why. Other-outlet rows remain until that outlet is active again.
+- Rollback: remove the pending-count guard; rows would then 403 and become permanent failures, so the guard is the safer state.
+- Follow-ups: a future server field could carry the originating outlet per queued sale and remove the restriction.
+- Links: PRD FR-004; DEC-0010; WP7 sync tests.
+- Supersedes: none (narrows DEC-0010 for the mobile offline queue)
+
+### DEC-0019 — Mobile outlet policy is learned from server orders
+
+- Date: 2026-11-27
+- Tier: 2
+- Status: implemented
+- Requester: engineering (WP7)
+- Decider: product owner (reference-matching)
+- Approver(s): decision-reviewer
+- Context: WP3–WP7 expose no mobile settings endpoint, but an offline sale needs the outlet tax rate, paper width, cashier cap, and void-reason minimum.
+- Options: (a) add a settings API in WP7 (outside its ownership); (b) hard-code values; (c) learn from the newest server order and use documented defaults until then.
+- Decision: option (c). The newest order detail and every applied sale refresh the local snapshot; defaults are 11% PPN, 58 mm, 0% cashier cap, 10 characters. The sale screen names the default source, and WP6.1 audits tax-rate deviations.
+- Rationale: uses an existing endpoint without crossing ownership boundaries; every fallback is a documented server default.
+- Consequences: a fresh device with no orders uses defaults until the first online cache refresh; a configured non-default tax is audited when a sale syncs.
+- Rollback: add a settings API in WP8 and replace the learner.
+- Follow-ups: WP8 settings API should expose the snapshot directly.
+- Links: PRD FR-033/FR-070, BR-002, D-2; DEC-0016.
+- Supersedes: none
+
+### DEC-0020 — Local destructive sign-out and receipt-file erasure
+
+- Date: 2026-11-27
+- Tier: 2
+- Status: implemented
+- Requester: engineering (WP7)
+- Decider: product owner (reference-matching)
+- Approver(s): decision-reviewer
+- Context: DESIGN §7.7 requires a reason for the last-resort sign-out; FR-006 requires local erasure; receipt exports contain customer names, plates, and amounts.
+- Options: (a) allow silent sign-out; (b) require a reason, purge the queue and caches, best-effort revoke the token, and delete exported receipt files.
+- Decision: option (b). The screen requires a 10-character reason and names the loss; exported files live in one cache directory, are deleted after share, and are swept on sign-out/expiry/PIN-forgot/outlet switch.
+- Rationale: keeps the erasure claim honest and narrows token exposure.
+- Consequences: the reason is UI-only (no server audit endpoint for logout); offline revocation leaves the server token until its TTL. Recorded as limits.
+- Rollback: remove the reason gate and file sweep; weakens FR-006.
+- Follow-ups: WP8 decides whether a local audit trail is needed.
+- Links: DESIGN §7.7; PRD FR-006; ADR-0001 §3.4.
+- Supersedes: none
+
+### DEC-0021 — Production HTTPS, development loopback HTTP
+
+- Date: 2026-11-27
+- Tier: 3
+- Status: implemented
+- Requester: engineering (WP7)
+- Decider: Founder
+- Approver(s): Founder
+- Context: NFR-007 requires TLS for all traffic; the emulator needs a plain-HTTP loopback during development.
+- Options: (a) require HTTPS everywhere; (b) fail closed in production and allow HTTP only under `__DEV__`.
+- Decision: option (b), approved 2026-11-27. `validateApiBaseUrl` rejects non-HTTPS when not in a development build; a release build with no URL or an `http://` URL throws.
+- Rationale: no end-user exposure; keeps daily emulator testing practical.
+- Consequences: release builds must set `EXPO_PUBLIC_API_URL` to an HTTPS endpoint; Caddy terminates TLS.
+- Rollback: remove the `__DEV__` branch and require HTTPS in development too.
+- Follow-ups: document the TLS endpoint in the buyer runbook (WP9).
+- Links: PRD NFR-007; README mobile section.
+- Supersedes: none
+
+### DEC-0022 — SPDX OR and the Expo-CLI license exception
+
+- Date: 2026-11-27
+- Tier: 3
+- Status: implemented
+- Requester: engineering (WP7)
+- Decider: Founder
+- Approver(s): Founder
+- Context: Expo 58 ships `@expo/cli` as a production dependency, so the lockfile marks `lightningcss` (MPL-2.0) and `node-forge` (`BSD-3-Clause OR GPL-2.0`) as runtime even though neither is bundled into the APK.
+- Options: (a) fail the gate and block WP7; (b) evaluate SPDX `OR` as a choice and record the Expo-CLI CSS transform as build-only; (c) ignore the findings.
+- Decision: option (b), approved 2026-11-27. The exception is name+license scoped (`lightningcss` + `MPL-2.0`) and documented in the inventory; review date **2027-05-31** or at the next Expo upgrade, whichever comes first.
+- Rationale: BSD-3-Clause is permissive; MPL-2.0 is file-level copyleft and not in the prohibited set; no MPL source or binary ships in the APK.
+- Consequences: the dev/optional review buckets still do not hard-fail a forbidden license; WP1/WP8 must close that latent gap before handover.
+- Rollback: remove the exception and the OR handling; the gate fails until the Expo dependency graph changes.
+- Follow-ups: WP1/WP8 forbidden-license hard fail in every bucket.
+- Links: `docs/ops/license-inventory.md` §6; `scripts/license-report.mjs`; founder decision 2026-11-27.
 - Supersedes: none
 
 ## 8. Suggested turnaround

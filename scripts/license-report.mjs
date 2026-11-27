@@ -37,6 +37,22 @@ const PINNED_EXCEPTIONS = new Map([
 
 const SHIPPED_IMAGE_EXCLUSIONS = new Set(["sharp", "@img/sharp-"]);
 
+// Expo's CLI is a dependency of the `expo` package, so npm marks its build
+// toolchain as production even though none of it is bundled into the Android
+// app (the APK contains the Metro JS bundle plus native modules). Founder
+// approved these build-time exceptions on 2026-11-27; the inventory records
+// them. They are not runtime libraries.
+const MOBILE_BUILD_TOOLING_EXCEPTIONS = new Map([
+  [
+    "lightningcss",
+    {
+      license: "MPL-2.0",
+      reason:
+        "Expo CLI/Metro CSS transform at build time; no MPL source or binary is bundled into the Android app",
+    },
+  ],
+]);
+
 // Build-only native payload. Tailwind's compiler depends on `lightningcss`,
 // whose per-platform binary packages are optional children. When another
 // dev-only tool (Vitest's optional `vite` peer) also reaches lightningcss,
@@ -62,20 +78,24 @@ function packageNameFromPath(key) {
   return index === -1 ? key : key.slice(index + marker.length);
 }
 
-function licenseTokens(expression) {
-  return expression
-    .replace(/[()]/g, " ")
-    .split(/\s+(?:AND|OR|WITH)\s+/i)
-    .map((token) => token.trim())
-    .filter(Boolean);
-}
-
+/**
+ * SPDX `OR` means the consumer chooses one alternative; `AND` requires every
+ * part. `node-forge` is `BSD-3-Clause OR GPL-2.0`, so choosing BSD-3-Clause
+ * keeps the package permissive without an exception. Founder-approved
+ * 2026-11-27.
+ */
 function isAllowed(expression) {
   if (expression === "UNKNOWN") {
     return false;
   }
-
-  return licenseTokens(expression).every((token) => ALLOWED_LICENSES.has(token));
+  const normalized = expression.replace(/[()]/g, " ").trim();
+  return normalized.split(/\s+OR\s+/i).some((alternative) =>
+    alternative
+      .split(/\s+AND\s+/i)
+      .map((token) => token.trim())
+      .filter(Boolean)
+      .every((token) => ALLOWED_LICENSES.has(token)),
+  );
 }
 
 function isImageExcluded(name) {
@@ -112,6 +132,7 @@ const pinned = [];
 const optionalReview = [];
 const devOptionalReview = [];
 const devReview = [];
+const mobileToolingReview = [];
 let runtimeCount = 0;
 let devCount = 0;
 let optionalCount = 0;
@@ -170,6 +191,14 @@ for (const [key, meta] of packageEntries) {
     continue;
   }
 
+  const mobileTooling = [...MOBILE_BUILD_TOOLING_EXCEPTIONS].find(
+    ([prefix]) => name === prefix || name.startsWith(`${prefix}-`),
+  );
+  if (mobileTooling && mobileTooling[1].license === license) {
+    mobileToolingReview.push({ ...entry, reason: mobileTooling[1].reason });
+    continue;
+  }
+
   failures.push(entry);
 }
 
@@ -201,6 +230,15 @@ if (devOptionalReview.length > 0) {
   );
   for (const entry of devOptionalReview) {
     console.log(`  - ${line(entry)} (build-only)`);
+  }
+}
+
+if (mobileToolingReview.length > 0) {
+  console.log(
+    `MOBILE BUILD-ONLY REVIEW: ${mobileToolingReview.length} package(s) reachable through Expo's CLI but not bundled into the Android app:`,
+  );
+  for (const entry of mobileToolingReview) {
+    console.log(`  - ${line(entry)} (${entry.reason})`);
   }
 }
 
