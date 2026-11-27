@@ -52,11 +52,13 @@ bash scripts/check.sh        # aggregate gate: typecheck → lint → test:unit 
 npm run typecheck --workspace @workshop-pos/mobile
 npm run lint --workspace @workshop-pos/mobile
 npm run test:unit --workspace @workshop-pos/mobile     # Jest + RNTL, no emulator or Docker
-EXPO_PUBLIC_API_URL=http://10.0.2.2:3000 npm run start --workspace @workshop-pos/mobile
-npm run android --workspace @workshop-pos/mobile       # requires Android Studio/SDK and an emulator
+EXPO_PUBLIC_API_URL=http://<LAN-IP>:3000 npm run start --workspace @workshop-pos/mobile
+adb devices                                             # proceed only for a real device in "device" state
+npx expo run:android --device                           # never boot or use an emulator/AVD
 ```
 
 - Runner parity: automation must run exactly these commands in this order. Nothing may pass locally and fail elsewhere.
+- **No emulator testing.** Never create, boot, or use an Android emulator/AVD for testing. Run `adb devices`; only a real device in `device` state may be used. If no real device is connected, skip device-only checks and report `NOT VERIFIED` with the reason; never substitute emulator results.
 - **CI workflows and git hooks are intentionally not part of this kickoff.** They land later as a gate inside WP8. Until then `scripts/check.sh` is the only aggregate gate. Never weaken it: no skipped steps, no `--no-verify`, no loosening of gates to make a change pass.
 
 ## Repository conventions
@@ -104,7 +106,8 @@ Need a change in a path you do not own? Ask the owner; do not edit across owners
 3. `npm run lint` — green.
 4. `bash scripts/check.sh` (the aggregate gate) — green before hand-off.
 5. Never weaken a gate to achieve green: no skipped tests, no `--no-verify`, no loosened rules, no narrowed assertions.
-6. Update the affected docs when behavior or commands change; remove obsolete code, comments, and aliases in the same change.
+6. **Mobile device checks:** run `adb devices` and use only a real device in `device` state. Never boot an emulator/AVD. If no real device is connected, report device-only checks as `NOT VERIFIED`; unit/RNTL tests still run without a device.
+7. Update the affected docs when behavior or commands change; remove obsolete code, comments, and aliases in the same change.
 
 Report only checks you actually ran, with their real output. Unverified claims are fabrication.
 

@@ -209,6 +209,19 @@ credential or personal-data values; use a redacting serializer; never log an
 entire auth request. Test fixtures assemble credential-shaped values at runtime
 rather than committing them.
 
+### B11. Emulator-based mobile verification
+
+**Scope:** any Android/Expo test, script, CI job, doc instruction, or agent
+action that starts or uses an Android emulator/AVD.
+
+**Violation:** creating or booting an AVD, running `emulator -avd`, running
+`expo run:android` without `--device`, or reporting emulator output as
+real-device verification. The founder prohibits emulator-based testing.
+
+**Required:** run `adb devices`; proceed only with a physical device in `device`
+state. If no real device is connected, skip device-only checks and report
+`NOT VERIFIED` with the reason. Unit/RNTL tests may run without a device.
+
 ## Concerns — raise before merge
 
 ### C1. Missing audit entry for void, refund, or price change

@@ -35,7 +35,7 @@
 | WP4 | L | Three pure-domain modules plus catalog + ledger API/UI and the concurrency-sensitive decrement path (AC11.5). |
 | WP5 | M | Two entities, normalization reuse from `packages/core`, history query with pagination (AC10.5). |
 | WP6 | L | Lifecycle enforcement, server-recomputed money, split payments, void/refund, idempotency replay, receipt template — the densest business-rule surface. |
-| WP7 | L | Expo app, SQLite outbox, sync worker, conflict taxonomy UI, printer pilot; emulator-verified offline flow. |
+| WP7 | L | Expo app, SQLite outbox, sync worker, conflict taxonomy UI, printer pilot; real-device/adb-verified offline flow where a device exists. |
 | WP8 | M | Mostly read-model reports over data that already exists, plus the CI/hooks gate and axe hardening. |
 | WP9 | S | Drill + documentation execution; no new product code except the backup sidecar wiring. |
 
@@ -295,7 +295,7 @@
 5. APK ≤ 60 MB and cold start ≤ 5 s on the reference low-end Android profile (NFR-003) — measured, with the measurement recorded.
 6. Printer pilot on the buyer's DEP-1 models: AC17.1 within NFR-004; AC17.2 fallback reachable from the device; tested-model list published per D-9. If the ESC/POS candidate fails pilot, the fallback sink ships and the swap is bounded to `src/printing/`.
 
-**Focused gates:** Vitest + @testing-library/react-native on sale flow and outbox states; emulator run of offline-sale → sync → conflict → resolve; component QA against the shared tokens.
+**Focused gates:** Vitest + @testing-library/react-native on sale flow and outbox states; real-device run of offline-sale → sync → conflict → resolve via `adb devices` + `npx expo run:android --device`; if no real device is connected, record `NOT VERIFIED` (never use an emulator); component QA against the shared tokens.
 
 ---
 
