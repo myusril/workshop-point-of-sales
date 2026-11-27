@@ -1,0 +1,69 @@
+/*
+ * Receipt paper. Deliberately theme-independent: a receipt preview is paper in
+ * light and dark mode, so the reader judges the printed result, not the shell.
+ */
+
+.frame {
+  max-width: 100%;
+  overflow-x: auto;
+  padding: var(--wpos-spacing-4, 16px) 0;
+}
+
+.paper {
+  margin: 0 auto;
+  padding: 12px 10px;
+  background: #ffffff;
+  color: #111111;
+  border: 1px solid #d4d4d4;
+  border-radius: 2px;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 12%);
+  font-family: var(--wpos-typography-font-family-mono, "IBM Plex Mono", ui-monospace, monospace);
+  font-size: 12px;
+  line-height: 1.35;
+  letter-spacing: 0;
+  white-space: pre;
+  overflow-x: auto;
+  tab-size: 2;
+}
+
+/* Physical widths at 96 dpi: 58 mm ≈ 219 px, 80 mm ≈ 302 px. */
+/*
+ * The preview is sized by its column count, not by physical millimetres: 35/48
+ * monospace columns at the receipt token size stay readable and keep every
+ * rupiah amount on the paper. The print rule below uses the physical width.
+ */
+.paper58 {
+  width: auto;
+  min-width: calc(35ch + 20px);
+  max-width: 100%;
+}
+
+.paper80 {
+  width: auto;
+  min-width: calc(48ch + 20px);
+  max-width: 100%;
+}
+
+.plain {
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
+@media print {
+  .frame {
+    padding: 0;
+    overflow: visible;
+  }
+
+  .paper {
+    width: auto;
+    max-width: none;
+    border: 0;
+    box-shadow: none;
+    padding: 0;
+    /* 35/48 monospace columns fit 58 mm and 80 mm paper at 7.5 pt. */
+    font-size: 7.5pt;
+    line-height: 1.3;
+  }
+}

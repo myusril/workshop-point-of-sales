@@ -1,0 +1,68 @@
+/*
+ * Print sheet chrome. Only the toolbar is screen-only; the paper itself comes
+ * from components/receipts/receipt.module.css and stays white in dark mode.
+ */
+
+.sheet {
+  min-height: 100vh;
+  padding: 24px;
+  background: var(--wpos-color-bg-surface-sunken, #f2f2f2);
+  color: var(--wpos-color-text-primary, #111);
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  max-width: 900px;
+  margin: 0 auto 16px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.hint {
+  max-width: 900px;
+  margin: 0 auto 16px;
+  font-size: 13px;
+  color: var(--wpos-color-text-secondary, #4a4a4a);
+}
+
+.title {
+  max-width: 900px;
+  margin: 0 auto 4px;
+  color: var(--wpos-color-text-primary, #111);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.back {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+@media print {
+  .sheet {
+    min-height: auto;
+    padding: 0;
+    background: #ffffff;
+  }
+
+  .toolbar,
+  .hint,
+  .title {
+    display: none;
+  }
+}

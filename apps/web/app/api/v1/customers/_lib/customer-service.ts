@@ -560,7 +560,7 @@ export async function exportCustomerPersonalData(
       .select({
         orderId: payments.orderId,
         paidTotal:
-          sql<string>`coalesce(sum(${payments.amount} - ${payments.changeAmount}), 0)`.as(
+          sql<string>`coalesce(sum(${payments.amount}), 0)`.as(
             "paid_total",
           ),
       })
