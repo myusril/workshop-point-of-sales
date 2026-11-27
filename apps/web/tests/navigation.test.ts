@@ -12,6 +12,8 @@ describe("back-office navigation filtering", () => {
     expect(backOfficeNavItems("OWNER")).toEqual([
       { href: "/", label: "Beranda", icon: "home" },
       { href: "/catalog", label: "Produk & Jasa", icon: "catalog" },
+      { href: "/customers", label: "Pelanggan", icon: "users" },
+      { href: "/vehicles", label: "Kendaraan", icon: "catalog" },
       { href: "/inventory", label: "Stok", icon: "inventory" },
       { href: "/users", label: "Pengguna", icon: "users" },
       { href: "/outlets", label: "Outlet", icon: "outlets" },
@@ -19,9 +21,10 @@ describe("back-office navigation filtering", () => {
   });
 
   it("omits destinations a role can never use instead of disabling them", () => {
-    expect(labelsFor("ADMIN")).toEqual(["Beranda", "Produk & Jasa", "Stok"]);
-    expect(labelsFor("CASHIER")).toEqual(["Beranda", "Produk & Jasa"]);
-    expect(labelsFor("MECHANIC")).toEqual(["Beranda", "Produk & Jasa"]);
+    expect(labelsFor("ADMIN")).toEqual(["Beranda", "Produk & Jasa", "Pelanggan", "Kendaraan", "Stok"]);
+    expect(labelsFor("CASHIER")).toEqual(["Beranda", "Produk & Jasa", "Pelanggan", "Kendaraan"]);
+    // Mechanic cannot write customers but may read them and view history.
+    expect(labelsFor("MECHANIC")).toEqual(["Beranda", "Produk & Jasa", "Pelanggan", "Kendaraan"]);
   });
 
   it("keeps the catalog readable for roles without manage_catalog", () => {
@@ -39,5 +42,7 @@ describe("back-office navigation filtering", () => {
     expect(isBackOfficeNavItemActive("/catalog", "/catalog/products")).toBe(true);
     expect(isBackOfficeNavItemActive("/catalog", "/catalogue")).toBe(false);
     expect(isBackOfficeNavItemActive("/inventory", "/inventory/ledger")).toBe(true);
+    expect(isBackOfficeNavItemActive("/vehicles", "/vehicles/abc")).toBe(true);
+    expect(isBackOfficeNavItemActive("/customers", "/customers")).toBe(true);
   });
 });

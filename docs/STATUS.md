@@ -3,13 +3,13 @@
 | Field | Value |
 |---|---|
 | Product | Workshop POS (working name; buyer may rebrand) |
-| Phase | WP4 (web shell, domain core, catalog, inventory) on the task branch |
+| Phase | WP5 (customers, vehicles, plate history) on the task branch |
 | Date | 2026-11-27 |
-| Code status | WP1, WP2, and WP3 are merged to `main` (WP3 as PR #3, `344de62`). WP4 code is verified on `feat/wp4-web-shell-catalog-inventory` and is not merged. Orders, reports, and mobile code do not exist yet |
-| Next gate | WP4 is verified on `feat/wp4-web-shell-catalog-inventory` (§7.5–§7.6); the founder reviews the diff and merges. WP5 starts from `main` after the merge |
+| Code status | WP1–WP4 are merged to `main` (WP4 as PR #4, `cdf3036`). WP5 is implemented and verified on `feat/wp5-customers-vehicles-history`; focused results are in §7.7 and the aggregate gate result in §7.8. It is not merged. Orders, payments, receipts, reports, and mobile code do not exist yet, so vehicle history is empty in a fresh installation until WP6 writes orders |
+| Next gate | WP5 focused checks, review, and aggregate gate (§7.7–§7.8); the founder reviews the diff and merges. WP6 starts from `main` after the merge |
 | Source of truth | `docs/product/PRD.md`, `docs/adr/0001-stack-and-architecture.md`, `docs/plan/work-packages.md` |
 
-> **Honesty rule.** This page reports what exists and what has been verified. Documents are not proof that the product works. WP1 commands were executed on 2026-11-26 on branch `feat/wp1-walking-skeleton`, including the aggregate `scripts/check.sh` gate on a fresh development volume, and WP1 was merged to `main` as PR #1 (`a96ffcb`). WP2 (schema, migrations, seed, outlet-scoped query helpers) was merged to `main` as PR #2 (`88252dc`). WP3 (auth, RBAC, users, outlets) passed its focused gates and the aggregate gate, and was merged to `main` as PR #3 (`344de62`); its tests are re-run by later aggregate gates. Anything not listed in §7 as verified is **NOT VERIFIED** — including WP4 until its gate result is recorded here.
+> **Honesty rule.** This page reports what exists and what has been verified. Documents are not proof that the product works. WP1 commands were executed on 2026-11-26 on branch `feat/wp1-walking-skeleton`, including the aggregate `scripts/check.sh` gate on a fresh development volume, and WP1 was merged to `main` as PR #1 (`a96ffcb`). WP2 (schema, migrations, seed, outlet-scoped query helpers) was merged to `main` as PR #2 (`88252dc`). WP3 (auth, RBAC, users, outlets) passed its focused gates and the aggregate gate, and was merged to `main` as PR #3 (`344de62`). WP4 (web shell, domain core, catalog, inventory) passed its focused checks and the aggregate gate and was merged to `main` as PR #4 (`cdf3036`); earlier tests are re-run by later aggregate gates. Anything not listed in §7 as verified is **NOT VERIFIED** — including WP5 until its gate result is recorded here.
 
 ---
 
@@ -18,7 +18,7 @@
 | Milestone | Scope | Exit criteria | Status |
 |---|---|---|---|
 | **M1 — Walking skeleton** | WP1: npm-workspaces monorepo, pinned Node, `.env.example`, Compose dev/prod, Postgres, Dockerfiles, `scripts/check.sh`, license report, health endpoint, minimal page/API | A fresh clone reaches a healthy web + database stack with standard Docker/Node tooling; `scripts/check.sh` exits 0; license report has no blocker | **Verified 2026-11-26 and merged to `main` as PR #1 (`a96ffcb`)** |
-| **M2 — MVP** | WP2–WP8: schema/seed, auth/RBAC/outlets, catalog + stock ledger, customers/vehicles/history, mixed orders + payments + receipts, offline mobile POS + sync, reports/audit/export/settings, hardening gate | Every PRD story US-01–US-20 passes its acceptance criteria; offline/conflict, money, stock, and RBAC tests are green; no license blocker; WCAG 2.2 AA checks pass on agreed screens | **In progress** — WP2 merged as PR #2 (`88252dc`); WP3 merged as PR #3 (`344de62`); WP4 on `feat/wp4-web-shell-catalog-inventory` |
+| **M2 — MVP** | WP2–WP8: schema/seed, auth/RBAC/outlets, catalog + stock ledger, customers/vehicles/history, mixed orders + payments + receipts, offline mobile POS + sync, reports/audit/export/settings, hardening gate | Every PRD story US-01–US-20 passes its acceptance criteria; offline/conflict, money, stock, and RBAC tests are green; no license blocker; WCAG 2.2 AA checks pass on agreed screens | **In progress** — WP2 merged as PR #2 (`88252dc`); WP3 merged as PR #3 (`344de62`); WP4 merged as PR #4 (`cdf3036`); WP5 on `feat/wp5-customers-vehicles-history` |
 | **M3 — Handover-ready** | WP9: accessibility sign-off, backup/restore drill, fresh-clone deployment rehearsal, license re-audit, documentation and credential handover | `docs/ops/handover-checklist.md` is fully checked with captured evidence; restore drill meets RPO/RTO targets; buyer accepts the signed manifest | **Not started** |
 
 ---
@@ -33,11 +33,11 @@
 | `docs/adr/0001-stack-and-architecture.md` | Stack, data, auth, offline sync, deployment, cost range, rejected alternatives | Proposed |
 | `docs/ops/license-inventory.md` | Dependency/license/transferability evidence | Updated through WP4 (`better-auth` 1.7.28, `zod` 4.6.7, `@tanstack/react-table` 9.3.1 + MIT tree; lockfile report re-run in the gate); Epson SDK remains `REVIEW` |
 | `docs/product/personal-data.md` | Buyer-as-Controller obligations and engineering controls | Draft; counsel review required |
-| `docs/ui/DESIGN.md`, `state-matrix.md`, `tokens.json` | Original clean-room design system shared by web and mobile | Draft for review; WP4 generates `packages/design-tokens` and renders the back-office shell/catalog/inventory from these tokens |
+| `docs/ui/DESIGN.md`, `state-matrix.md`, `tokens.json` | Original clean-room design system shared by web and mobile | Draft for review; WP4 generates `packages/design-tokens` and renders the back-office shell/catalog/inventory; WP5 composes the same shell/components for customers, vehicles, and history |
 | `docs/plan/work-packages.md` | WP1–WP9, owned paths, dependencies, acceptance gates, PRD traceability | Proposed |
 | `docs/ops/handover-checklist.md` | Seller pre-delivery verification and evidence checklist | Draft; **not executed** |
 | `docs/ops/decision-policy.md` | Tier 1/2/3 decision authority for the buyer's team | Draft |
-| `README.md`, `AGENTS.md` | Buyer setup guide and engineering rules | README carries the verified setup/gate commands and the WP3 dev-login note; AGENTS.md still describes the repository as planning-only and needs a post-merge refresh |
+| `README.md`, `AGENTS.md` | Buyer setup guide and engineering rules | README carries the verified setup/gate commands and the WP3 dev-login note; AGENTS.md now records WP1–WP4 as merged, the WP5 branch state, the executable setup/gate commands, and the customer personal-data conventions |
 | `.omp/`, `orca.yaml`, `.worktreeinclude` | Optional development aids | Present; may be stripped at handover |
 
 ---
@@ -234,7 +234,52 @@ WP3 was merged to `main` as PR #3 (`344de62`) before WP4 started. Focused checks
 | `npm run test:e2e:web` | **PASS** — 37 Chromium tests |
 | `npm run build` | **PASS** — Next.js 16.4.6 production build; `/`, `/catalog`, `/inventory`, `/users`, `/outlets` dynamic |
 
-The only post-gate edit is this documentation section and the status fields above (no code, config, test, or dependency changed). WP4 is verified on `feat/wp4-web-shell-catalog-inventory`; it is not merged to `main`.
+The only post-gate edit is this documentation section and the status fields above (no code, config, test, or dependency changed). WP4 was merged to `main` as PR #4 (`cdf3036`) before WP5 started.
+
+### 7.7 WP5 execution checks (2026-11-27, branch `feat/wp5-customers-vehicles-history`)
+
+WP4 was merged to `main` as PR #4 (`cdf3036`) before WP5 started. Focused checks below were run after the consolidated review repair round; the aggregate gate runs once on the frozen candidate after the completion audit.
+
+| Check | Result |
+|---|---|
+| `npm run test:unit --workspace @workshop-pos/contracts` | **PASS** — 3 files, 46 tests; customer/vehicle/history round-trips, phone canonicalization and masking, list payloads exclude address/notes/vin, plate input, year/odometer bounds, export document |
+| `npm run test:unit --workspace @workshop-pos/web` | **PASS** — 8 files, 84 tests (WP5 DOM file: 24 static-markup tests for masked phone, anonymized row and actions, drill-down link, reuse notice, chip tones, collapse, out-of-range states) |
+| `npm run test:integration --workspace @workshop-pos/web -- --run tests/customers-vehicles.integration.test.ts` | **PASS** — 25 tests against `workshop_pos_test`: `b 1234 xyz` → `B1234XYZ`, idempotence, duplicate reuse (200/reused, one row), exactly one customer, odometer/year/invalid-character rejection, list search by name/phone/raw plate, masked phone and omitted address/notes, VIN/notes omitted from list and history, history newest-first with lines/quantities/odometer/total/status/balance, empty history, 1,000-order page 40/40, Cashier own outlet vs Owner all outlets, cross-outlet denial + audit, Mechanic detail 403 + audit, anonymization (Owner only, audited, no erased values in audit, vehicles/orders preserved), export (Owner only, audited, reassignment exclusion, no bind-parameter list), draft/estimated balance agreement |
+| `npx vitest run --config vitest.config.ts tests/vehicle-history.test.ts` (apps/web) | **PASS** — 8 tests on money/status mapping and the non-void balance rule |
+| `npm run typecheck --workspace @workshop-pos/web` | **PASS** — 0 errors |
+| `npm run lint --workspace @workshop-pos/web` | **PASS** — 0 errors/warnings |
+| `npx playwright test tests/e2e/customers-vehicles.spec.ts` | **PASS** — 5 Chromium journeys: Owner creates customer+vehicle, full phone only in the edit dialog, duplicate `b …` plate reuse (single row, owner named, dirty-navigation guard), duplicate/out-of-range pages, read-only history, export JSON (`formatVersion: 1`), anonymization with reason and no residual name/phone/address/notes, VIN/notes never rendered; Cashier has no personal-data action and gets 403; unknown/malformed vehicle ids; populated PAID/COMPLETED-unpaid/VOID history with seeded orders at every width |
+| Design evidence (Chromium) | **PASS at 1440/1024/768/390/320** on `/customers`, `/vehicles`, and a populated `/vehicles/[id]`: `scrollWidth <= innerWidth` on every page; 15 full-page screenshots in gitignored `apps/web/test-results/design-qa/`; payment status moved next to the date so “Lunas”, “Belum lunas”, and “Dibatalkan” are visible at 320 px before horizontal scroll; masked phone in lists, 44 px targets, role-gated controls absent rather than disabled |
+| Privacy controls | **PASS (focused)** — full customer phone/address/notes and vehicle VIN/notes are management-only (Owner/Admin/Cashier); Mechanic list/history reads carry masked phone and no VIN/notes; anonymization and export are Owner-only and audited; audit entries store field names/counts only (founder decision 2026-11-27: names only); no PII in application logs or error responses; export is `no-store` JSON attachment |
+| Design review | `designer` gate: no blocker, no contrast failure, no page-level overflow; the fixable majors (dead anonymized controls, phone hint, unbounded picker, dirty navigation, plate target, payment priority, out-of-range pages, line collapse) were fixed in the repair round. Remaining items are WP4-owned shared-shell work: global search, offline banner, DataTable `min-width`/`aria-sort`, Pagination disabled semantics, dark-mode `color-scheme`, template/token drift |
+| Security review | `security-reviewer`: no critical/high finding; medium full-detail read fixed (management-only, audited), list payload minimization fixed, service-level denial audits added, export customer-only and scoped, history payment aggregation scoped, no new dependencies |
+| Secret scan | **PASS on the final source tree** — gitignored `.next`/`test-results` removed first; `gitleaks dir .` scanned ~3.03 MB and found **no leaks** (exit 0). `gitleaks git .` also found no leaks across 15 commits. The 15 design screenshots were moved outside the worktree before the scan |
+
+**Known limits recorded, not silently accepted**
+
+- History is read-only and empty in a fresh installation until WP6 writes orders; populated rows are proven by integration tests and a synthetic-order Playwright fixture, never by a fake order API.
+- Performance target NFR-002/AC10.5 (first page ≤ 5 s p95 at 1,000 orders) is structural only; the 1,000-order pagination test proves correctness, not latency. Real measurement is WP8.
+- Customer/vehicle master data is business-level because the schema has no outlet column (BR-006/D-5); Cashier/Mechanic outlet scope applies to order history, not master rows. A Cashier can edit a customer/vehicle used at another outlet; a Mechanic can read the masked list but not the full detail. Changing master visibility would require a data-model change (WP2) and is not done here.
+- Masked phone search is an authenticated existence oracle and WP5 endpoints have no per-user rate limit; denial and export/anonymize spam is bounded only by authentication. WP8 owns edge/rate-limit hardening.
+- Anonymization clears the customer row only; plate/VIN/vehicle notes and order linkage remain for financial integrity. Field-level retention is counsel-required (PRD §7.4/D-6).
+- Export is order-level JSON (no payment references/line descriptions) and uncapped; a very large history is a memory risk, not solved here.
+- Real Android/iOS, Firefox, WebKit, screen readers, OS dark mode, 200%/400% zoom, and a production build render are **NOT VERIFIED**. The dev-only Next indicator appears in the design screenshots.
+
+### 7.8 WP5 aggregate gate (2026-11-27, frozen candidate)
+
+`fnm exec --using=26.13.1 -- bash scripts/check.sh` was run once on the frozen candidate after the completion audit returned `complete`. It exited 0 in 152.80 s.
+
+| Gate step | Observed result |
+|---|---|
+| Preflight / Compose database | **PASS** — Docker preflight, development database healthy, `workshop_pos_test` reachable |
+| `npm run typecheck` | **PASS** — web, auth, contracts, core, db, design-tokens; 0 errors |
+| `npm run lint` | **PASS** — all six workspaces; 0 errors/warnings |
+| `npm run test:unit` | **PASS** — web 84, auth 208, contracts 46, core 25, db 11, design-tokens 4 (**378 total**, 21 files) |
+| `npm run test:integration` | **PASS** — web 73, auth 41, db 63 (**177 total**); WP5 contributes 25 tests including the 1,000-order history and privacy/RBAC cases |
+| `npm run test:e2e:web` | **PASS** — 42 Chromium tests (WP4 37 + WP5 5); the dev server logged a non-fatal `destination stream errored while writing data` after an intentionally aborted navigation and a pre-existing next-themes script warning; no test failed |
+| `npm run build` | **PASS** — Next.js 16.4.6 production build; `/customers`, `/vehicles`, `/vehicles/[id]`, `/api/v1/customers/**`, and `/api/v1/vehicles/**` dynamic; proxy compiled |
+
+The only post-gate edits are this §7.8 block, the §7.7 secret-scan row, and the status fields above (no code, config, test, or dependency changed). WP5 is verified on `feat/wp5-customers-vehicles-history` and is **not merged** to `main`.
 
 ---
 
@@ -260,5 +305,5 @@ Recorded 2026-11-26 from the product owner. These close the corresponding open q
 
 1. Obtain buyer counsel review for the Epson SDK redistribution terms, the privacy notice, retention duration, and tax rounding; record the signed outcomes.
 2. WP1 is merged to `main` (PR #1, `a96ffcb`); no merge action remains.
-3. WP2 is merged to `main` (PR #2, `88252dc`); WP3 is merged to `main` (PR #3, `344de62`). WP4 (web shell, domain core, catalog, inventory) passed its focused checks, completion audit, and aggregate gate on `feat/wp4-web-shell-catalog-inventory`; the founder reviews and merges, then WP5 starts from `main`.
+3. WP2 is merged to `main` (PR #2, `88252dc`); WP3 is merged to `main` (PR #3, `344de62`); WP4 (web shell, domain core, catalog, inventory) is merged to `main` (PR #4, `cdf3036`). WP5 (customers, vehicles, plate history) passed focused checks and the aggregate gate on `feat/wp5-customers-vehicles-history` (§7.7–§7.8); the founder reviews and merges, then WP6 starts from `main`.
 4. Keep CI workflows and git hooks in WP8; do not add them before then.

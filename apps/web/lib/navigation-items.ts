@@ -14,6 +14,11 @@ export function backOfficeNavItems(role: StaffRole): BackOfficeNavItem[] {
   const items: BackOfficeNavItem[] = [
     { href: "/", label: "Beranda", icon: "home" },
     { href: "/catalog", label: "Produk & Jasa", icon: "catalog" },
+    // Reads are open to every authenticated role (writes stay behind
+    // `manage_customers`); Mechanic keeps history access through
+    // `view_vehicle_history`, so neither destination is role-filtered.
+    { href: "/customers", label: "Pelanggan", icon: "users" },
+    { href: "/vehicles", label: "Kendaraan", icon: "catalog" },
   ];
 
   if (can(role, "manage_stock")) {
