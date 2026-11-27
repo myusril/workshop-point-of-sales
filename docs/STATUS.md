@@ -314,7 +314,7 @@ WP5 was merged to `main` as PR #5 (`8a2a550`) before WP6 started. Focused checks
 | `npm run test:e2e:web` | **PASS** — 53 Chromium tests (WP4 37 + WP5 5 + WP6 11; the full suite was re-run to capture the count and took 2.0 m) |
 | `npm run build` | **PASS** — Next.js 16.4.6 production build of the full route table; `/orders`, `/orders/new`, `/orders/[id]`, `/print/receipt/[id]`, and the order/payment/receipt API routes dynamic |
 
-**Post-gate edits:** only this §7.10 block and the status fields above (no code, config, test, or dependency changed). The count-only re-runs of unit, integration, and E2E used the same frozen tree; they reset the disposable dev database as their documented setup does.
+**Post-gate edits:** only this §7.10 block, the §7.9 decision row that records the founder-ratified DEC-0014, and the status fields above (no code, config, test, or dependency changed). The count-only re-runs of unit, integration, and E2E used the same frozen tree; they reset the disposable dev database as their documented setup does.
 
 **Carry-over for WP4:** the input/textarea/select boundary uses `border.default` (1.57:1) where `DESIGN.md` §2.2 assigns `border.strong` (3.61:1); WCAG 2.2 AA 1.4.11 requires 3:1. WP6 did not edit WP4-owned files; the remedy is one class/token per primitive.
 
