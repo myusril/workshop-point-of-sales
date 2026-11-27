@@ -3,10 +3,10 @@
 | Field | Value |
 |---|---|
 | Product | Workshop POS (working name; buyer may rebrand) |
-| Phase | WP6 (orders, pricing, payments, receipts) on the task branch |
+| Phase | WP6.1 (server offline-sync seam) on the task branch |
 | Date | 2026-11-27 |
-| Code status | WP1–WP5 are merged to `main` (WP5 as PR #5, `8a2a550`). WP6 is implemented and verified on `feat/wp6-orders-payments-receipts`; focused results are in §7.9 and the aggregate gate result in §7.10 (exit 0). It is not merged. Reports, settings screens, mobile sync, and the native printer sink do not exist yet |
-| Next gate | Founder reviews the WP6 diff and merges; WP7 starts from `main` after the merge. Carry WP4 the input/select boundary-contrast fix (1.57:1 → 3:1) as an explicit follow-up |
+| Code status | WP1–WP6 are merged to `main` (WP6 as PR #6, `9f2fc8f`). WP6.1 (`packages/contracts/src/sync.ts`, `/api/v1/sync` apply/resolve/conflict routes, offline sale application) is implemented and verified on `feat/wp6-1-server-sync`; focused results are in §7.11 and the aggregate gate in §7.12. It is not merged. Reports, settings screens, the mobile app, and the native printer sink do not exist yet |
+| Next gate | Founder reviews the WP6.1 diff and merges; WP7 (mobile offline POS) starts from `main` after the merge and consumes the merged sync contract. Carry the WP4 input/select boundary-contrast fix (1.57:1 → 3:1) as an explicit follow-up |
 | Source of truth | `docs/product/PRD.md`, `docs/adr/0001-stack-and-architecture.md`, `docs/plan/work-packages.md` |
 
 > **Honesty rule.** This page reports what exists and what has been verified. Documents are not proof that the product works. WP1 commands were executed on 2026-11-26 on branch `feat/wp1-walking-skeleton`, including the aggregate `scripts/check.sh` gate on a fresh development volume, and WP1 was merged to `main` as PR #1 (`a96ffcb`). WP2 (schema, migrations, seed, outlet-scoped query helpers) was merged to `main` as PR #2 (`88252dc`). WP3 (auth, RBAC, users, outlets) passed its focused gates and the aggregate gate, and was merged to `main` as PR #3 (`344de62`). WP4 (web shell, domain core, catalog, inventory) passed its focused checks and the aggregate gate and was merged to `main` as PR #4 (`cdf3036`); earlier tests are re-run by later aggregate gates. Anything not listed in §7 as verified is **NOT VERIFIED** — including WP6 until its full-suite gate result is recorded in §7.10. WP5 was merged to `main` as PR #5 (`8a2a550`).
@@ -18,7 +18,7 @@
 | Milestone | Scope | Exit criteria | Status |
 |---|---|---|---|
 | **M1 — Walking skeleton** | WP1: npm-workspaces monorepo, pinned Node, `.env.example`, Compose dev/prod, Postgres, Dockerfiles, `scripts/check.sh`, license report, health endpoint, minimal page/API | A fresh clone reaches a healthy web + database stack with standard Docker/Node tooling; `scripts/check.sh` exits 0; license report has no blocker | **Verified 2026-11-26 and merged to `main` as PR #1 (`a96ffcb`)** |
-| **M2 — MVP** | WP2–WP8: schema/seed, auth/RBAC/outlets, catalog + stock ledger, customers/vehicles/history, mixed orders + payments + receipts, offline mobile POS + sync, reports/audit/export/settings, hardening gate | Every PRD story US-01–US-20 passes its acceptance criteria; offline/conflict, money, stock, and RBAC tests are green; no license blocker; WCAG 2.2 AA checks pass on agreed screens | **In progress** — WP2 merged as PR #2 (`88252dc`); WP3 merged as PR #3 (`344de62`); WP4 merged as PR #4 (`cdf3036`); WP5 merged as PR #5 (`8a2a550`); WP6 verified on `feat/wp6-orders-payments-receipts` (§7.9–§7.10), awaiting review and merge |
+| **M2 — MVP** | WP2–WP8: schema/seed, auth/RBAC/outlets, catalog + stock ledger, customers/vehicles/history, mixed orders + payments + receipts, offline mobile POS + sync, reports/audit/export/settings, hardening gate | Every PRD story US-01–US-20 passes its acceptance criteria; offline/conflict, money, stock, and RBAC tests are green; no license blocker; WCAG 2.2 AA checks pass on agreed screens | **In progress** — WP2 merged as PR #2 (`88252dc`); WP3 merged as PR #3 (`344de62`); WP4 merged as PR #4 (`cdf3036`); WP5 merged as PR #5 (`8a2a550`); WP6 merged as PR #6 (`9f2fc8f`); WP6.1 (sync seam) verified on `feat/wp6-1-server-sync` (§7.11–§7.12), awaiting review and merge |
 | **M3 — Handover-ready** | WP9: accessibility sign-off, backup/restore drill, fresh-clone deployment rehearsal, license re-audit, documentation and credential handover | `docs/ops/handover-checklist.md` is fully checked with captured evidence; restore drill meets RPO/RTO targets; buyer accepts the signed manifest | **Not started** |
 
 ---
@@ -37,7 +37,7 @@
 | `docs/plan/work-packages.md` | WP1–WP9, owned paths, dependencies, acceptance gates, PRD traceability | Proposed |
 | `docs/ops/handover-checklist.md` | Seller pre-delivery verification and evidence checklist | Draft; **not executed** |
 | `docs/ops/decision-policy.md` | Tier 1/2/3 decision authority for the buyer's team | Draft |
-| `README.md`, `AGENTS.md` | Buyer setup guide and engineering rules | README carries the verified setup/gate commands and the WP3 dev-login note; AGENTS.md now records WP1–WP5 as merged, the WP6 branch state, the executable setup/gate commands, the customer personal-data conventions, and the payment-row money convention (`amount` is applied money, change is separate) |
+| `README.md`, `AGENTS.md` | Buyer setup guide and engineering rules | README carries the verified setup/gate commands and the WP3 dev-login note; AGENTS.md now records WP1–WP6 as merged, the WP6.1 branch state, the executable setup/gate commands, the customer personal-data conventions, the payment-row money convention (`amount` is applied money, change is separate), and the sync conflict/idempotency seam |
 | `.omp/`, `orca.yaml`, `.worktreeinclude` | Optional development aids | Present; may be stripped at handover |
 
 ---
@@ -320,6 +320,41 @@ WP5 was merged to `main` as PR #5 (`8a2a550`) before WP6 started. Focused checks
 
 **Carry-over for PM:** a PRD errata at the next revision should align AC6.2's "paid while in progress, then later completed" wording with BR-007/AC8.1 (DEC-0013).
 
+### 7.11 WP6.1 execution checks (2026-11-27, branch `feat/wp6-1-server-sync`)
+
+WP6 was merged to `main` as PR #6 (`9f2fc8f`) before WP6.1 started. The seam adds `packages/contracts/src/sync.ts`, `POST /api/v1/sync`, `POST /api/v1/sync/[clientKey]/resolve`, `GET /api/v1/sync/conflicts`, and one additive offline-application function in `apps/web/lib/order-service.ts`; no schema, auth package, UI, mobile, or WP6 order/payment logic was rewritten.
+
+| Check | Result |
+|---|---|
+| `npm run test:unit` | **PASS** — web 107, auth 208, contracts 66, core 47, db 11, design-tokens 4 (**443 total**). WP6.1 contributes 8 contract tests (envelope, money shape, conflict codes, result round-trips) and 3 hash tests (stable replay hash; actor/key/money sensitivity) |
+| `npm run test:integration --workspace @workshop-pos/web` | **PASS** — 139 tests, including 17 WP6.1 cases against `workshop_pos_test`: first apply at the local price with one decrement, a `PRICE_CHANGED` notice, server-assigned timestamps, and the device time returned separately; replay returning the same order with an incremented attempt count and no duplicate order/payment/ledger row; same key with different content rejected; `STOCK_INSUFFICIENT` with local/server quantities and no order/ledger; one failing sale not blocking the next; Admin override of two short lines (one unflagged decrement, one `OVERRIDE` row, reason persisted, stock −11); Mechanic list/void denials audited and a Cashier void with a cash refund row, no decrement, and a cleared conflict; replay of a resolved result; cross-outlet/device denial audited; `PLATE_REASSIGNED` conflict and explicit re-link without mutating the vehicle; void and stock-short re-confirmation of plate conflicts; `CASH_REPORTING` on a prior-business-date sync; bearer conflict listing pinned to its outlet; payment-sum and local-tax arithmetic rejection; above-cap discount and tax-rate mismatch audits; and an idempotency-key collision mapped to a stable 409 without a sale. The existing WP6 order/payment/void cases still pass |
+| `npm run typecheck` / `npm run lint` | **PASS** — all six workspaces; 0 errors/warnings |
+| `npm run build` | **PASS** — Next.js 16.4.6 production build; `/api/v1/sync`, `/api/v1/sync/[clientKey]/resolve`, and `/api/v1/sync/conflicts` are dynamic |
+| Review round | `reviewer` + `security-reviewer`: the late-conflict 500, nondeterministic timeline tie, cross-outlet replay audit rollback, unpinned bearer conflict list, and idempotency-key collision were fixed; above-cap discounts and device/setting tax-rate differences now write audit rows. Remaining nits (unpaginated list, body cap vs 100-line contract, second copy of note text, unbounded `changeAmount`) are recorded as limits. `completion-auditor` returned PASS on the final candidate |
+| Decision review | `decision-reviewer` approved DEC-0015 (a Cashier may void a queued conflict under `create_sale`; normal order voids still need `void_unpaid`) and DEC-0016 (offline above-cap discount and tax-rate deviations apply with local money and an audit row). Both are Tier 2 reference-matching, recorded in `docs/ops/decision-policy.md` |
+| `gitleaks dir .` | **PASS on source** — the first scan reported 13 `generic-api-key` matches exclusively inside the gitignored `apps/web/.next/**` build output; after removing that generated directory the rescan reported `no leaks found` (3.52 MB scanned) |
+
+**Behavior evidence:** the client key is unique per business and the stored result is returned verbatim on replay, with the attempt count and last-attempt time advanced; the order, payments, stock decrement, `sync_keys` row, and stored result commit in one transaction. Local unit prices, discounts, tax, and tender amounts are validated arithmetically against the local tax rate and persisted without repricing. Stock is checked under `FOR UPDATE` product locks; a shortage writes nothing. Overrides flag only the line that drives the balance negative. A void creates `DRAFT` order → lines/payments → refunds → `VOID` so the financial-history trigger stays satisfied, with no ledger row. Order and payment timestamps are server-assigned (a wrong device clock cannot future-date a report); the device time is retained in `sync_keys.device_recorded_at` and the response. Resolution keeps the sale attributed to the capturing cashier while the resolver is the audit/ledger actor. A Cashier without override permission may void the queued sale (DEC-0015); a Mechanic is denied and audited. A late second conflict (for example the plate moves again before an override) is persisted as the new code and returned rather than escaping as a 500. Offline above-cap discounts and device/setting tax-rate differences apply with the paid money but write `sync.discount_above_cap` / `sync.tax_rate_mismatch` (DEC-0016). The order timeline breaks same-timestamp ties with the initial `DRAFT` event first. Bearer conflict listing is pinned to the device outlet and requires `create_sale`. Denials use WP3's `auditDenial` (cross-outlet and role), and conflicts remain listable until `resolved_at` is set.
+
+**Recorded limits:** the WP2 `sync_state` enum is `QUEUED | APPLIED | CONFLICT`, so the brief's fourth state is derived: resolution writes `resolved_at`/`resolved_by` (override also becomes `APPLIED`; void stays `CONFLICT` with resolution markers) and the API reports `RESOLVED`. The original sync request is stored beside its result in `idempotency_keys.response_body` because `sync_keys` has no payload column; resolution needs the local snapshot, so free-text notes/references exist in a second table with no purge path yet (WP8 retention). The shared 16 KiB JSON body cap (WP3) still applies to sync uploads and a contract-maximum 100-line cart can exceed it. Local discount-cap and tax-rate deviations are audited rather than blocked (DEC-0016); `CASH_REPORTING` is raised by a business-date rollover because WP8 has no day-close table yet. Device time is never used as a report timestamp; only the `CASH_REPORTING` comparison reads it. A business-wide client key means another outlet that learns a key can claim it first (WP2 schema uniqueness); a collision with an online idempotency key is mapped to a stable 409, not a 500. Conflict listing is unpaginated and unbounded. Route-level bearer HTTP exchange with a real device token, the mobile client, UI, and multi-day e2e synchronization are **NOT VERIFIED**; the integration cases drive the same service with bearer/web contexts.
+
+### 7.12 WP6.1 aggregate gate (2026-11-27, frozen candidate)
+
+`fnm exec --using=26.13.1 -- npm ci` reinstalled the tree from the committed lockfile (576 packages, exit 0, 12.25 s). After the review fixes, `fnm exec --using=26.13.1 -- bash scripts/check.sh` ran on the frozen candidate and exited 0 in 169.89 s (`All gates passed.`); the earlier post-`npm ci` gate also passed.
+
+| Gate step | Observed result |
+|---|---|
+| Preflight / Compose database | **PASS** — development database healthy; `workshop_pos_test` reachable |
+| `npm run typecheck` | **PASS** — web, auth, contracts, core, db, design-tokens; 0 errors |
+| `npm run lint` | **PASS** — all six workspaces; 0 errors/warnings |
+| `npm run test:unit` | **PASS** — web 107, auth 208, contracts 66, core 47, db 11, design-tokens 4 (**443 total**) |
+| `npm run test:integration` | **PASS** — web 139, auth 41, db 63 (**243 total**) |
+| `npm run test:e2e:web` | **PASS** — 53 Chromium tests |
+| `npm run build` | **PASS** — Next.js 16.4.6 production build; the three sync routes are dynamic |
+| `gitleaks dir .` | **PASS** — after removing the generated `apps/web/.next` directory, no leaks found (3.52 MB scanned) |
+
+**Post-gate edits:** only this §7.11/§7.12 documentation block and the removal of generated `.next` output (no code, config, test, or dependency changed after the gate).
+
 ---
 
 ## 8. Approved kickoff decisions
@@ -344,5 +379,5 @@ Recorded 2026-11-26 from the product owner. These close the corresponding open q
 
 1. Obtain buyer counsel review for the Epson SDK redistribution terms, the privacy notice, retention duration, and tax rounding; record the signed outcomes.
 2. WP1 is merged to `main` (PR #1, `a96ffcb`); no merge action remains.
-3. WP2 is merged to `main` (PR #2, `88252dc`); WP3 is merged to `main` (PR #3, `344de62`); WP4 (web shell, domain core, catalog, inventory) is merged to `main` (PR #4, `cdf3036`); WP5 (customers, vehicles, plate history) is merged to `main` (PR #5, `8a2a550`). WP6 (orders, pricing, payments, receipts) passed focused checks and the aggregate gate on `feat/wp6-orders-payments-receipts` (§7.9–§7.10); the founder reviews and merges, then WP7 starts from `main`.
+3. WP2 is merged to `main` (PR #2, `88252dc`); WP3 is merged to `main` (PR #3, `344de62`); WP4 (web shell, domain core, catalog, inventory) is merged to `main` (PR #4, `cdf3036`); WP5 (customers, vehicles, plate history) is merged to `main` (PR #5, `8a2a550`). WP6 (orders, pricing, payments, receipts) is merged to `main` as PR #6 (`9f2fc8f`). WP6.1 (server sync seam: local-price apply, idempotent replay, conflict list and resolution) passed focused checks and the aggregate gate on `feat/wp6-1-server-sync` (§7.11–§7.12); the founder reviews and merges, then WP7 starts from `main`.
 4. Keep CI workflows and git hooks in WP8; do not add them before then.

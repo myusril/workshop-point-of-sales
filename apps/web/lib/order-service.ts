@@ -31,6 +31,8 @@ import type {
   VoidOrderRequest,
   CorrectPaymentRequest,
   OrderTransitionTarget,
+  SyncApplyRequest,
+  SyncConflictDetail,
 } from "@workshop-pos/contracts";
 import {
   orderDetailSchema,
@@ -857,7 +859,11 @@ async function buildOrderDetail(
     .from(orderStatusEvents)
     .leftJoin(user, eq(user.id, orderStatusEvents.actorId))
     .where(eq(orderStatusEvents.orderId, order.id))
-    .orderBy(asc(orderStatusEvents.createdAt), asc(orderStatusEvents.id));
+    .orderBy(
+      asc(orderStatusEvents.createdAt),
+      sql`${orderStatusEvents.fromStatus} asc nulls first`,
+      asc(orderStatusEvents.id),
+    );
 
   const settingsRow = await loadSettingsRow(db, scope.businessId, order.outletId);
   const operational = settingsFallback(settingsRow);
@@ -1037,6 +1043,10 @@ async function settleOrderStock(
   context: AuthContext,
   order: OrderRow,
   lines: readonly LineRow[],
+  options: {
+    override?: boolean | ((line: LineRow) => boolean);
+    reason?: string | null;
+  } = {},
 ): Promise<void> {
   // WP4's helper resolves the product against the caller's first active
   // outlet; the order's own outlet is already proven in scope, so narrow the
@@ -1048,13 +1058,18 @@ async function settleOrderStock(
   };
   for (const line of lines) {
     if (line.lineType !== "PRODUCT" || line.productId === null) continue;
+    const override =
+      typeof options.override === "function"
+        ? options.override(line)
+        : options.override === true;
     await applyStockMovement(db, outletContext, {
       productId: line.productId,
       orderLineId: line.id,
       sourceId: order.id,
       entryType: "SALE_DECREMENT",
       quantity: line.quantity,
-      reason: null,
+      override,
+      reason: override ? (options.reason ?? null) : null,
       sourceRef: order.orderNumber ?? order.id,
     });
   }
@@ -2575,4 +2590,710 @@ export async function recordReceiptPrint(
   });
 
   return next;
+}
+
+/**
+ * Offline sale application (WP6.1, PRD US-14/US-15, ADR-0001 §3.6).
+ *
+ * The money is the local record: unit prices, discounts, tax rate, and tenders
+ * are persisted exactly as the device printed them, after the server verifies
+ * their arithmetic. Stock is the server's: the ledger decides whether the sale
+ * fits, and a shortage raises a conflict instead of writing a partial order.
+ * The function participates in the caller's transaction (a nested call becomes
+ * a savepoint), so a sync key and its stored result commit atomically with the
+ * order, payments, and ledger rows.
+ */
+export interface OfflineSaleOptions {
+  /** Admin/Owner resolution: allow a negative balance and flag ledger rows. */
+  stockOverrideReason?: string;
+  /** Admin/Owner resolution: accept the vehicle's current owner. */
+  allowPlateReassignment?: boolean;
+  /** Admin/Owner resolution: record the sale as VOID with full refunds and no stock movement. */
+  voidReason?: string;
+  /**
+   * The user who captured the sale offline. A resolving Admin is the actor for
+   * the override audit and ledger row, but the sale itself stays attributed to
+   * the cashier who took the money.
+   */
+  salesActorId?: string;
+}
+
+export interface OfflineSaleOutcome {
+  detail: OrderDetail;
+  /** Non-blocking catalog-price differences; the sale keeps its local money. */
+  notices: SyncConflictDetail[];
+  stockOverridden: boolean;
+}
+
+/** A blocking conflict: the sale was not written and needs explicit resolution. */
+export class OfflineSaleConflictError extends Error {
+  readonly detail: SyncConflictDetail;
+
+  constructor(detail: SyncConflictDetail) {
+    super(detail.message);
+    this.name = "OfflineSaleConflictError";
+    this.detail = detail;
+  }
+}
+
+interface OfflineProductRow {
+  id: string;
+  name: string;
+  price: bigint;
+  deletedAt: Date | null;
+}
+
+interface OfflineServiceRow {
+  id: string;
+  name: string;
+  price: bigint;
+}
+
+interface PricedOfflinePayment {
+  method: "CASH" | "TRANSFER" | "QRIS";
+  amount: bigint;
+  changeAmount: bigint;
+  referenceNote: string | null;
+}
+
+function offlineConflict(detail: SyncConflictDetail): OfflineSaleConflictError {
+  return new OfflineSaleConflictError(detail);
+}
+
+function parseRecordedAt(value: string): Date {
+  const recordedAt = new Date(value);
+  if (Number.isNaN(recordedAt.getTime())) {
+    throw AuthError.validation({
+      deviceRecordedAt: ["Waktu pencatatan perangkat tidak valid."],
+    });
+  }
+  // Report timestamps come from the server; the device time is only retained
+  // as the local sale record, so a skewed device clock must not block a sale.
+  return recordedAt;
+}
+
+async function offlineStockOnHand(
+  tx: TransactionHandle,
+  scope: OutletScope,
+  productId: string,
+): Promise<number> {
+  const [row] = await tx
+    .select({
+      value: sql<string>`coalesce(sum(${stockLedger.quantityAfter} - ${stockLedger.quantityBefore}), 0)`,
+    })
+    .from(stockLedger)
+    .where(
+      and(outletScoped(stockLedger, scope), eq(stockLedger.productId, productId)),
+    );
+  return Number(row?.value ?? "0");
+}
+
+function assertLocalMoney(
+  field: string,
+  actual: bigint,
+  recorded: string,
+  label: string,
+): void {
+  if (actual !== parseMoney(recorded, field)) {
+    throw AuthError.validation({
+      [field]: [
+        `${label} tidak cocok dengan perhitungan ulang. Periksa data lokal sebelum sinkron.`,
+      ],
+    });
+  }
+}
+
+export async function applyOfflineSale(
+  database: Database,
+  context: AuthContext,
+  input: SyncApplyRequest,
+  options: OfflineSaleOptions = {},
+): Promise<OfflineSaleOutcome> {
+  const scope = scopeOf(context);
+  const outletId = input.outletId;
+  if (!context.outletIds.includes(outletId) || context.activeOutletId !== outletId) {
+    throw AuthError.forbidden(CROSS_OUTLET_MESSAGE);
+  }
+  if (options.stockOverrideReason !== undefined && options.voidReason !== undefined) {
+    throw AuthError.internal("Resolusi konflik tidak boleh menggabungkan override dan void.");
+  }
+
+  await requireAction(database, context, "create_sale", input.clientKey, outletId);
+  const stockOverridden = options.stockOverrideReason !== undefined;
+  if (stockOverridden) {
+    await requireAction(database, context, "override_stock", input.clientKey, outletId);
+  }
+
+  const deviceRecordedAt = parseRecordedAt(input.order.deviceRecordedAt);
+  const hasServiceLine = input.order.lines.some((line) => line.lineType === "SERVICE");
+  if (hasServiceLine && !input.order.vehicleId) {
+    throw AuthError.validation({
+      "order.vehicleId": ["Baris jasa memerlukan kendaraan."],
+    });
+  }
+
+  const overrideReason = options.stockOverrideReason?.trim() ?? "";
+  if (stockOverridden && overrideReason.length < 3) {
+    throw AuthError.validation({
+      reason: ["Alasan override wajib diisi minimal 3 karakter."],
+    });
+  }
+
+  return database.transaction(async (tx) => {
+    const handle = asDatabase(tx);
+    const settingsRow = await loadSettingsRow(handle, scope.businessId, outletId);
+    const operational = settingsFallback(settingsRow);
+
+    let voidReason: string | null = null;
+    if (options.voidReason !== undefined) {
+      try {
+        voidReason = normalizeVoidReason(
+          options.voidReason,
+          operational.voidReasonMinLength,
+        );
+      } catch (error) {
+        lifecycleToAuthError(error);
+      }
+    }
+
+    // Resolve the catalog rows without repricing: the local unit price is what
+    // the customer paid. Product rows are locked in id order to serialize the
+    // stock decision against online completions.
+    const productLines = input.order.lines
+      .map((line, index) => ({ line, index }))
+      .filter((entry) => entry.line.lineType === "PRODUCT");
+    const serviceLines = input.order.lines
+      .map((line, index) => ({ line, index }))
+      .filter((entry) => entry.line.lineType === "SERVICE");
+    const productIds = [
+      ...new Set(productLines.map((entry) => entry.line.catalogItemId)),
+    ].sort();
+    const serviceIds = [
+      ...new Set(serviceLines.map((entry) => entry.line.catalogItemId)),
+    ].sort();
+
+    const productRows = productIds.length
+      ? await tx
+          .select({
+            id: products.id,
+            name: products.name,
+            price: products.price,
+            deletedAt: products.deletedAt,
+          })
+          .from(products)
+          .where(
+            and(
+              eq(products.businessId, scope.businessId),
+              eq(products.outletId, outletId),
+              inArray(products.id, productIds),
+            ),
+          )
+          .orderBy(asc(products.id))
+          .for("update")
+      : [];
+    const serviceRows = serviceIds.length
+      ? await tx
+          .select({
+            id: services.id,
+            name: services.name,
+            price: services.price,
+          })
+          .from(services)
+          .where(
+            and(
+              eq(services.businessId, scope.businessId),
+              eq(services.outletId, outletId),
+              inArray(services.id, serviceIds),
+            ),
+          )
+      : [];
+
+    const productsById = new Map<string, OfflineProductRow>(
+      productRows.map((row) => [row.id, row]),
+    );
+    const servicesById = new Map<string, OfflineServiceRow>(
+      serviceRows.map((row) => [row.id, row]),
+    );
+
+    const notices: SyncConflictDetail[] = [];
+    const noticed = new Set<string>();
+    function noticePriceChange(
+      key: string,
+      detail: SyncConflictDetail,
+    ): void {
+      if (noticed.has(key)) return;
+      noticed.add(key);
+      notices.push(detail);
+    }
+
+    const resolvedLines: ResolvedLine[] = input.order.lines.map((line, index) => {
+      const field = `order.lines.${index}.catalogItemId`;
+      const discountPercent = line.discountPercent ?? null;
+      const discountAmount = line.discountAmount
+        ? parseMoney(line.discountAmount, `order.lines.${index}.discountAmount`)
+        : 0n;
+      const unitPrice = parseMoney(line.unitPrice, `order.lines.${index}.unitPrice`);
+      const technicianId = line.technicianId ?? input.order.technicianId ?? null;
+
+      if (line.lineType === "PRODUCT") {
+        const product = productsById.get(line.catalogItemId);
+        if (!product) {
+          throw AuthError.validation({
+            [field]: ["Produk tidak ditemukan di outlet ini."],
+          });
+        }
+        if (product.deletedAt !== null && voidReason === null) {
+          throw AuthError.validation({
+            [field]: ["Produk sudah dihapus; penjualan tidak dapat diterapkan."],
+          });
+        }
+        if (product.price !== unitPrice) {
+          noticePriceChange(`PRODUCT:${product.id}`, {
+            code: "PRICE_CHANGED",
+            blocking: false,
+            message: `Harga ${product.name} berubah dari ${formatIdr(unitPrice)} menjadi ${formatIdr(product.price)}; transaksi tetap memakai harga lokal.`,
+            productId: product.id,
+            productName: product.name,
+          });
+        }
+        return {
+          lineType: "PRODUCT",
+          productId: product.id,
+          serviceId: null,
+          description: line.description,
+          unitPrice,
+          quantity: line.quantity,
+          discountPercent,
+          discountAmount,
+          technicianId,
+        };
+      }
+
+      const service = servicesById.get(line.catalogItemId);
+      if (!service) {
+        throw AuthError.validation({
+          [field]: ["Layanan tidak ditemukan di outlet ini."],
+        });
+      }
+      if (service.price !== unitPrice) {
+        noticePriceChange(`SERVICE:${service.id}`, {
+          code: "PRICE_CHANGED",
+          blocking: false,
+          message: `Harga ${service.name} berubah dari ${formatIdr(unitPrice)} menjadi ${formatIdr(service.price)}; transaksi tetap memakai harga lokal.`,
+          productName: service.name,
+        });
+      }
+      return {
+        lineType: "SERVICE",
+        productId: null,
+        serviceId: service.id,
+        description: line.description,
+        unitPrice,
+        quantity: line.quantity,
+        discountPercent,
+        discountAmount,
+        technicianId,
+      };
+    });
+
+    let pricing: OrderPricing;
+    try {
+      pricing = priceOrder({
+        lines: pricingInputsFromLines(resolvedLines),
+        taxRatePercent: input.order.taxRate,
+        orderDiscountPercent: input.order.discountPercent ?? null,
+        orderDiscountAmount: input.order.discountAmount
+          ? parseMoney(input.order.discountAmount, "order.discountAmount")
+          : null,
+      });
+    } catch (error) {
+      pricingToAuthError(error);
+    }
+
+    assertLocalMoney("order.subtotal", pricing.subtotal, input.order.subtotal, "Subtotal lokal");
+    assertLocalMoney(
+      "order.discountTotal",
+      pricing.discountTotal,
+      input.order.discountTotal,
+      "Total diskon lokal",
+    );
+    assertLocalMoney("order.taxTotal", pricing.taxTotal, input.order.taxTotal, "Total pajak lokal");
+    assertLocalMoney("order.total", pricing.total, input.order.total, "Total lokal");
+    const discountAboveCap = isDiscountAboveCap(
+      pricing.subtotal,
+      pricing.discountTotal,
+      operational.cashierDiscountCapPercent,
+    );
+    const taxRateMismatch = input.order.taxRate !== operational.taxRate;
+
+    input.order.lines.forEach((line, index) => {
+      const priced = pricing.lines[index];
+      assertLocalMoney(
+        `order.lines.${index}.lineTotal`,
+        priced?.lineTotal ?? 0n,
+        line.lineTotal,
+        "Nilai baris lokal",
+      );
+      assertLocalMoney(
+        `order.lines.${index}.taxAmount`,
+        priced?.taxAmount ?? 0n,
+        line.taxAmount,
+        "Pajak baris lokal",
+      );
+    });
+
+    const tenders: PricedOfflinePayment[] = input.order.payments.map(
+      (payment, index) => {
+        const amount = parseMoney(payment.amount, `order.payments.${index}.amount`);
+        const changeAmount = payment.changeAmount
+          ? parseMoney(payment.changeAmount, `order.payments.${index}.changeAmount`)
+          : 0n;
+        if (payment.method !== "CASH" && changeAmount !== 0n) {
+          throw AuthError.validation({
+            [`order.payments.${index}.changeAmount`]: [
+              "Hanya pembayaran tunai yang boleh memiliki kembalian.",
+            ],
+          });
+        }
+        return {
+          method: payment.method,
+          amount,
+          changeAmount,
+          referenceNote: requireReference(
+            payment.method,
+            payment.referenceNote ?? null,
+          ),
+        };
+      },
+    );
+    const paidTotal = sumIdr(tenders.map((payment) => payment.amount));
+    if (paidTotal !== pricing.total) {
+      throw AuthError.validation({
+        "order.payments": [
+          `Total pembayaran ${formatIdr(paidTotal)} tidak sama dengan total transaksi ${formatIdr(pricing.total)}.`,
+        ],
+      });
+    }
+
+    const technicianIds = [
+      ...new Set(
+        resolvedLines
+          .map((line) => line.technicianId)
+          .filter((id): id is string => typeof id === "string" && id.length > 0),
+      ),
+    ];
+    if (voidReason === null) {
+      for (const technicianId of technicianIds) {
+        await requireTechnician(
+          handle,
+          scope.businessId,
+          technicianId,
+          "order.technicianId",
+        );
+      }
+    }
+
+    let resolvedCustomerId = input.order.customerId ?? null;
+    if (input.order.vehicleId) {
+      const [vehicle] = await tx
+        .select({
+          id: vehicles.id,
+          customerId: vehicles.customerId,
+          plate: vehicles.normalizedPlate,
+        })
+        .from(vehicles)
+        .where(
+          and(
+            eq(vehicles.id, input.order.vehicleId),
+            eq(vehicles.businessId, scope.businessId),
+          ),
+        )
+        .limit(1);
+      if (!vehicle) {
+        throw AuthError.validation({
+          "order.vehicleId": ["Kendaraan tidak ditemukan."],
+        });
+      }
+      // A void keeps the locally recorded customer: no re-link happens while
+      // reversing an already-paid offline sale.
+      if (
+        voidReason === null &&
+        resolvedCustomerId !== null &&
+        resolvedCustomerId !== vehicle.customerId
+      ) {
+        if (!options.allowPlateReassignment) {
+          throw offlineConflict({
+            code: "PLATE_REASSIGNED",
+            blocking: true,
+            message: `Kendaraan ${vehicle.plate} sudah terhubung ke pelanggan lain. Pemilik atau Admin harus menautkan ulang.`,
+            vehicleId: vehicle.id,
+            plate: vehicle.plate,
+          });
+        }
+        // Explicit re-link: the order follows the vehicle's current owner; the
+        // vehicle record itself is untouched.
+        resolvedCustomerId = vehicle.customerId;
+      }
+      resolvedCustomerId = resolvedCustomerId ?? vehicle.customerId;
+    }
+    if (resolvedCustomerId) {
+      await requireCustomer(handle, scope.businessId, resolvedCustomerId);
+    }
+
+    // Server-authoritative stock: every product line is checked against the
+    // locked ledger before a single row is written.
+    const requestedByProduct = new Map<string, number>();
+    for (const line of resolvedLines) {
+      if (line.lineType !== "PRODUCT" || line.productId === null) continue;
+      requestedByProduct.set(
+        line.productId,
+        (requestedByProduct.get(line.productId) ?? 0) + line.quantity,
+      );
+    }
+    const shortageProducts = new Set<string>();
+    const serverStockByProduct = new Map<string, number>();
+    for (const productId of [...requestedByProduct.keys()].sort()) {
+      const localQuantity = requestedByProduct.get(productId) ?? 0;
+      const serverQuantity = await offlineStockOnHand(tx, scope, productId);
+      serverStockByProduct.set(productId, serverQuantity);
+      if (voidReason !== null || serverQuantity >= localQuantity) continue;
+      if (!stockOverridden) {
+        const product = productsById.get(productId);
+        throw offlineConflict({
+          code: "STOCK_INSUFFICIENT",
+          blocking: true,
+          message: `Stok ${product?.name ?? "produk"} tidak mencukupi: lokal ${localQuantity}, server ${serverQuantity}.`,
+          productId,
+          productName: product?.name ?? null,
+          localQuantity,
+          serverQuantity,
+        });
+      }
+      shortageProducts.add(productId);
+    }
+
+    const orderNumber = await nextOrderNumber(
+      tx,
+      outletId,
+      input.order.kind,
+      operational.receiptPrefix,
+    );
+    const salesActorId = options.salesActorId ?? context.user.id;
+    const now = new Date();
+    const [order] = await tx
+      .insert(orders)
+      .values({
+        businessId: scope.businessId,
+        outletId,
+        kind: input.order.kind,
+        status: "DRAFT",
+        customerId: resolvedCustomerId,
+        vehicleId: input.order.vehicleId ?? null,
+        technicianId: input.order.technicianId ?? null,
+        odometer: input.order.odometer ?? null,
+        orderNumber,
+        taxRate: input.order.taxRate,
+        subtotal: pricing.subtotal,
+        discountTotal: pricing.discountTotal,
+        taxTotal: pricing.taxTotal,
+        total: pricing.total,
+        notes: input.order.notes?.trim() ? input.order.notes.trim() : null,
+        paidAt: now,
+        createdBy: salesActorId,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning();
+    if (!order) throw AuthError.internal("Transaksi gagal disimpan.");
+
+    // Offline money stays local, but a discount above the cashier cap and a
+    // client-chosen tax rate are control-relevant; record them even though the
+    // already-paid sale is not blocked.
+    if (discountAboveCap) {
+      await appendAuditEntry(handle, scope, {
+        action: "sync.discount_above_cap",
+        entityType: "order",
+        entityId: order.id,
+        actorId: context.user.id,
+        outletId,
+        after: {
+          clientKey: input.clientKey,
+          capPercent: operational.cashierDiscountCapPercent,
+          subtotal: idrToString(pricing.subtotal),
+          discountTotal: idrToString(pricing.discountTotal),
+          authorized: can(context.user.role, "override_discount"),
+        },
+      });
+    }
+    if (taxRateMismatch) {
+      await appendAuditEntry(handle, scope, {
+        action: "sync.tax_rate_mismatch",
+        entityType: "order",
+        entityId: order.id,
+        actorId: context.user.id,
+        outletId,
+        after: {
+          clientKey: input.clientKey,
+          deviceRate: input.order.taxRate,
+          settingRate: operational.taxRate,
+          total: idrToString(pricing.total),
+        },
+      });
+    }
+
+    const lineRows = await tx
+      .insert(orderLines)
+      .values(
+        resolvedLines.map((line, index) => ({
+          orderId: order.id,
+          lineType: line.lineType,
+          productId: line.productId,
+          serviceId: line.serviceId,
+          description: line.description,
+          quantity: line.quantity,
+          unitPrice: line.unitPrice,
+          discountPercent: line.discountPercent,
+          discountAmount: pricing.lines[index]?.discountAmount ?? 0n,
+          taxAmount: pricing.lines[index]?.taxAmount ?? 0n,
+          lineTotal: pricing.lines[index]?.lineTotal ?? 0n,
+          technicianId: line.technicianId,
+          sortOrder: index,
+        })),
+      )
+      .returning();
+    if (lineRows.length !== resolvedLines.length) {
+      throw AuthError.internal("Baris transaksi gagal disimpan.");
+    }
+
+    await insertStatusEvent(
+      tx,
+      order.id,
+      null,
+      "DRAFT",
+      salesActorId,
+      null,
+      scope,
+    );
+
+    if (voidReason === null) {
+      // Duplicate product lines settle in insertion order; only the line that
+      // actually drives the balance negative carries the override flag.
+      const overrideLineIds = new Set<string>();
+      if (stockOverridden && shortageProducts.size > 0) {
+        const remaining = new Map(serverStockByProduct);
+        for (const line of [...lineRows].sort((a, b) => a.sortOrder - b.sortOrder)) {
+          if (line.lineType !== "PRODUCT" || line.productId === null) continue;
+          const before = remaining.get(line.productId) ?? 0;
+          const after = before - line.quantity;
+          if (after < 0) overrideLineIds.add(line.id);
+          remaining.set(line.productId, after);
+        }
+      }
+      await settleOrderStock(
+        handle,
+        context,
+        order,
+        [...lineRows].sort((a, b) => a.sortOrder - b.sortOrder),
+        {
+          override: (line) => overrideLineIds.has(line.id),
+          reason: stockOverridden ? overrideReason : null,
+        },
+      );
+    }
+
+    const paymentRows = await tx
+      .insert(payments)
+      .values(
+        tenders.map((payment) => ({
+          orderId: order.id,
+          method: payment.method,
+          amount: payment.amount,
+          changeAmount: payment.changeAmount,
+          referenceNote: payment.referenceNote,
+          receivedAt: now,
+          createdBy: salesActorId,
+        })),
+      )
+      .returning();
+    if (paymentRows.length !== tenders.length) {
+      throw AuthError.internal("Pembayaran gagal disimpan.");
+    }
+
+    if (voidReason === null) {
+      await tx
+        .update(orders)
+        .set({ status: "PAID", paidAt: now, updatedAt: now })
+        .where(eq(orders.id, order.id));
+      await insertStatusEvent(
+        tx,
+        order.id,
+        "DRAFT",
+        "PAID",
+        context.user.id,
+        null,
+        scope,
+      );
+    } else {
+      await tx.insert(refunds).values(
+        paymentRows.map((payment) => ({
+          orderId: order.id,
+          paymentId: payment.id,
+          method: payment.method,
+          amount: payment.amount,
+          reason: voidReason,
+          createdBy: context.user.id,
+          refundedAt: now,
+        })),
+      );
+      // The financial-history guard makes a VOID order terminal, so the status
+      // flips only after its lines, payment rows, and refunds exist.
+      await tx
+        .update(orders)
+        .set({
+          status: "VOID",
+          voidedAt: now,
+          voidReason,
+          updatedAt: now,
+        })
+        .where(eq(orders.id, order.id));
+      await insertStatusEvent(
+        tx,
+        order.id,
+        "DRAFT",
+        "VOID",
+        context.user.id,
+        voidReason,
+        scope,
+      );
+    }
+
+    await appendAuditEntry(handle, scope, {
+      action:
+        voidReason !== null
+          ? "sync.conflict_void"
+          : stockOverridden
+            ? "sync.conflict_override"
+            : "sync.sale_applied",
+      entityType: "order",
+      entityId: order.id,
+      actorId: context.user.id,
+      outletId,
+      reason: voidReason ?? (stockOverridden ? overrideReason : null),
+      after: {
+        clientKey: input.clientKey,
+        orderNumber,
+        total: idrToString(pricing.total),
+        deviceRecordedAt: deviceRecordedAt.toISOString(),
+        priceChanges: notices.length,
+        stockOverridden,
+        refunds: voidReason === null ? 0 : paymentRows.length,
+      },
+    });
+
+    return {
+      detail: await buildOrderDetail(handle, context, order.id),
+      notices,
+      stockOverridden,
+    };
+  });
 }
