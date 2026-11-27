@@ -245,6 +245,7 @@ Summary table:
 | DEC-0011 | 2026-11-26 | 3 | A bounded in-process per-IP throttle blocks 30 failed logins per 15 minutes; edge/IP throttling remains WP8 | The founder-approved unlock option also required an IP throttle; NAT-aware 30/15 keeps a shared office working | Founder | Founder | implemented | WP3 repair round 2 |
 | DEC-0012 | 2026-11-27 | 2 | A payment row stores the money applied to the balance (not the cash tendered); change is `change_amount`; paid-total reads use `sum(amount)` | BR-009 defines balance due as total − sum(payments); the merged WP2 refund trigger requires refund amount = payment amount; WP5's `sum(amount − change)` was written before any payment existed | Product owner (reference-matching) | decision-reviewer | implemented | WP6 implementation; `vehicle-service.ts`, `customer-service.ts` read-site correction |
 | DEC-0013 | 2026-11-27 | 2 | `PAID` is terminal except `VOID` per BR-007 (AC6.2's later completion is rejected); partially paid voids refund every tender; a pre-`PAID` correction that covers the total reaches `PAID`; edits may not drop the total below collected money | BR-007/AC8.1, BR-009, BR-008, and D-11 settle these; AC6.2's narrative conflicts with the transition table | Product owner (reference-matching) | decision-reviewer | implemented | WP6 implementation |
+| DEC-0014 | 2026-11-27 | 2 | Keep an audited pre-`PAID` payment-row delete for Admin/Owner (beyond FR-048's method/amount/reference correction) and treat `SALINAN` as a print *attempt* | Duplicate or mis-keyed tenders need removal without voiding the sale; the browser cannot confirm paper output | Founder | Founder | implemented | WP6 design review; founder decision 2026-11-27 |
 
 Status values: `proposed`, `approved`, `rejected`, `implemented`, `reverted`, `superseded`.
 
@@ -532,6 +533,24 @@ Illustrative entry (not a real decision):
 - Rollback: revert the relevant service paths and tests; no schema change is involved, but a migrated dataset with settled `PAID` orders must not be reopened casually.
 - Follow-ups: PM adds the AC6.2 errata note (owner: product manager); WP8 excludes `VOID` orders from sales totals and uses refund rows for expected cash (owner: WP8 lead).
 - Links: WP6 brief; PRD BR-005/BR-007/BR-008/BR-009; WP6 integration tests for partial void, correction-to-PAID, rollback, and under-total edits.
+- Supersedes: none
+
+### DEC-0014 — Pre-`PAID` tender deletion and `SALINAN` semantics
+
+- Date: 2026-11-27
+- Tier: 2
+- Status: implemented
+- Requester: engineering (WP6)
+- Decider: Founder
+- Approver(s): Founder
+- Context: FR-048 lists method/amount/reference correction but not row deletion, yet a duplicate tender is a real counter mistake. Separately, the browser print path cannot prove that paper was produced, so the reprint stamp's meaning had to be chosen.
+- Options: (a) restrict pre-`PAID` fixes to correction only; (b) keep an audited delete for Admin/Owner. For the stamp: (c) mark the next print attempt; (d) require a manual "printed" confirmation.
+- Decision: option (b) and (c). Admin/Owner may delete a pre-`PAID` payment row with a reason and a before/after audit entry; the order lock keeps the balance consistent. `SALINAN` marks a repeat print attempt, and the first attempt of a document is the original.
+- Rationale: (b) handles duplicate tenders without voiding the whole sale and keeps the audit trail; (c) is the only honest signal a browser can produce, and it never changes a figure.
+- Consequences: post-`PAID` tenders stay immutable (the DB trigger and the service refuse); deletion is whole-row only, never a partial refund. A cashier who cancels the print dialog still consumes one attempt.
+- Rollback: remove the DELETE route/handler and the dialog action; the stored audit rows remain append-only.
+- Follow-ups: WP8 may add a "sudah tercetak" confirmation if the buyer wants confirmed-print tracking (owner: WP8 lead).
+- Links: WP6 brief; founder decision 2026-11-27; WP6 payment tests.
 - Supersedes: none
 
 ## 8. Suggested turnaround
