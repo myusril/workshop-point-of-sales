@@ -61,6 +61,28 @@ export function SettingsForm({ settings }: SettingsFormProps) {
 
     setError(null);
     setSuccess(null);
+
+    const numericRules = [
+      { key: "taxRate", label: "Tarif pajak", min: 0, max: 100 },
+      { key: "cashierDiscountCapPercent", label: "Batas diskon kasir", min: 0, max: 100 },
+      { key: "idleTimeoutMinutes", label: "Batas menganggur sesi", min: 1, max: 1440 },
+      { key: "voidReasonMinLength", label: "Panjang minimal alasan void", min: 1, max: 200 },
+    ] as const;
+    const validationErrors: Record<string, string[]> = {};
+    for (const rule of numericRules) {
+      const raw = values[rule.key].trim();
+      const parsed = Number(raw);
+      if (raw.length === 0 || !Number.isInteger(parsed) || parsed < rule.min || parsed > rule.max) {
+        validationErrors[rule.key] = [
+          `${rule.label} harus bilangan bulat ${rule.min} sampai ${rule.max}.`,
+        ];
+      }
+    }
+    if (Object.keys(validationErrors).length > 0) {
+      setError({ message: "Periksa isian angka.", fieldErrors: validationErrors });
+      return;
+    }
+
     const payload: UpdateOutletSettingsRequest = {
       outletId: settings.outletId,
       taxRate: Number(values.taxRate),

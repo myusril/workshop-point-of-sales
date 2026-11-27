@@ -428,7 +428,7 @@ WP7 was merged to `main` as PR #8 (`589418d`) before WP8 started. WP8 adds `pack
 |---|---|
 | `npm run typecheck` | **PASS** — all seven workspaces (web, auth, contracts, core, db, design-tokens, mobile); 0 errors |
 | `npm run lint` | **PASS** — all seven workspaces; 0 errors/warnings |
-| `npm run test:unit` | **PASS** — mobile 72, web 116, auth 208, contracts 75, core 55, db 11, design-tokens 4 (**541 total**); WP8 adds 8 report-period tests, 9 report/settings/audit contract tests, and 9 report/audit DOM tests |
+| `npm run test:unit` | **PASS** — mobile 72, web 116, auth 208, contracts 77, core 55, db 11, design-tokens 4 (**543 total**); WP8 adds 8 report-period tests, 11 report/settings/audit contract tests, and 9 report/audit DOM tests |
 | `npm run test:integration` | **PASS** — web 171, auth 41, db 63 (**275 total**). WP8 contributes 20 tests against `workshop_pos_test`: exact daily sales/status counts, explicit zero day, outlet isolation and prior-day exclusion, payment mix with refunds and change, service-vs-product allocation reconciling with net sales, technician completed orders/lines/labour, stock valuation at a stated date, end-of-day figures and void reasons, Cashier own-outlet read + audited cross-outlet denial, Mechanic denial, CSV BOM/Bahasa header/integer values, ledger CSV `+07:00`, formula guard, export denial and audit, audit filters, Owner-only audit, end-to-end append-only rejection, Owner-only settings with before/after audit and unchanged order snapshot, branding audit, and the NFR-013 performance fixture |
 | Report recomputation | **PASS** — fixtures: 3 paid orders, 1 voided paid, 1 completed unpaid, 1 draft on 2026-11-27; gross 500000, discounts 30000, tax 29700, net 499700; cash payments 424700 − refunds 75000 = expected cash 349700; product 349750 + service 149950 = 499700; technician 3 orders/3 lines/199950 labour; stock valuation 19×150000 + 5×50000 + 1×10000 = 3110000 |
 | Report performance (NFR-013 / acceptance 4) | **PASS (measured)** — 1,000 orders × 100 lines = 100,000 lines over 365 days, 20,000 vehicles, 1 product/outlet: p95 daily sales 13.7 ms, payment mix 38.6 ms, service-vs-product 299.0 ms, technician 365.3 ms, stock valuation 9.9 ms, end-of-day 44.0 ms (threshold 10,000 ms). The fixture is inside the integration test and prints these values |
@@ -452,7 +452,7 @@ WP7 was merged to `main` as PR #8 (`589418d`) before WP8 started. WP8 adds `pack
 
 ### 7.16 WP8 aggregate gate (2026-11-27, frozen candidate)
 
-`fnm exec --using=26.13.1 -- bash scripts/check.sh` was run once on the final tree after the focused fixes (signed-money rendering, audit/report filter primitives, audited ledger cross-outlet denial). It exited 0 in 199.63 s (`All gates passed.`). An earlier run during the same session was discarded because a source file changed while it was running; only this run counts.
+`fnm exec --using=26.13.1 -- bash scripts/check.sh` was run once on the final tree after the focused fixes (signed-money rendering, strict audit/export date validation, blank-number settings guard, audit/report filter primitives, audited ledger cross-outlet denial). It exited 0 in 204.70 s (`All gates passed.`). Earlier runs during the same session were discarded because a source file changed while they were running; only this run counts.
 
 | Gate step | Observed result |
 |---|---|
@@ -460,9 +460,9 @@ WP7 was merged to `main` as PR #8 (`589418d`) before WP8 started. WP8 adds `pack
 | License report | **PASS** — `PASS: no disallowed runtime licenses`; pinned `caniuse-lite` exception unchanged |
 | `npm run typecheck` | **PASS** — web, auth, contracts, core, db, design-tokens, mobile; 0 errors |
 | `npm run lint` | **PASS** — all seven workspaces; 0 errors/warnings |
-| `npm run test:unit` | **PASS** — mobile 72, web 116, auth 208, contracts 75, core 55, db 11, design-tokens 4 (**541 total**) |
+| `npm run test:unit` | **PASS** — mobile 72, web 116, auth 208, contracts 77, core 55, db 11, design-tokens 4 (**543 total**) |
 | `npm run test:integration` | **PASS** — web 171, auth 41, db 63 (**275 total**) |
-| `npm run test:e2e:web` | **PASS** — 60 Chromium tests (2.0 m) |
+| `npm run test:e2e:web` | **PASS** — 60 Chromium tests (2.1 m) |
 | `npm run build` | **PASS** — Next.js 16.4.6 production build; `/reports`, `/audit`, `/settings`, the report/audit/settings/export API routes, and the existing order/catalog/customer/mobile-sync routes are dynamic |
 
 **Post-gate edits:** only this §7.16 block and the §7.15 count/status rows (no code, config, test, dependency, or lockfile change after the gate).

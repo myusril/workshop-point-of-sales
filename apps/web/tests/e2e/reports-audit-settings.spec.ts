@@ -55,6 +55,13 @@ test.describe("reports, export, audit, and settings", () => {
     await expect(page.getByRole("heading", { level: 1, name: "Pengaturan" })).toBeVisible();
 
     const tax = page.getByLabel("Tarif pajak (%)");
+    await tax.fill("");
+    await page.getByRole("button", { name: "Simpan pengaturan" }).click();
+    await expect(page.getByText("Periksa isian angka.")).toBeVisible();
+    await expect(
+      page.getByText("Tarif pajak harus bilangan bulat 0 sampai 100.").first(),
+    ).toBeVisible();
+
     await tax.fill("12");
     await page.getByRole("button", { name: "Simpan pengaturan" }).click();
     await expect(

@@ -4,6 +4,7 @@ import { auditListQuerySchema } from "../src/audit.ts";
 import { exportLedgerQuerySchema, exportReportQuerySchema } from "../src/export.ts";
 import {
   endOfDayReportSchema,
+  paymentMixReportSchema,
   reportRangeQuerySchema,
   stockValuationQuerySchema,
 } from "../src/reports.ts";
@@ -66,6 +67,39 @@ describe("audit and export query contracts", () => {
     expect(parsed.page).toBe(1);
     expect(parsed.pageSize).toBe(25);
     expect(auditListQuerySchema.safeParse({ pageSize: "30" }).success).toBe(false);
+  });
+
+  it("rejects impossible audit and export dates and reversed ranges", () => {
+    expect(auditListQuerySchema.safeParse({ from: "2026-13-99" }).success).toBe(false);
+    expect(auditListQuerySchema.safeParse({ from: "2026-11-30", to: "2026-11-01" }).success).toBe(
+      false,
+    );
+    expect(
+      exportReportQuerySchema.safeParse({ from: "2026-02-29", to: "2026-03-01" }).success,
+    ).toBe(false);
+    expect(
+      exportReportQuerySchema.safeParse({ from: "2026-11-30", to: "2026-11-01" }).success,
+    ).toBe(false);
+    expect(
+      exportLedgerQuerySchema.safeParse({ from: "2026-11-30", to: "2026-11-01" }).success,
+    ).toBe(false);
+  });
+
+  it("accepts a refund-only day with negative net and expected cash", () => {
+    const parsed = paymentMixReportSchema.safeParse({
+      report: "payment-mix",
+      outlet: { id: "00000000-0000-4000-8000-000000000001", name: "Outlet Pusat" },
+      from: "2026-11-27",
+      to: "2026-11-27",
+      generatedAt: "2026-11-27T10:00:00.000Z",
+      methods: [
+        { method: "CASH", payments: "0", refunds: "75000", net: "-75000", change: "0" },
+      ],
+      expectedCash: "-75000",
+      totalNet: "-75000",
+      changeTotal: "0",
+    });
+    expect(parsed.success).toBe(true);
   });
 
   it("validates export dates and optional filters", () => {

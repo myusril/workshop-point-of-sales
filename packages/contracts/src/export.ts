@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { REPORT_KINDS } from "./reports.ts";
+import { businessDateSchema, REPORT_KINDS } from "./reports.ts";
 
 /**
  * CSV export contract (PRD FR-066, AC19.1–AC19.4).
@@ -13,24 +13,34 @@ import { REPORT_KINDS } from "./reports.ts";
 export const exportReportKindSchema = z.enum(REPORT_KINDS);
 export type ExportReportKind = z.infer<typeof exportReportKindSchema>;
 
-export const exportReportQuerySchema = z.object({
-  from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Tanggal harus berformat YYYY-MM-DD."),
-  to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Tanggal harus berformat YYYY-MM-DD."),
-  outletId: z.uuid("Outlet tidak valid.").optional(),
-});
+export const exportReportQuerySchema = z
+  .object({
+    from: businessDateSchema,
+    to: businessDateSchema,
+    outletId: z.uuid("Outlet tidak valid.").optional(),
+  })
+  .refine((value) => value.from <= value.to, {
+    message: "Tanggal akhir tidak boleh mendahului tanggal awal.",
+    path: ["to"],
+  });
 export type ExportReportQuery = z.infer<typeof exportReportQuerySchema>;
 
 export const LEDGER_EXPORT_MAX_ROWS = 100_000;
 
-export const exportLedgerQuerySchema = z.object({
-  from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Tanggal harus berformat YYYY-MM-DD.").optional(),
-  to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Tanggal harus berformat YYYY-MM-DD.").optional(),
-  productId: z.uuid("Produk tidak valid.").optional(),
-  entryType: z
-    .enum(["STOCK_IN", "ADJUSTMENT", "SALE_DECREMENT", "SALE_REVERSAL"])
-    .optional(),
-  outletId: z.uuid("Outlet tidak valid.").optional(),
-});
+export const exportLedgerQuerySchema = z
+  .object({
+    from: businessDateSchema.optional(),
+    to: businessDateSchema.optional(),
+    productId: z.uuid("Produk tidak valid.").optional(),
+    entryType: z
+      .enum(["STOCK_IN", "ADJUSTMENT", "SALE_DECREMENT", "SALE_REVERSAL"])
+      .optional(),
+    outletId: z.uuid("Outlet tidak valid.").optional(),
+  })
+  .refine((value) => !value.from || !value.to || value.from <= value.to, {
+    message: "Tanggal akhir tidak boleh mendahului tanggal awal.",
+    path: ["to"],
+  });
 export type ExportLedgerQuery = z.infer<typeof exportLedgerQuerySchema>;
 
 export const EXPORT_REPORT_LABELS: Record<ExportReportKind, string> = {

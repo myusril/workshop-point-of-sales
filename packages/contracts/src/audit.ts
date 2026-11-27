@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { businessDateSchema } from "./reports.ts";
+
 /**
  * Audit-log read contract (PRD FR-069, AC20.1–AC20.4).
  *
@@ -8,16 +10,12 @@ import { z } from "zod";
  * before/after shape, and the UI renders a field diff rather than assuming one.
  */
 
-const isoDateSchema = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, "Tanggal harus berformat YYYY-MM-DD.");
-
 export const AUDIT_PAGE_SIZES = [25, 50, 100] as const;
 
 export const auditListQuerySchema = z
   .object({
-    from: isoDateSchema.optional(),
-    to: isoDateSchema.optional(),
+    from: businessDateSchema.optional(),
+    to: businessDateSchema.optional(),
     actorId: z.string().trim().max(100, "Pelaku tidak valid.").optional(),
     action: z.string().trim().max(120, "Jenis aksi tidak valid.").optional(),
     entityType: z.string().trim().max(100, "Jenis data tidak valid.").optional(),

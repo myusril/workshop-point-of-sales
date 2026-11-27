@@ -11,7 +11,7 @@ import { orderStatusSchema } from "./vehicles.ts";
  * dates are `YYYY-MM-DD` Asia/Jakarta calendar days (BR-010).
  */
 
-const businessDateSchema = z
+export const businessDateSchema = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Tanggal harus berformat YYYY-MM-DD.")
   .refine((value) => {
@@ -125,7 +125,7 @@ const paymentMixRowSchema = z.object({
   method: paymentMethodSchema,
   payments: reportMoneySchema,
   refunds: reportMoneySchema,
-  net: reportMoneySchema,
+  net: signedReportMoneySchema,
   /** Cash tendered above the balance that was returned on this day. */
   change: reportMoneySchema,
 });
@@ -138,8 +138,8 @@ export const paymentMixReportSchema = z.object({
   to: businessDateSchema,
   generatedAt: z.string(),
   methods: z.array(paymentMixRowSchema),
-  expectedCash: reportMoneySchema,
-  totalNet: reportMoneySchema,
+  expectedCash: signedReportMoneySchema,
+  totalNet: signedReportMoneySchema,
   changeTotal: reportMoneySchema,
 });
 export type PaymentMixReport = z.infer<typeof paymentMixReportSchema>;
@@ -225,8 +225,8 @@ export const endOfDayReportSchema = z.object({
   figures: salesFiguresSchema,
   paymentMix: z.object({
     methods: z.array(paymentMixRowSchema),
-    expectedCash: reportMoneySchema,
-    totalNet: reportMoneySchema,
+    expectedCash: signedReportMoneySchema,
+    totalNet: signedReportMoneySchema,
     changeTotal: reportMoneySchema,
   }),
   voids: z.array(endOfDayVoidSchema),
