@@ -467,7 +467,7 @@ WP7 was merged to `main` as PR #8 (`589418d`) before WP8 started. WP8 adds `pack
 
 **Post-gate edits:** only this §7.16 block and the §7.15 count/status rows (no code, config, test, dependency, or lockfile change after the gate).
 
-**CI-mode status:** `WP_CI=1 DATABASE_URL=… INTEGRATION_DATABASE_URL=… bash scripts/check.sh` was also run on the final tree and exited 0 in 184.92 s (`All gates passed.`), proving the no-Docker, provided-PostgreSQL branch (including the `_test` database readiness check and the E2E CI database allowance). The remote Woodpecker pipeline itself is **NOT VERIFIED** because no runner is attached. The local default (Docker Compose) is the gate reported above.
+**CI-mode status:** `WP_CI=1 DATABASE_URL=… INTEGRATION_DATABASE_URL=… bash scripts/check.sh` was also run on the final tree and exited 0 in 227.13 s (`All gates passed.`), proving the no-Docker, provided-PostgreSQL branch (including the `_test` database readiness check and the E2E CI database allowance). The remote Woodpecker pipeline itself is **NOT VERIFIED** because no runner is attached. The local default (Docker Compose) is the gate reported above.
 
 
 
