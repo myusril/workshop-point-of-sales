@@ -159,7 +159,7 @@ against the freshly reseeded database.
 | Step | Observed |
 |---|---|
 | `adb devices` | `13313704BD004233  device` (Infinix X6882, Android 14); no emulator/AVD started |
-| Build/install | `npx expo run:android --device 13313704BD004233` with `ANDROID_HOME=$HOME/Library/Android/sdk` and `EXPO_PUBLIC_API_URL=http://127.0.0.1:3100` → `BUILD SUCCESSFUL in 2m 55s`, debug APK installed and launched |
+| Build/install | `npx expo run:android --device 13313704BD004233` with `ANDROID_HOME` exported and `EXPO_PUBLIC_API_URL=http://127.0.0.1:3100` → `BUILD SUCCESSFUL in 2m 55s`, debug APK installed and launched |
 | API reachability | `adb reverse tcp:3100 tcp:3100`, so the phone's `127.0.0.1:3100` hits the host dev server (the previous `tcp:3000` reverse from §7.20 was kept) |
 | Owner sign-in | `owner@example.com` (seed Owner Rina Wijaya) against the reseeded database → PIN enrollment (6 digits) → Jual screen |
 | Jual header | `Outlet Pusat`, `Pemilik: Rina Wijaya`, `Online` |
