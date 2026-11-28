@@ -19,7 +19,7 @@
 |---|---|---|---|
 | **M1 — Walking skeleton** | WP1: npm-workspaces monorepo, pinned Node, `.env.example`, Compose dev/prod, Postgres, Dockerfiles, `scripts/check.sh`, license report, health endpoint, minimal page/API | A fresh clone reaches a healthy web + database stack with standard Docker/Node tooling; `scripts/check.sh` exits 0; license report has no blocker | **Verified 2026-11-26 and merged to `main` as PR #1 (`a96ffcb`)** |
 | **M2 — MVP** | WP2–WP8: schema/seed, auth/RBAC/outlets, catalog + stock ledger, customers/vehicles/history, mixed orders + payments + receipts, offline mobile POS + sync, reports/audit/export/settings, hardening gate | Every PRD story US-01–US-20 passes its acceptance criteria; offline/conflict, money, stock, and RBAC tests are green; no license blocker; WCAG 2.2 AA checks pass on agreed screens | **Complete for the implemented scope** — WP2 `88252dc`; WP3 `344de62`; WP4 `cdf3036`; WP5 `8a2a550`; WP6 `9f2fc8f`; WP6.1 `c8a38ec` (PR #7); WP7 `589418d` (PR #8); WP8 `c93acc3` (PR #9). WP8 focused checks in §7.15 and gate in §7.16 |
-| **M3 — Handover-ready** | WP9: accessibility sign-off, backup/restore drill, fresh-clone deployment rehearsal, license re-audit, documentation and credential handover | `docs/ops/handover-checklist.md` is fully checked with captured evidence; restore drill meets RPO/RTO targets; buyer accepts the signed manifest | **In progress** — encrypted backup/restore drill passed (RTO 6 s on the drill dataset); web axe sweep passed; fresh-clone + gate evidence in `docs/ops/handover-evidence.md`; **FR-071 is partial**: branding saves and is audited but the shell still renders the static name, so the owning WP must wire it before handover; real-device printing/TalkBack, production-sized RTO, buyer credential transfer, and the signed manifest remain open/`NOT VERIFIED` |
+| **M3 — Handover-ready** | WP9: accessibility sign-off, backup/restore drill, fresh-clone deployment rehearsal, license re-audit, documentation and credential handover | `docs/ops/handover-checklist.md` is fully checked with captured evidence; restore drill meets RPO/RTO targets; buyer accepts the signed manifest | **In progress** — encrypted backup/restore drill passed (RTO 6 s on the drill dataset); web axe sweep passed; fresh-clone + gate evidence in `docs/ops/handover-evidence.md` (local 256 s, CI mode 171 s); **FR-071 is partial**: branding saves and is audited but the shell still renders the static name, so the owning WP must wire it before handover; real-device printing/TalkBack, production-sized RTO, buyer credential transfer, and the signed manifest remain open/`NOT VERIFIED` |
 
 ---
 
@@ -500,7 +500,7 @@ WP7 was merged to `main` as PR #8 (`589418d`) before WP8 started. WP8 adds `pack
 | Restore + app smoke | **PASS** — decrypt checksum matched; `pg_restore` exit 0 in 2 s; source/restore counts identical (orders 11, lines 20, payments 10, product 1, `user` 5, audit 19, stock ledger 9, customers 1, vehicles 1); health 200 and `/login` 200 against the restored DB; **RTO 6 s** on the drill dataset |
 | Compose profiles | **PASS** — default services are `db, web, proxy`; `--profile backup` adds `backup`; rendered passphrase is empty until supplied |
 | Gitleaks history | **PASS** — `gitleaks git --redact -v .` exit 0 |
-| Gitleaks working tree | **PASS after disposition** — first run found 8 generated-cache hits under gitignored `apps/web/.next/dev`; cache deleted, re-run exit 0 |
+| Gitleaks working tree | **PASS after disposition** — first run found 8 generated-cache hits under gitignored `apps/web/.next/dev`; cache deleted, final pre-gate run exit 0 (27.08 MB, no leaks) |
 | License re-audit | **PASS** — `scripts/license-report.sh` exit 0, `PASS: no disallowed runtime licenses`; no dependency added by WP9 |
 | `npm ls --all` | **PASS** — exit 0; only optional-peer notices |
 | `npm audit --omit=dev` | **24 moderate, recorded** — dev/build tooling (`drizzle-kit` esbuild, Jest glob/minimatch, Expo CLI fingerprint); no server-runtime path; forced fix would break majors and is out of WP9 |
@@ -512,10 +512,26 @@ WP7 was merged to `main` as PR #8 (`589418d`) before WP8 started. WP8 adds `pack
 | Android compile | **PASS** — `./gradlew :app:assembleDebug` BUILD SUCCESSFUL in 21 m 25 s, 403 tasks; `EscposBluetoothModule` in `classes8.dex`; APK declares `BLUETOOTH`, `BLUETOOTH_ADMIN`, `BLUETOOTH_CONNECT` |
 | Real printing/TalkBack | **NOT VERIFIED** — no device (`adb devices` empty) and no printer; no emulator used |
 | FR-071 buyer branding | **FAIL (partial)** — branding saves (PATCH 200) and is audited with `productName`/`logoPath`, but the shell/home heading still render the static “Workshop POS”. Owning WP must wire the saved branding into the shell; WP9 records the gap instead of editing the UI |
+| Cross-WP test repair | **PASS (test-only)** — the first gate run exposed a WP4 integration test that hardcoded 2026-11-27 while the server trigger stamps `now()`; the test now derives the WIB day from the stored row. No product code changed |
 
 ### 7.18 WP9 aggregate gate (frozen candidate)
 
-Pending the frozen-candidate run after review; filled with the observed timings and counts.
+Run in a fresh clone at `16bdb3aa09` with `fnm exec --using=26.13.1 -- bash scripts/check.sh`: **exit 0, 256 s, `All gates passed.`**
+
+| Gate step | Observed result |
+|---|---|
+| Preflight / Compose database | **PASS** — Docker preflight, dev database healthy, `workshop_pos_test` reachable |
+| License report | **PASS** — no disallowed runtime license; pinned exceptions unchanged |
+| `npm run typecheck` | **PASS** — all seven workspaces; 0 errors |
+| `npm run lint` | **PASS** — all seven workspaces; 0 errors/warnings |
+| `npm run test:unit` | **PASS** — mobile 86, web 116, auth 208, contracts 77, core 55, db 11, design-tokens 4 (**557 total**) |
+| `npm run test:integration` | **PASS** — web 171, auth 41, db 63 (**275 total**) |
+| `npm run test:e2e:web` | **PASS** — 60 Chromium tests (2.5 m) |
+| `npm run build` | **PASS** — Next.js 16.4.6 production build |
+
+**Cross-WP test repair:** the first gate attempt failed one WP4 integration test because the `stock_ledger_server_created_at` trigger stamps `now()` while the test hardcoded 2026-11-27. The test now derives the Asia/Jakarta day from the stored row; it is a test-only change, and the gate was re-run from the fresh clone. No product code changed.
+
+**CI-mode status:** `WP_CI=1 DATABASE_URL=… INTEGRATION_DATABASE_URL=… bash scripts/check.sh` on the same tree exited 0 in 171 s (`All gates passed.`), exercising the no-Docker, provided-PostgreSQL branch, `_test` readiness, and the E2E CI database allowance. The remote Woodpecker pipeline itself remains **NOT VERIFIED** (no runner attached).
 
 ---
 
