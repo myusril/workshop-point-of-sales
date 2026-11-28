@@ -578,10 +578,32 @@ Branch `fix/mobile-router-root`; delivery class `standard`; device Infinix X6882
 | Dev-only warning | One `The action 'ROUTE_NAMES_CHANGED' ... was not handled by any navigator` warning is logged during the login transition; React Native marks it development-only and it does not appear in production builds. No functional impact observed and it is unrelated to the route root; left unchanged (auth/navigation behavior is out of scope for this fix) |
 | `gitleaks dir .` | **PASS after disposition** — first scan flagged 6 entries, all inside gitignored `apps/web/.next/dev` caches; caches deleted, rescan of 21.09 MB found no leaks |
 | `bash scripts/check.sh` | **PASS** — exit 0, 305 s, `All gates passed.` License report clean, typecheck and lint 0 errors, `test:unit` (mobile 88/13 suites, web 125, auth 208, contracts 77, core 55, db 11, design-tokens 4 = **568**), `test:integration` (web 173, auth 41, db 63 = **277**), `test:e2e:web` (65 Chromium tests), `next build` succeeded. Run as `env -u NODE_ENV … bash scripts/check.sh`: this Orca session exports `NODE_ENV=development` in the shell (confirmed with `echo "${NODE_ENV-unset}"`), and `next.config.mjs` loads the root `.env` without overriding an existing value, so a plain `next build` in that shell compiles in development mode and crashes prerendering `/_global-error` (`Cannot read properties of null (reading 'useContext')`). The failure reproduces on pristine `daf1852`, and the documented `bash scripts/check.sh` passes unchanged once the inherited variable is unset, so this is a session-environment artifact, not a repo defect or a branch regression; no web file changed |
-| Observed anomaly | After the catalog reload the stock source updated to `Stok server · 28 Nov 2026 13.45 WIB` while the Spare-part list still showed `Belum ada data`. Recorded as an out-of-scope data/seed question (empty server list for this outlet or a seed/read-model gap), not a router-root effect; not investigated in this fix |
+| Observed anomaly | Resolved — see §7.21. The `Stok server` timestamp was fresh because the fetch succeeded; the session's active outlet was an E2E-created outlet with no catalog rows, so `Belum ada data` was the correct empty state. Not a router-root effect and not a catalog/cache defect |
 | Still `NOT VERIFIED` | Real 58/80 mm printing, TalkBack, tablet layout, offline sale/queue flow on the device, and any screen beyond launch, login, and the four-tab switch |
 
 **Post-gate edit:** after the gate run only this §7.20 documentation changed (gate-row wording, the observed-anomaly row, and this disclosure); no code, config, test, or dependency changed after it.
+
+---
+
+### 7.21 Empty spare-part list — root-cause investigation (2026-11-28)
+
+Branch `chore/empty-spare-parts`; delivery class `standard`; no product code changed. Full evidence, commands, and query output: `docs/qa/empty-spare-parts-investigation.md`.
+
+| Check | Result |
+|---|---|
+| Verdict | **Test-data contamination, not a catalog/cache defect.** `Stok server` proved the fetch succeeded; the session was pinned to an E2E-created outlet with no catalog rows, so `Belum ada data` was the correct empty state |
+| Mechanism | OWNER/ADMIN scope is every active outlet ordered by name (`packages/auth/src/scope.ts`), and mobile sign-in takes `scope.outlets[0]` (`packages/auth/src/login.ts`). `Outlet Cabang mx02ncc1c6c420` sorts before `Outlet Pusat`, so the Owner session fetched the empty outlet |
+| Contaminated DB (before reset) | 3 outlets: `Outlet Pusat` (seed), `Outlet E2E … Ubah` and `Outlet Cabang …` (both created by `apps/web/tests/e2e/outlets.spec.ts`); 8 products, 2 services, 14 orders — all in `Outlet Pusat`; owner sessions: 31 on the seed outlet, 12 on the Cabang outlet, 2 on the E2E outlet |
+| API reproduction | Mobile-surface login → `activeOutletId 700d3cb0-…`; `GET /catalog/products` and `/catalog/services` → HTTP 200, total 0. Same bearer token after switching to the seed outlet → 8 products (first `BRK-001`, Rp 250.000, stok 14) and 2 services. Same query, same code path, outlet-scoped result is correct |
+| Clean-DB baseline | `down -v` + migrate + seed (`1 product, 1 service`) + provision: mobile login → `activeOutletId b0000000-…-0002`; products total 1 (`BRK-001`), services total 1 |
+| Mobile read path | Real `endpoints.ts` → `refresh.ts` → SQLite against the seeded server: refresh `catalog=2`, one `PRODUCT` row in `cached_catalog` for the active outlet with `is_active=1`, `listCatalog(itemType: "PRODUCT")` → `BRK-001 Kampas rem depan` |
+| Device | Infinix X6882, `adb devices` state `device`, `BUILD SUCCESSFUL in 2m 55s`, `adb reverse tcp:3100`; Owner sign-in → Jual shows `Outlet Pusat`, and after a catalog reload `Stok server · 28 Nov 2026 14.34 WIB` with `BRK-001 · stok 20`. No emulator/AVD used |
+| Regression guard | No new test: `apps/mobile/tests/cache-refresh.test.ts` (snapshot write/read, failed-refresh retention, generation abort) and `apps/web/tests/catalog-inventory.integration.test.ts` (outlet-scoped list/filter, per-outlet SKU) already fail on a real read-path regression |
+| Docs | New `docs/qa/empty-spare-parts-investigation.md`; `README.md` mobile section now states that `test:e2e:web` leaves its outlets behind and the disposable DB should be reseeded before a device demo |
+| `bash scripts/check.sh` | **PASS** — exit 0, 242 s, `All gates passed.` License report clean; `test:unit` (mobile 88/13 suites, web 125, auth 208, contracts 77, core 55, db 11, design-tokens 4 = **568**); `test:integration` (web 173, auth 41, db 63 = **277**); `test:e2e:web` 65 Chromium tests; `next build` succeeded. Run as `env -u NODE_ENV -u CI` because this Orca shell exports both |
+| `gitleaks dir .` | **PASS after disposition** — first scan flagged 21 entries, all inside the gitignored `apps/web/.next/**` build output produced by the gate's `next build` (`prerender-manifest.json`, `preview-props.json`, `server-reference-manifest.json`, the `jose` chunks and their maps, `.rscinfo`/`.previewinfo`); the directory was deleted and the rescan of 21.12 MB found no leaks |
+| Residual risk | A multi-outlet OWNER/ADMIN always starts mobile on the alphabetically first active outlet; there is no last-used memory. Auth/scope behavior, out of this investigation's ownership — noted for a future brief |
+| Still `NOT VERIFIED` | Real 58/80 mm printing, TalkBack, tablet layout, and offline sale/queue flow on the device |
 
 ## 8. Approved kickoff decisions
 
