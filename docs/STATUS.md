@@ -620,7 +620,7 @@ Branch `fix/mobile-initial-catalog-refresh`; delivery class `standard`; device I
 | `bash scripts/check.sh` | **PASS** — exit 0, 266 s, `All gates passed.` Run as `env -u NODE_ENV -u CI bash scripts/check.sh` because the Orca shell exports both; license report, typecheck, lint, `test:unit`, `test:integration`, `test:e2e:web`, and `next build` ran in order. Exact per-suite counts were not captured from this run's tail; the direct mobile run is 92 tests / 14 suites |
 | `gitleaks dir .` | **PASS** — gitleaks 8.30.1, exit 0, `no leaks found` (4.87 MB scanned) after deleting the gitignored `apps/web/.next` and generated `apps/mobile/android` build output |
 | Docs | `docs/qa/empty-spare-parts-investigation.md` §5.1 scope correction and the §7 follow-up; this section. `README.md` unchanged because the device demo commands did not change |
-| Still `NOT VERIFIED` | Real 58/80 mm printing, TalkBack, tablet layout, and the conflict-resolution flow on the device (the offline sale/payment/sync path is verified in §7.23) |
+| Still `NOT VERIFIED` | Real 58/80 mm printing, TalkBack, and tablet layout (the offline sale/payment/sync path is verified in §7.23; the stock-conflict override is verified in §7.24) |
 
 ### 7.23 Offline sale/payment/sync — real-device verification (2026-11-28)
 
@@ -634,8 +634,22 @@ Device: Infinix X6882 (Hot 50), Android 14, arm64-v8a, `adb devices` state `devi
 | Local queue | Jual header `Offline: 1 menunggu`; server still `0` orders and no sale ledger row |
 | Reconnect | Airplane off, Wi-Fi/data on, `adb reverse tcp:3000` restored; app auto-synced; queue cleared, chip `Online` |
 | Server result | 1 order `INV/2026/000001`, status `PAID`, total `277500`, tax `27500`; 1 payment `277500`; stock ledger `STOCK_IN 0→20` then one `SALE_DECREMENT 20→19`; no duplicate order/payment/ledger |
-| Not covered | Conflict resolution (`STOCK_INSUFFICIENT`/override/void), split/transfer/QRIS payments, real printer output, TalkBack, APK size/cold start, tablet layout |
+| Not covered | Conflict void/refund on the device (integration coverage exists; the override path is §7.24), split/transfer/QRIS payments, real printer output, TalkBack, APK size/cold start, tablet layout |
 | Dev caveat | A dev-only LogBox error (`Linking did not produce an initial navigation state`, Expo Router) appeared once after the deep-link launch/payment flow and was dismissed; the sale still completed and synced. Production impact is `NOT VERIFIED`; use a normal cold launch for the next device drill |
+
+### 7.24 Stock-conflict resolution with Owner override — real-device verification (2026-11-28)
+
+Device: same Infinix X6882 / Android 14 (`adb devices` state `device`, no emulator). Server: local Next.js on `127.0.0.1:3000`, LAN fallback on `192.168.1.6:3000`; dev DB retained the §7.23 state (1 `PAID` order, `BRK-001` stock 19).
+
+| Step | Observed |
+|---|---|
+| Second offline sale | Airplane mode on, Wi-Fi/data off, `adb reverse tcp:3000` removed. Added 1× `BRK-001`, cash tender 277500, local receipt `Struk lokal` / `SALINAN LOKAL — BELUM TERSINKRON` (`LOKAL-GY5FQ6`); server still 1 order |
+| Concurrent-stock simulation | Server stock reduced 19→0 by one `ADJUSTMENT` ledger row (`conflict drill: simulate concurrent sale`). This models a second terminal consuming stock; it is not a real second order |
+| Conflict surfaced | Reconnected; `Sinkronkan sekarang` reported `1 perlu tinjauan · 1 konflik`; queue row `Perlu tinjauan`, `Stok Kampas rem depan tidak mencukupi: lokal 1, server 0.` |
+| Resolution | `Tinjau konflik` showed product/local 1/server 0, collected `Rp 277.500`, and `Uang tetap sah walau stok server berbeda.` Entered reason `Stok fisik sudah habis, pelanggan sudah membayar`, confirmed the override, and the final receipt rendered `INV/2026/000002` with no local-sync marker |
+| Server result | 2 orders `PAID`; ledger `SALE_DECREMENT 0→-1` with `override = true` and the reason; audit rows `sync.conflict_raised`, `sync.conflict_resolved_override`, `sync.conflict_override`, and `inventory.sale_decrement` all carry the same sync key/reason; no duplicate order/payment/ledger |
+| Observation | The confirmation button is labelled `SETUJUI OVERRIDE` (English caps) while the rest of the flow is Bahasa Indonesia. Copy-only defect; not fixed in this drill |
+| Not covered | Device void/refund resolution (`Batalkan transaksi`), Cashier override denial on device, real concurrent second terminal, real printer, TalkBack, tablet layout |
 
 ## 8. Approved kickoff decisions
 
