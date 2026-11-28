@@ -3,10 +3,10 @@
 | Field | Value |
 |---|---|
 | Product | Workshop POS (working name; buyer may rebrand) |
-| Phase | WP9 merged; M3 handover verification open (FR-071 branding wiring, real-device/hardware, buyer credentials, signed manifest) |
+| Phase | WP9 merged and FR-071 branding wired; M3 handover verification open (real-device/hardware, buyer credentials, signed manifest) |
 | Date | 2026-11-28 |
-| Code status | WP1–WP9 are merged to `main` (WP9 `98b17e0`, PR #10). WP9 adds encrypted backup/restore, handover evidence, WCAG 2.2 AA web sweep, third-party notices, and project-owned Bluetooth SPP ESC/POS transport. FR-071 remains partial: branding saves and is audited but the shell still renders the static name. Real-device printing/TalkBack, APK measurements, production-sized restore, buyer credentials/signed manifest, and the remote CI run remain `NOT VERIFIED` |
-| Next gate | Resolve FR-071 branding wiring; complete buyer/hardware checks (printer, real device, production-sized restore, credentials, signed manifest); remote CI remains `NOT VERIFIED` until a runner is attached |
+| Code status | WP1–WP9 are merged to `main` (WP9 `98b17e0`, PR #10). WP9 adds encrypted backup/restore, handover evidence, WCAG 2.2 AA web sweep, third-party notices, and project-owned Bluetooth SPP ESC/POS transport. FR-071 branding is now wired end to end: the saved name and logo render in the shell (expanded wordmark, 72 px collapsed rail, mobile top bar), the home heading and browser title, and the login card; every role can read branding while settings stay Owner-only. Real-device printing/TalkBack, APK measurements, production-sized restore, buyer credentials/signed manifest, and the remote CI run remain `NOT VERIFIED` |
+| Next gate | Complete buyer/hardware checks (printer, real device, production-sized restore, credentials, signed manifest); remote CI remains `NOT VERIFIED` until a runner is attached |
 | Source of truth | `docs/product/PRD.md`, `docs/adr/0001-stack-and-architecture.md`, `docs/plan/work-packages.md` |
 
 > **Honesty rule.** This page reports what exists and what has been verified. Documents are not proof that the product works. WP1 commands were executed on 2026-11-26 on branch `feat/wp1-walking-skeleton`, including the aggregate `scripts/check.sh` gate on a fresh development volume, and WP1 was merged to `main` as PR #1 (`a96ffcb`). WP2 (schema, migrations, seed, outlet-scoped query helpers) was merged to `main` as PR #2 (`88252dc`). WP3 (auth, RBAC, users, outlets) passed its focused gates and the aggregate gate, and was merged to `main` as PR #3 (`344de62`). WP4 (web shell, domain core, catalog, inventory) passed its focused checks and the aggregate gate and was merged to `main` as PR #4 (`cdf3036`); earlier tests are re-run by later aggregate gates. Anything not listed in §7 as verified is **NOT VERIFIED** — including WP6 until its full-suite gate result is recorded in §7.10. WP5 was merged to `main` as PR #5 (`8a2a550`).
@@ -19,7 +19,7 @@
 |---|---|---|---|
 | **M1 — Walking skeleton** | WP1: npm-workspaces monorepo, pinned Node, `.env.example`, Compose dev/prod, Postgres, Dockerfiles, `scripts/check.sh`, license report, health endpoint, minimal page/API | A fresh clone reaches a healthy web + database stack with standard Docker/Node tooling; `scripts/check.sh` exits 0; license report has no blocker | **Verified 2026-11-26 and merged to `main` as PR #1 (`a96ffcb`)** |
 | **M2 — MVP** | WP2–WP8: schema/seed, auth/RBAC/outlets, catalog + stock ledger, customers/vehicles/history, mixed orders + payments + receipts, offline mobile POS + sync, reports/audit/export/settings, hardening gate | Every PRD story US-01–US-20 passes its acceptance criteria; offline/conflict, money, stock, and RBAC tests are green; no license blocker; WCAG 2.2 AA checks pass on agreed screens | **Complete for the implemented scope** — WP2 `88252dc`; WP3 `344de62`; WP4 `cdf3036`; WP5 `8a2a550`; WP6 `9f2fc8f`; WP6.1 `c8a38ec` (PR #7); WP7 `589418d` (PR #8); WP8 `c93acc3` (PR #9). WP8 focused checks in §7.15 and gate in §7.16 |
-| **M3 — Handover-ready** | WP9: accessibility sign-off, backup/restore drill, fresh-clone deployment rehearsal, license re-audit, documentation and credential handover | `docs/ops/handover-checklist.md` is fully checked with captured evidence; restore drill meets RPO/RTO targets; buyer accepts the signed manifest | **In progress (WP9 merged as PR #10, `98b17e0`)** — encrypted backup/restore drill passed (RTO 6 s on the drill dataset); web axe sweep passed; fresh-clone + gate evidence in `docs/ops/handover-evidence.md` (local 256 s, CI mode 171 s); **FR-071 is partial**: branding saves and is audited but the shell still renders the static name, so the owning WP must wire it before handover; real-device printing/TalkBack, production-sized RTO, buyer credential transfer, and the sign…
+| **M3 — Handover-ready** | WP9: accessibility sign-off, backup/restore drill, fresh-clone deployment rehearsal, license re-audit, documentation and credential handover | `docs/ops/handover-checklist.md` is fully checked with captured evidence; restore drill meets RPO/RTO targets; buyer accepts the signed manifest | **In progress (WP9 merged as PR #10, `98b17e0`)** — encrypted backup/restore drill passed (RTO 6 s on the drill dataset); web axe sweep passed; fresh-clone + gate evidence in `docs/ops/handover-evidence.md` (local 256 s, CI mode 171 s); **FR-071 branding is wired** (shell, home heading and title, login card; verified by the FR-071 E2E suite); real-device printing/TalkBack, production-sized RTO, buyer credential transfer, and the signed manifest remain `NOT VERIFIED` |
 
 ---
 
@@ -511,7 +511,7 @@ WP7 was merged to `main` as PR #8 (`589418d`) before WP8 started. WP8 adds `pack
 | Mobile tests | **PASS** — 86 tests / 12 suites (14 new: transport + picker states) |
 | Android compile | **PASS** — full build 21 m 25 s / 403 tasks, then 32 s incremental after the security fix; `EscposBluetoothModule` in `classes8.dex`; APK declares `BLUETOOTH`, `BLUETOOTH_ADMIN`, `BLUETOOTH_CONNECT` |
 | Real printing/TalkBack | **NOT VERIFIED** — no device (`adb devices` empty) and no printer; no emulator used |
-| FR-071 buyer branding | **FAIL (partial)** — branding saves (PATCH 200) and is audited with `productName`/`logoPath`, but the shell/home heading still render the static “Workshop POS”. Owning WP must wire the saved branding into the shell; WP9 records the gap instead of editing the UI |
+| FR-071 buyer branding | **PASS** — settings PATCH 200 is audited and the saved name/logo now render in the expanded sidebar wordmark, the 72 px collapsed rail (logo or up to two initials), the mobile top bar, the home `<h1>` and browser title, and the login card. The branding read needs no `manage_settings`: Cashier and Mechanic see it while `/settings`, `GET /api/v1/settings`, `GET/PATCH /api/v1/settings/branding` stay 403. Evidence: 5 Playwright tests (Owner save → shell/home/title/login, role visibility, invalid logo 400 with no write, 80-char name at 1440/1024/768/390/320, no-logo fallback), 9 DOM tests, 1 integration RBAC test |
 | Cross-WP test repair | **PASS (test-only)** — the first gate run exposed a WP4 integration test that hardcoded 2026-11-27 while the server trigger stamps `now()`; the test now derives the WIB day from the stored row. No product code changed |
 
 ### 7.18 WP9 aggregate gate (frozen candidate)
@@ -535,6 +535,25 @@ Run in a fresh clone at `16bdb3aa09` with `fnm exec --using=26.13.1 -- bash scri
 
 ---
 
+### 7.19 FR-071 branding wiring (2026-11-28)
+
+Branch `feat/fr071-branding-wiring`; `fnm exec --using=26.13.1 -- bash scripts/check.sh`: **exit 0, 285 s, `All gates passed.`**
+
+| Gate step | Observed result |
+|---|---|
+| License report | **PASS** — `PASS: no disallowed runtime licenses.`; no dependency added |
+| `npm run typecheck` | **PASS** — all seven workspaces; 0 errors |
+| `npm run lint` | **PASS** — all seven workspaces; 0 errors/warnings |
+| `npm run test:unit` | **PASS** — mobile 86, web 125, auth 208, contracts 77, core 55, db 11, design-tokens 4 (**566 total**; web gained 9 branding DOM tests) |
+| `npm run test:integration` | **PASS** — web 172, auth 41, db 63 (**276 total**; +1 branding RBAC test) |
+| `npm run test:e2e:web` | **PASS** — 65 Chromium tests, 3.1 m (5 new FR-071 branding tests) |
+| `npm run build` | **PASS** — Next.js 16.4.6 production build |
+| `gitleaks dir .` | **PASS after disposition** — first run flagged 21 entries, all inside gitignored `apps/web/.next/**` build caches; caches deleted, rescan of 4.37 MB found no leaks |
+
+**Viewport evidence:** the branding E2E renders an 80-character product name at 1440/1024/768/390/320 with no horizontal overflow, a 72 px collapsed rail that fits the compact mark, and an ellipsized name at 390/320. Logo rendering is asserted against a Playwright-served SVG because no brand asset is shipped; a real buyer logo URL is not part of this evidence.
+
+**Not verified:** mobile/Android branding parity, real-device printing, TalkBack, and the remote CI run remain `NOT VERIFIED`.
+
 ## 8. Approved kickoff decisions
 
 Recorded 2026-11-26 from the product owner. These close the corresponding open questions for implementation; they do not replace legal or tax counsel.
@@ -556,7 +575,6 @@ Recorded 2026-11-26 from the product owner. These close the corresponding open q
 ## 9. Next actions
 
 1. Obtain buyer counsel review for the privacy notice, retention duration, tax rounding, and any future Epson SDK integration; record the signed outcomes.
-2. WP1–WP9 are merged to `main` (WP9 PR #10, `98b17e0`); no merge action remains for any work package.
-3. Resolve FR-071 branding wiring: the settings/branding save is audited, but the shell still renders the static product name; the owning WP must wire the stored branding before handover.
-4. The buyer must run the hardware pilot on a real Android device and its 58/80 mm printers, repeat TalkBack/touch-target checks, re-measure production-sized RTO, exercise an off-host restore, and attach a monitoring/alert route. No emulator result is accepted.
-5. The buyer must repeat the checklist on a clean host and complete the account/domain/credential transfer, signed manifest, and tag. Those items are deliberately not marked complete here.
+2. WP1–WP9 are merged to `main` (WP9 PR #10, `98b17e0`); no merge action remains for any work package. FR-071 branding wiring is complete on `feat/fr071-branding-wiring` and awaits the founder's merge.
+3. The buyer must run the hardware pilot on a real Android device and its 58/80 mm printers, repeat TalkBack/touch-target checks, re-measure production-sized RTO, exercise an off-host restore, and attach a monitoring/alert route. No emulator result is accepted.
+4. The buyer must repeat the checklist on a clean host and complete the account/domain/credential transfer, signed manifest, and tag. Those items are deliberately not marked complete here.

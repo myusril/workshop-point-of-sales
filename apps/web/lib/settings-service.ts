@@ -31,6 +31,62 @@ import {
 
 export const DEFAULT_PRODUCT_NAME = "Workshop POS";
 
+/** Rendered whenever a business has no stored branding yet. */
+export const DEFAULT_BRANDING: Branding = {
+  productName: DEFAULT_PRODUCT_NAME,
+  logoPath: null,
+};
+
+const BRANDING_COLUMNS = {
+  productDisplayName: businesses.productDisplayName,
+  logoPath: businesses.logoPath,
+};
+
+type BrandingRow = {
+  productDisplayName: string | null;
+  logoPath: string | null;
+};
+
+function toBranding(row: BrandingRow | undefined): Branding {
+  return {
+    productName: row?.productDisplayName?.trim() || DEFAULT_PRODUCT_NAME,
+    logoPath: row?.logoPath?.trim() || null,
+  };
+}
+
+/**
+ * Branding read for every authenticated role (FR-071).
+ *
+ * Deliberately takes no `AuthContext`: the wordmark, page title, and login
+ * card are not settings, so reading them must not require `manage_settings`.
+ * Writing still goes through `updateBranding`, which stays Owner-only.
+ */
+export async function getBrandingForBusiness(
+  db: Database,
+  businessId: string,
+): Promise<Branding> {
+  const [row] = await db
+    .select(BRANDING_COLUMNS)
+    .from(businesses)
+    .where(eq(businesses.id, businessId))
+    .limit(1);
+  return toBranding(row);
+}
+
+/**
+ * Branding for the unauthenticated login screen. The product is installed for
+ * one business (`packages/db/src/schema/tenancy.ts`), so the first row is the
+ * installation; a missing row falls back to the default wordmark.
+ */
+export async function getInstallationBranding(db: Database): Promise<Branding> {
+  const [row] = await db
+    .select(BRANDING_COLUMNS)
+    .from(businesses)
+    .orderBy(businesses.id)
+    .limit(1);
+  return toBranding(row);
+}
+
 interface SettingsRow {
   id: string;
   taxRate: number;
@@ -224,19 +280,13 @@ export async function getBranding(
 ): Promise<Branding> {
   assertPermission(context, "manage_settings");
   const [row] = await db
-    .select({
-      productDisplayName: businesses.productDisplayName,
-      logoPath: businesses.logoPath,
-    })
+    .select(BRANDING_COLUMNS)
     .from(businesses)
     .where(eq(businesses.id, context.user.businessId))
     .limit(1);
   if (!row) throw AuthError.notFound("Bisnis tidak ditemukan.");
 
-  return {
-    productName: row.productDisplayName?.trim() || DEFAULT_PRODUCT_NAME,
-    logoPath: row.logoPath?.trim() || null,
-  };
+  return toBranding(row);
 }
 
 export async function updateBranding(

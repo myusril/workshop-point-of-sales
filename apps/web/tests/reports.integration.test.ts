@@ -1007,6 +1007,25 @@ describe("settings and branding (FR-070, FR-071)", () => {
       .where(eq(tables.auditLog.action, "branding.updated"));
     expect(rows).toHaveLength(1);
   });
+
+  it("lets every role read branding while settings stay Owner-only", async () => {
+    const cashierRead = await settingsService.getBrandingForBusiness(db, BUSINESS_ID);
+    expect(cashierRead).toEqual({ productName: "Bengkel Uji POS", logoPath: "/logo.svg" });
+
+    const installationRead = await settingsService.getInstallationBranding(db);
+    expect(installationRead.productName).toBe("Bengkel Uji POS");
+
+    await expectRejection(() => settingsService.getBranding(db, cashierA), "FORBIDDEN");
+    await expectRejection(() => settingsService.getBranding(db, admin), "FORBIDDEN");
+    await expectRejection(
+      () =>
+        settingsService.updateBranding(db, cashierA, {
+          productName: "Bengkel Lain",
+          logoPath: null,
+        }),
+      "FORBIDDEN",
+    );
+  });
 });
 
 describe("12-month performance at NFR-013 volumes", () => {
