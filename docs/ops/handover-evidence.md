@@ -23,7 +23,7 @@ Result vocabulary: `pass`, `fail`, `blocked` (depends on a buyer/account/legal a
 | 0.1 Clean machine without seller credentials | — | **NOT VERIFIED** — the rehearsal ran on the seller's development workstation, not a clean OS user. Buyer must repeat on its own clean host | — |
 | 0.2 Pinned toolchain | Node `v26.13.1`, npm 11.x, Docker `29.4.0`, PostgreSQL image `postgres:19-alpine`, gitleaks `8.30.1` | **pass** | `0-environment.log` |
 | 0.3 Delivery candidate is a commit | Working tree committed before the gate; build outputs and `.env` are ignored | **pass** | `git status --porcelain` at commit time |
-| 0.4 Candidate commit | `git rev-parse HEAD` | **`f96f2c1648e386229a2de088d18808912573c5a4`** (code candidate; the evidence-only follow-up commit adds this document's final counts but changes no code, config, test, or lockfile) | `0.4-candidate-commit.log` |
+| 0.4 Candidate commit | `git rev-parse HEAD` | **`85110c05eaef94afd93d183a57f389ffaf859cec`** (code candidate; the post-gate evidence commit only fills §C/§7.18 and the tech-writer disposition — no code, config, test, or lockfile change) | `0.4-candidate-commit.log` |
 
 ---
 
@@ -57,7 +57,19 @@ Result vocabulary: `pass`, `fail`, `blocked` (depends on a buyer/account/legal a
 
 ## C. Fresh-clone build and runtime
 
-Pending the frozen-candidate gate; filled after the fresh-clone rehearsal. Planned commands follow `docs/ops/handover-checklist.md` §C exactly: local clone of the candidate, `npm ci`, `.env.example → .env`, Compose dev DB, migrate/seed, `scripts/check.sh`, production build, health/login smoke.
+Rehearsal clone: `/tmp/wp9-fresh-b`, checked out at `85110c05ea` with a clean status. The seller workstation was used (0.1 remains `NOT VERIFIED` for a clean OS user).
+
+| Item | Command | Result | Evidence |
+| --- | --- | --- | --- |
+| C1 clone + cleanliness | `git clone` → `git checkout 85110c05ea`; `git status --porcelain`; no `.env`, `.brief/`, `node_modules`, `.next` | **pass** — exact hash, empty status, no seller-local files | `C1-clone-b.log`, `C1-root-listing-b.log` |
+| C2 toolchain | Node 26.13.1, npm 11.x, Docker 29.4.0 | **pass** — matches the pins | `0-environment.log` |
+| C3 clean install | `fnm exec --using=26.13.1 -- npm ci` | **pass** — exit 0; one root lockfile | `C3-npm-ci-b.log`, `C3-lockfiles-b.log` |
+| C4 Compose database | `docker compose -f compose.dev.yaml up -d --wait db` | **pass** — healthy on loopback:55432 | `C4-compose-up.log` |
+| C5 migrations/seed | `npm run db:migrate` twice against a fresh `workshop_pos_fresh`; `npm run db:seed`; provision seed accounts | **pass** — first migrate applies, second is a no-op; seed reports 1 business/outlet/settings, 4 users, 4 staff-outlet rows, 1 product/service/customer/vehicle, 1 opening ledger row, stock 20; provisioning updates 4 synthetic accounts without printing passwords | `C5-migrate-b.log`, `C5-migrate-second-b.log`, `C5-seed-b.log`, `C5-counts-b.log`, `C5-provision-b.log` |
+| C6 aggregate gate | `fnm exec --using=26.13.1 -- bash scripts/check.sh` | **see §7.18** — this row is filled from the gate log after the run | `C6-check-b.log` |
+| C7 build + smoke | Gate build; `next dev` against `workshop_pos_fresh` on 127.0.0.1:3201; `/api/v1/health`, `/login` | **pass** — build exit 0; health 200 `database:"up"`, login 200 | `C7-dev-start-b.log`, `C7-health-b.json`, `C7-smoke-b.log` |
+| C8 README commands | Quickstart order: `cp .env.example .env` → `npm ci` → Compose db → migrate → seed → provision → dev | **pass** — same commands ran in the clone; the only environmental change was an explicit fresh database URL for C5. The independent-second-person requirement is **NOT VERIFIED** (same operator) | §0.1; C1–C7 logs |
+| C6 hooks installer | `bash scripts/install-hooks.sh`; `git config core.hooksPath` | **pass** — `.githooks`; no `--no-verify` used | `C6-hooks-b.log` |
 
 ---
 
@@ -68,7 +80,7 @@ Pending the frozen-candidate gate; filled after the fresh-clone rehearsal. Plann
 | D1 lockfile integrity | `test -f package-lock.json`; `git diff --exit-code -- package-lock.json package.json` | **pass** — one root lockfile, clean diff | `D1-lockfile-diff.log` |
 | D1 dependency tree | `npm ls --all` | **pass** — exit 0; only optional peer notices (`UNMET OPTIONAL DEPENDENCY`), no `invalid`/missing required package | `D1-npm-ls.log` |
 | D1 production audit | `npm audit --omit=dev` | **fail (recorded, disposition below)** — 24 moderate advisories in dev/build tooling reachable from workspace devDependencies (`drizzle-kit`'s `esbuild`, Jest's `glob`/`minimatch`, Expo CLI's `@expo/fingerprint`). No server-runtime exploit path is configured; fixing requires breaking major downgrades. Not changed in WP9 | `D1-npm-audit.log` |
-| D2 install reproducibility | Two fresh clones + `npm ci` + tree hash | **pending** — see §C | — |
+| D2 install reproducibility | Two fresh clones + `npm ci` + `npm ls --all --json` hash | **pass** — both clones produced tree hash `003808ec…4322`; no diff | `D2-tree-hash-b.log`, `D2-tree-hash-c.log`, `D2-tree-diff.log` |
 | D3 build reproducibility | Build both clones; compare `.next/static` hashes | **pending** — see §C | — |
 | D4 base-image pinning | `grep FROM docker/*.Dockerfile` | **pass with caveat** — `node:26.13.1-alpine`, `postgres:19-alpine`, `caddy:2-alpine` are version-tagged, not digest-pinned. Digest pinning is a buyer supply-chain hardening step | `D4-dockerfiles.log` |
 | D5 Node consistency | `.node-version`, `package.json engines`, Dockerfiles | **pass** — Node 26.13.1 and `>=26.13.1 <27`; no other Node version in build files | `D5-node-version.log` |
@@ -151,7 +163,7 @@ Pending the frozen-candidate gate; filled after the fresh-clone rehearsal. Plann
 | `designer` | Empty text shown on errors/loading; “Mencetak…” while searching; no modal focus/announcement; long-content clipping; private scrim/radius; print hierarchy; receipt label hid content; audit overreach | **Fixed** — state exclusivity, shared `LoadingState`/`EmptyState`, `accessibilityViewIsModal` + title focus + focus return, scrollable sheet with pinned actions, `overlay.scrim`/`radius.xl`, print is primary, receipt text exposed to TalkBack, audit updated. Device behaviors remain `NOT VERIFIED` |
 | `reviewer` | `osVersion` injected but unused; Android ≤11 branch untestable | **Fixed** — permission gate takes the injected version; test asserts it |
 | `decision-reviewer` | README contradicted `native_now`; missing optional-tooling note; unsupported gate claim; FR-071 silently dropped; decisions absent from the log; SHA placeholder | **Fixed** — README corrected and note added; §7.18 filled after the gate; FR-071 recorded as **fail (partial)**; DEC-0023/0024 added; SHA filled here after commit |
-| `tech-writer` | Pending | Pending |
+| `tech-writer` | README/AGENTS/runbook drift: gate claim before the run; AGENTS dev web + `npm run dev` port conflict; mobile LAN URL unreachable from loopback; stale RTO/drill numbers; “any paired” printer overclaim; gate description; `shasum` on Linux; missing docs index entries | **Fixed** — gate claim filled after the run; AGENTS starts the DB only; README documents `adb reverse` and the LAN alternative; RTO/limits unified at 6 s/13 s; printer claim limited to a buyer pilot; backup image described as separate; `sha256sum`; three WP9 docs added to the index. Local `/tmp` evidence path remains, explicitly labeled seller-workstation only |
 
 ---
 

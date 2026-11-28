@@ -1125,23 +1125,37 @@ describe(`catalog and inventory over ${DATABASE_NAME}`, () => {
       openingStock: 0,
     });
 
-    // 2026-11-26T18:30Z is 2026-11-27 01:30 WIB.
-    await db.insert(tables.stockLedger).values({
-      businessId: BUSINESS_ID,
-      outletId: OUTLET_PRIMARY,
-      productId: product.id,
-      entryType: "STOCK_IN",
-      quantityBefore: 0,
-      quantityAfter: 1,
-      sourceType: "STOCK_IN",
-      createdBy: OWNER_ID,
-      createdAt: new Date("2026-11-26T18:30:00.000Z"),
-    });
+    // The server-side trigger stamps the row with `now()`; derive the expected
+    // WIB day from the stored value so this test does not expire on a fixed date.
+    const [ledgerRow] = await db
+      .insert(tables.stockLedger)
+      .values({
+        businessId: BUSINESS_ID,
+        outletId: OUTLET_PRIMARY,
+        productId: product.id,
+        entryType: "STOCK_IN",
+        quantityBefore: 0,
+        quantityAfter: 1,
+        sourceType: "STOCK_IN",
+        createdBy: OWNER_ID,
+      })
+      .returning({ createdAt: tables.stockLedger.createdAt });
+    if (!ledgerRow) throw new Error("stock ledger row was not returned");
+
+    const wibOffsetMs = 7 * 60 * 60 * 1000;
+    const currentDay = new Date(ledgerRow.createdAt.getTime() + wibOffsetMs)
+      .toISOString()
+      .slice(0, 10);
+    const previousDay = new Date(
+      ledgerRow.createdAt.getTime() + wibOffsetMs - 24 * 60 * 60 * 1000,
+    )
+      .toISOString()
+      .slice(0, 10);
 
     const onWibDay = await inventory.listLedger(db, owner, {
       productId: product.id,
-      from: "2026-11-27",
-      to: "2026-11-27",
+      from: currentDay,
+      to: currentDay,
       page: 1,
       pageSize: 25,
     });
@@ -1149,8 +1163,8 @@ describe(`catalog and inventory over ${DATABASE_NAME}`, () => {
 
     const previousWibDay = await inventory.listLedger(db, owner, {
       productId: product.id,
-      from: "2026-11-26",
-      to: "2026-11-26",
+      from: previousDay,
+      to: previousDay,
       page: 1,
       pageSize: 25,
     });
