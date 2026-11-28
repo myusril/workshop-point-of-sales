@@ -4,7 +4,7 @@
 | --- | --- |
 | Product | Workshop POS |
 | Delivery class | Release (WP9) |
-| Candidate | `main` at `af371ef` (PR #12); WP9 evidence at code candidate `16bdb3a`, FR-071 follow-up at `a7dab6e`, router fix at `af371ef` |
+| Candidate | `main` at `da3f79d` (PR #13); WP9 evidence at code candidate `16bdb3a`, FR-071 follow-up at `a7dab6e`, router fix at `af371ef`, investigation docs at `da3f79d` |
 | Evidence date | 2026-11-28 |
 | Evidence location | `/tmp/wp9-evidence-20261128` on the seller workstation (outside the repository; not shipped) |
 | Operator | Seller release session (AI-assisted); independent second-person review is `NOT VERIFIED` |
@@ -27,6 +27,7 @@ Result vocabulary: `pass`, `fail`, `blocked` (depends on a buyer/account/legal a
 | 0.5 Merged candidate | PR #10 squash merge `98b17e0` | **pass** — the tested code candidate `16bdb3a` is the product code under test; the merge adds the evidence/doc commits | `git log main` |
 | 0.6 FR-071 follow-up merge | PR #11 squash merge `a7dab6e` | **pass** — branding wiring merged; current handover candidate | `git log main` |
 | 0.7 Mobile router fix | PR #12 squash merge `af371ef` | **pass** — provider modules moved to `src/providers`, `src/app` removed; launch/login/four tabs verified on Infinix X6882, Android 14; no emulator | `docs/STATUS.md` §7.20 |
+| 0.8 Empty spare-part investigation | PR #13 squash merge `da3f79d` | **pass** — test-data contamination confirmed; clean DB/device shows `BRK-001`; no product code changed | `docs/qa/empty-spare-parts-investigation.md` |
 
 ---
 
