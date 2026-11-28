@@ -35,7 +35,7 @@ export default function JualScreen() {
   const router = useRouter();
   const runtime = getRuntime();
   const { session } = useAuth();
-  const { online, conflicts, failed, pendingTotal, foreignPending, syncing, cacheAt, cacheFresh } = useSync();
+  const { online, conflicts, failed, pendingTotal, foreignPending, syncing, cacheAt, cacheFresh, cacheLoading, cacheError, refreshCache } = useSync();
   const {
     cart,
     outletName,
@@ -59,6 +59,8 @@ export default function JualScreen() {
   const [query, setQuery] = useState("");
   const [items, setItems] = useState<CachedCatalogItem[]>([]);
   const [catalogLoading, setCatalogLoading] = useState(true);
+  const [refreshingCatalog, setRefreshingCatalog] = useState(false);
+  const [itemsCacheAt, setItemsCacheAt] = useState<string | null>(null);
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
   const [announcement, setAnnouncement] = useState<string | null>(null);
@@ -88,6 +90,7 @@ export default function JualScreen() {
         .then((rows) => {
           if (cancelled) return;
           setItems(rows);
+          setItemsCacheAt(cacheAt);
           setCatalogError(null);
         })
         .catch(() => {
@@ -103,7 +106,7 @@ export default function JualScreen() {
       cancelled = true;
       clearTimeout(handle);
     };
-  }, [outletId, query, reloadToken, runtime, segment]);
+  }, [cacheAt, outletId, query, reloadToken, runtime, segment]);
 
   useEffect(() => {
     return () => {
@@ -112,8 +115,27 @@ export default function JualScreen() {
     };
   }, []);
 
+  function requestCatalogRefresh() {
+    if (refreshingCatalog) return;
+    setRefreshingCatalog(true);
+    void refreshCache()
+      .catch(() => undefined)
+      .finally(() => setRefreshingCatalog(false));
+  }
+
   const total = pricing?.total ?? 0n;
   const lineCount = cart.lines.reduce((sum, line) => sum + line.quantity, 0);
+  // A fresh sign-in refreshes the cache in the background; keep the loading
+  // state until that first snapshot lands instead of flashing "Belum ada data".
+  const catalogBusy =
+    catalogLoading ||
+    (items.length === 0 &&
+      (refreshingCatalog ||
+        (online &&
+          (cacheLoading ||
+            (cacheAt === null && cacheError === null) ||
+            itemsCacheAt !== cacheAt))));
+  const cacheRecovery = items.length === 0 && !query && online && cacheError !== null;
 
   function handleAdd(item: CachedCatalogItem) {
     addItem(item);
@@ -307,9 +329,7 @@ export default function JualScreen() {
           >
             {segment === "PRODUCT" ? "Spare part" : "Jasa"}
           </SectionTitle>
-          {catalogLoading ? (
-            <LoadingState label="Memuat katalog…" />
-          ) : catalogError ? (
+          {catalogError ? (
             <ErrorState
               message={catalogError}
               onRetry={() => {
@@ -317,13 +337,28 @@ export default function JualScreen() {
                 setReloadToken((value) => value + 1);
               }}
             />
+          ) : catalogBusy ? (
+            <LoadingState label="Memuat katalog…" />
+          ) : cacheRecovery ? (
+            <ErrorState
+              message={cacheError ?? "Katalog tidak dapat dimuat."}
+              retryLabel="Muat ulang katalog"
+              onRetry={requestCatalogRefresh}
+            />
           ) : items.length === 0 ? (
             <EmptyState
               title={query ? "Tidak ditemukan" : "Belum ada data"}
               body={
                 query
                   ? "Coba kata kunci lain atau periksa ejaan."
-                  : "Muat ulang data saat online agar katalog tersedia di perangkat."
+                  : online
+                    ? "Katalog belum tersedia di perangkat. Muat ulang untuk mengambil data terbaru."
+                    : "Muat ulang data saat online agar katalog tersedia di perangkat."
+              }
+              action={
+                !query && online ? (
+                  <TextLink label="Muat ulang" onPress={requestCatalogRefresh} />
+                ) : null
               }
             />
           ) : (

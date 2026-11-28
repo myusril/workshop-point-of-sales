@@ -170,6 +170,12 @@ against the freshly reseeded database.
 `logcat` during the session showed no catalog/network error; the only JS warning is the known
 development-only `ROUTE_NAMES_CHANGED` notice documented in §7.20, unrelated to the catalog.
 
+> **Correction (2026-11-28, follow-up in §7):** the app was not cleared before that run, so prior
+> SecureStore/SQLite state was present and the Jual list could render from cache before any explicit
+> refresh. It therefore did **not** exercise a fresh install with an empty queue — the path where the
+> bootstrap refresh was missing. The §2–§4 diagnosis of the contaminated-database symptom still
+> holds; the new finding is a separate defect in the empty-outbox sign-in path.
+
 ## 6. Recommendation
 
 - Before any device demo, either reseed the disposable dev database
@@ -181,3 +187,71 @@ development-only `ROUTE_NAMES_CHANGED` notice documented in §7.20, unrelated to
 - If the founder wants an OWNER/ADMIN mobile session to remember the last outlet used, or to prefer
   the seed/default outlet instead of the first by name, that is an auth/scope change and needs its
   own brief; it was deliberately not made here.
+
+## 7. Follow-up: fresh install with an empty outbox (2026-11-28)
+
+Branch `fix/mobile-initial-catalog-refresh`; delivery class `standard`. This is a **second, separate
+cause** of an empty Jual list, not a revision of §2–§4.
+
+### 7.1 Symptom and root cause
+
+On a clean seeded database and a freshly installed app, an Owner signs in while online and the
+header shows `Online`, yet Spare part shows `Belum ada data`. The API holds `BRK-001 — Kampas rem
+depan` (stock 20) and the login works. There is no outlet-switch control on a single-outlet install.
+
+Root cause in `apps/mobile/src/providers/SyncProvider.tsx`: the read cache was refreshed only inside
+`runNow()` and only when `summary.applied > 0`. A fresh sign-in with an empty outbox applies nothing,
+so no catalog request was made; the Jual tab reads only SQLite, so it stayed empty. The label
+therefore read `Stok sementara` with no data. A manual outlet switch refreshed the cache, which hid
+the defect on a multi-outlet demo database.
+
+This path was never exercised by the §5.1 device run: the app was not cleared, so the catalog was
+already in SQLite. The contaminated-database explanation and the read-path checks in §2–§4 stand.
+
+### 7.2 Fix
+
+- `SyncProvider` now refreshes the cache on every signed-in/online transition, keyed by
+  `${activeOutletId}:${online}`, independent of queue length. `runNow()` remains the upload path;
+  the refresh is a separate effect branch, it waits for NetInfo before any network call (the
+  `online` state starts optimistic), and the existing single-flight refresher dedupes an overlap.
+- After an applied sale, if a bootstrap snapshot was already in flight, the provider waits for it and
+  then takes one fresh snapshot. Joining alone could cache pre-sale stock and label it `Stok server`.
+- Refresh state is sequence-stamped so a superseded outlet/sign-out refresh cannot re-install an
+  error or clear the loading state of the replacement request.
+- The Jual tab re-reads SQLite when the cache timestamp changes, keeps a cached list visible during a
+  manual retry, shows `Memuat katalog…` until the first snapshot is rendered, shows a recoverable
+  `Muat ulang katalog` error when the refresh fails with no cached rows, and offers `Muat ulang` in
+  the genuinely empty state. No layout or token changed.
+
+### 7.3 Regression test
+
+`apps/mobile/tests/sync-bootstrap.test.tsx` renders the real Jual screen with the real `SyncProvider`
+over real SQLite (`node:sqlite`) and a fake runtime. Four cases:
+
+1. signed in, online, empty queue → the product and `Stok server` appear without any manual action;
+2. offline sign-in → no catalog request; the first online transition triggers exactly one;
+3. server returns no items → `Belum ada data` remains the honest empty state;
+4. an upload commits while the bootstrap snapshot is in flight → a second snapshot replaces the
+   pre-sale stock (19, not 20).
+
+With the bootstrap refresh removed, all four fail because `listCatalog` is never called. With only
+the post-upload join fix removed, case 4 fails with stale stock 20 labelled `Stok server`.
+
+### 7.4 Clean-database device verification — verified
+
+Device Infinix X6882 (Hot 50), Android 14, serial `13313704BD004233`, `adb devices` state `device`,
+no emulator or AVD started. The previous app install was removed (`adb shell pm uninstall
+com.example.workshoppos` → `Success`) so SecureStore and SQLite started empty.
+
+| Step | Observed |
+|---|---|
+| Database | `docker compose -f compose.dev.yaml down -v` → `up -d --wait db`; `npm run db:migrate`; `npm run db:seed` → `Seed complete: … 1 product, 1 service … stock-on-hand 20`; `provision:seed` → `users=4 credentials_created=4` |
+| API check | Mobile login → `activeOutletId b0000000-0000-4000-8000-000000000002`; `GET /api/v1/catalog/products` → `total 1`, `BRK-001 Kampas rem depan`, `stockOnHand 20`, same outlet |
+| Build/install | `npx expo run:android --device 13313704BD004233` (first prebuild) produced `android/app/build/outputs/apk/debug/app-debug.apk` (81 MB); installed with `adb install -r` → `Success` |
+| Transport | `adb reverse tcp:3000 tcp:3000` (API) and `tcp:8081 tcp:8081` (Metro); Metro started with `EXPO_PUBLIC_API_URL=http://127.0.0.1:3000` |
+| Sign-in | `owner@example.com` (seed Owner Rina Wijaya) + provisioned password → PIN enrollment (6 digits, entered twice) → Jual tab. No outlet switch, no manual refresh, no catalog button pressed |
+| Jual result | `Outlet Pusat`, `Pemilik: Rina Wijaya`, `Online`; Spare part shows `Kampas rem depan`, `BRK-001 · stok 20`, `Rp 250.000`; section label `Stok server · 28 Nov 2026 15.46 WIB` |
+| Logs | `adb logcat -d -t 400` filtered for React Native error/warn, catalog, and sync lines → no matches |
+
+A device screenshot was captured at that moment as local, uncommitted evidence. The offline
+sale/payment/queue flow was **not** part of this task and remains the next verification step.
