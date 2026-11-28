@@ -1,6 +1,10 @@
 "use client";
 
-import type { OutletSummary, SessionPayload } from "@workshop-pos/contracts";
+import type {
+  Branding,
+  OutletSummary,
+  SessionPayload,
+} from "@workshop-pos/contracts";
 import {
   BarChart3,
   Boxes,
@@ -34,6 +38,7 @@ import {
 
 import { NETWORK_ERROR_MESSAGE, readApiError } from "@/components/auth/api-error";
 import { ROLE_LABELS } from "@/components/auth/labels";
+import { homeBrandLabel, ProductBrand } from "@/components/product-brand";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -94,11 +99,14 @@ interface BackOfficeShellProps {
   session: SessionPayload;
   /** Role-filtered destinations resolved on the server. */
   navItems: BackOfficeNavItem[];
+  /** Buyer product name and logo (FR-071), read on the server. */
+  branding: Branding;
   children: ReactNode;
 }
 
 interface SidebarContentProps {
   session: SessionPayload;
+  branding: Branding;
   collapsed: boolean;
   navItems: BackOfficeNavItem[];
   outlets: OutletSummary[];
@@ -112,6 +120,7 @@ interface SidebarContentProps {
 
 function SidebarContent({
   session,
+  branding,
   collapsed,
   navItems,
   outlets,
@@ -132,8 +141,18 @@ function SidebarContent({
   return (
     <>
       <div className="bo-sidebar__brand">
-        <Link href="/" className="bo-wordmark" aria-label="Workshop POS — Beranda" onClick={onNavigate}>
-          {collapsed ? "WP" : "Workshop POS"}
+        <Link
+          href="/"
+          className="bo-wordmark"
+          aria-label={homeBrandLabel(branding.productName)}
+          title={branding.productName}
+          onClick={onNavigate}
+        >
+          <ProductBrand
+            productName={branding.productName}
+            logoPath={branding.logoPath}
+            compact={collapsed}
+          />
         </Link>
         {showCollapseToggle ? (
           <button
@@ -296,7 +315,7 @@ function ConnectionChip() {
  * below 1024 px), 56 px top bar with global search, and the `#konten-utama`
  * focus target. Navigation is filtered by the signed-in role.
  */
-export function BackOfficeShell({ session, navItems, children }: BackOfficeShellProps) {
+export function BackOfficeShell({ session, navItems, branding, children }: BackOfficeShellProps) {
   const router = useRouter();
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -392,6 +411,7 @@ export function BackOfficeShell({ session, navItems, children }: BackOfficeShell
 
   const sidebarProps = {
     session,
+    branding,
     collapsed,
     navItems,
     outlets,
@@ -450,8 +470,16 @@ export function BackOfficeShell({ session, navItems, children }: BackOfficeShell
             </Dialog.Portal>
           </Dialog.Root>
 
-          <Link href="/" className="bo-topbar__mobile-brand">
-            Workshop POS
+          <Link
+            href="/"
+            className="bo-topbar__mobile-brand"
+            aria-label={homeBrandLabel(branding.productName)}
+            title={branding.productName}
+          >
+            <ProductBrand
+              productName={branding.productName}
+              logoPath={branding.logoPath}
+            />
           </Link>
 
           <form className="bo-search" action="/catalog" method="get" role="search">

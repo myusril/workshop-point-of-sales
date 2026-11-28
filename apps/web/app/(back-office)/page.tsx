@@ -3,18 +3,38 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { ROLE_LABELS } from "@/components/auth/labels";
-import { getSessionPayload, requirePageAuthContext } from "@/lib/auth/server";
-
-export const metadata: Metadata = {
-  title: "Beranda — Workshop POS",
-};
+import {
+  getAuthRuntime,
+  getPageAuthContext,
+  getSessionPayload,
+  requirePageAuthContext,
+} from "@/lib/auth/server";
+import {
+  DEFAULT_PRODUCT_NAME,
+  getBrandingForBusiness,
+} from "@/lib/settings-service";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const authContext = await getPageAuthContext();
+  if (!authContext) return { title: `Beranda — ${DEFAULT_PRODUCT_NAME}` };
+
+  const branding = await getBrandingForBusiness(
+    getAuthRuntime().db,
+    authContext.user.businessId,
+  );
+  return { title: `Beranda — ${branding.productName}` };
+}
 
 export default async function HomePage() {
   // The guard explains an idle-timeout sign-out (reason=expired) on /login.
   const authContext = await requirePageAuthContext();
   const session = await getSessionPayload(authContext);
+  const branding = await getBrandingForBusiness(
+    getAuthRuntime().db,
+    authContext.user.businessId,
+  );
   const roleLabel = ROLE_LABELS[session.user.role];
   const activeOutlet = session.outlets.find((outlet) => outlet.id === session.session.activeOutletId) ?? null;
   const canManageUsers = can(session.user.role, "manage_users");
@@ -25,7 +45,7 @@ export default async function HomePage() {
     <main className="wp3-page">
         <header className="wp3-page__header">
           <div>
-            <h1 className="wp3-page__title">Workshop POS</h1>
+            <h1 className="wp3-page__title wp3-page__title--brand">{branding.productName}</h1>
             <p className="wp3-page__lead">
               Masuk sebagai {session.user.name}, {roleLabel}
               {activeOutlet ? `, ${activeOutlet.name}` : ""}.

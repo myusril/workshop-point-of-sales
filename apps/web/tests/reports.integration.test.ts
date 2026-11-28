@@ -1007,6 +1007,48 @@ describe("settings and branding (FR-070, FR-071)", () => {
       .where(eq(tables.auditLog.action, "branding.updated"));
     expect(rows).toHaveLength(1);
   });
+
+  it("lets every role read branding while settings stay Owner-only", async () => {
+    const cashierRead = await settingsService.getBrandingForBusiness(db, BUSINESS_ID);
+    expect(cashierRead).toEqual({ productName: "Bengkel Uji POS", logoPath: "/logo.svg" });
+
+    const installationRead = await settingsService.getInstallationBranding(db);
+    expect(installationRead.productName).toBe("Bengkel Uji POS");
+
+    await expectRejection(() => settingsService.getBranding(db, cashierA), "FORBIDDEN");
+    await expectRejection(() => settingsService.getBranding(db, admin), "FORBIDDEN");
+    await expectRejection(
+      () =>
+        settingsService.updateBranding(db, cashierA, {
+          productName: "Bengkel Lain",
+          logoPath: null,
+        }),
+      "FORBIDDEN",
+    );
+  });
+
+  it("drops a protocol-relative logo instead of rendering a third-party origin", async () => {
+    // The contract's local-path pattern admits `//host/file.png`; the display
+    // path must not turn that into an off-origin image request.
+    await db
+      .update(tables.businesses)
+      .set({
+        productDisplayName: "Bengkel Uji POS",
+        logoPath: "//cdn.example.com/logo.png",
+      })
+      .where(eq(tables.businesses.id, BUSINESS_ID));
+
+    const read = await settingsService.getBrandingForBusiness(db, BUSINESS_ID);
+    expect(read).toEqual({ productName: "Bengkel Uji POS", logoPath: null });
+
+    const installationRead = await settingsService.getInstallationBranding(db);
+    expect(installationRead.logoPath).toBeNull();
+
+    await db
+      .update(tables.businesses)
+      .set({ logoPath: "/logo.svg" })
+      .where(eq(tables.businesses.id, BUSINESS_ID));
+  });
 });
 
 describe("12-month performance at NFR-013 volumes", () => {

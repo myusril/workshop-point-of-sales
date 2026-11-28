@@ -1,6 +1,7 @@
 "use client";
 
 import { loginResponseSchema } from "@workshop-pos/contracts";
+import type { Branding } from "@workshop-pos/contracts";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 
@@ -10,15 +11,17 @@ import {
   readApiError,
   type FormErrorState,
 } from "@/components/auth/api-error";
+import { ProductBrand } from "@/components/product-brand";
 
 interface LoginFormProps {
+  branding: Branding;
   nextPath: string | null;
   notice: string | null;
 }
 
 const LOCKOUT_FALLBACK_SECONDS = 15 * 60;
 
-export function LoginForm({ nextPath, notice }: LoginFormProps) {
+export function LoginForm({ branding, nextPath, notice }: LoginFormProps) {
   const router = useRouter();
   const identifierId = useId();
   const passwordId = useId();
@@ -106,7 +109,9 @@ export function LoginForm({ nextPath, notice }: LoginFormProps) {
   return (
     <main className="wp3-login-shell">
       <div className="wp3-login-card">
-        <p className="wp3-brand">Workshop POS</p>
+        <p className="wp3-brand">
+          <ProductBrand productName={branding.productName} logoPath={branding.logoPath} />
+        </p>
         <h1 className="wp3-login-title">Masuk</h1>
         <p className="wp3-login-lead">Gunakan akun staf bengkel Anda untuk membuka back-office.</p>
 

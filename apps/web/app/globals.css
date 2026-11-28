@@ -275,6 +275,10 @@ body {
 }
 
 .wp3-brand {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
   margin: 0;
   color: var(--auth-text);
   font-size: 14px;
@@ -1343,24 +1347,80 @@ body {
 }
 
 .bo-shell[data-collapsed="true"] .bo-sidebar__brand {
+  gap: var(--wpos-space-4);
   justify-content: center;
+  /* Cancel the sidebar gutter so the 20 px mark and the 44 px toggle share the
+     full 72 px rail instead of wrapping. */
+  margin-inline: calc(-1 * var(--wpos-space-12));
   padding-inline: 0;
-}
-
-.bo-shell[data-collapsed="true"] .bo-sidebar__brand .bo-wordmark {
-  display: none;
 }
 
 .bo-wordmark {
   display: inline-flex;
+  gap: var(--wpos-space-8);
   align-items: center;
+  min-width: 0;
+  max-width: 100%;
   min-height: var(--wpos-target-web);
+  overflow: hidden;
   color: var(--wpos-color-text-primary);
   font-size: var(--wpos-text-body-strong-size);
   font-weight: 600;
   letter-spacing: 0.01em;
   text-decoration: none;
   white-space: nowrap;
+}
+
+.bo-sidebar__brand .bo-wordmark {
+  flex: 1 1 auto;
+}
+
+.bo-shell[data-collapsed="true"] .bo-sidebar__brand .bo-wordmark {
+  flex: 0 0 auto;
+}
+
+/* Buyer branding mark (FR-071): logo, name, and initials share one sizing and
+   truncation rule on the shell wordmark, the collapsed rail, and the login
+   card. An 80-character name ellipsizes instead of widening the 264/72 px
+   sidebar or the mobile top bar. */
+.product-brand__logo {
+  display: block;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.product-brand__logo--compact {
+  width: 20px;
+  height: 20px;
+}
+
+.product-brand__initials {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  min-height: 20px;
+  color: var(--wpos-color-text-primary);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 20px;
+}
+
+.product-brand__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A buyer name is free text up to 80 characters; a single long token must wrap
+   instead of widening the page at 1024 px and below. */
+.wp3-page__title--brand {
+  overflow-wrap: anywhere;
 }
 
 .bo-frame {
@@ -1412,8 +1472,12 @@ body {
 
 .bo-topbar__mobile-brand {
   display: inline-flex;
+  gap: var(--wpos-space-8);
   align-items: center;
+  min-width: 0;
+  max-width: 100%;
   min-height: var(--wpos-target-web);
+  overflow: hidden;
   color: var(--wpos-color-text-primary);
   font-size: var(--wpos-text-body-strong-size);
   font-weight: 600;
