@@ -23,7 +23,7 @@ Result vocabulary: `pass`, `fail`, `blocked` (depends on a buyer/account/legal a
 | 0.1 Clean machine without seller credentials | — | **NOT VERIFIED** — the rehearsal ran on the seller's development workstation, not a clean OS user. Buyer must repeat on its own clean host | — |
 | 0.2 Pinned toolchain | Node `v26.13.1`, npm 11.x, Docker `29.4.0`, PostgreSQL image `postgres:19-alpine`, gitleaks `8.30.1` | **pass** | `0-environment.log` |
 | 0.3 Delivery candidate is a commit | Working tree committed before the gate; build outputs and `.env` are ignored | **pass** | `git status --porcelain` at commit time |
-| 0.4 Candidate commit | `git rev-parse HEAD` | **`<CANDIDATE_SHA>`** (filled at commit; the evidence-only follow-up commit does not change code, config, tests, or the lockfile) | `0.4-candidate-commit.log` |
+| 0.4 Candidate commit | `git rev-parse HEAD` | **`f96f2c1648e386229a2de088d18808912573c5a4`** (code candidate; the evidence-only follow-up commit adds this document's final counts but changes no code, config, test, or lockfile) | `0.4-candidate-commit.log` |
 
 ---
 
