@@ -115,7 +115,7 @@ Dark-mode tokens were not re-measured in this run; the shipped web app is light-
 | Long content | **Static PASS** — the sheet body scrolls inside an 85% height cap while the action row stays pinned; a 10-printer/font-scale run is **NOT VERIFIED** (no device) |
 | Receipt preview | **PASS (code review)** — the preview no longer replaces its content with the label “Pratinjau struk”; TalkBack can read the receipt rows. Device announcement quality is **NOT VERIFIED** |
 | Primary action hierarchy | **PASS** — “Cetak struk” is the primary action and appears above the secondary share/PDF buttons, matching DESIGN §7.6 |
-| Screen-reader/TalkBack labels on the sale and receipt path | **NOT VERIFIED** — no Android device attached (`adb devices` empty) |
+| Screen-reader/TalkBack labels on the sale and receipt path | **NOT VERIFIED** — a real Infinix X6882/Android 14 device was attached and launch/login/four tabs were verified (PR #12), but TalkBack announcement quality and touch-target audit on the sale/receipt path were not performed |
 | System font scaling / large text | **NOT VERIFIED** — no device |
 | 58/80 mm receipt preview | **PASS (unit/DOM)** — receipt columns 35/48 and paper width are covered by the printing/receipt tests |
 | Direct Bluetooth printing | **NOT VERIFIED on hardware** — the native module compiles into the debug APK and exposes the expected permissions, but no physical printer was available; see `docs/ops/handover-evidence.md` §WP9A |
