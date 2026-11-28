@@ -1,6 +1,6 @@
 # AGENTS.md — Engineering Guide
 
-> **Repository state: WP1–WP8 merged on `main` (WP8 PR #9, `c93acc3`).** WP1 (walking skeleton/tooling, PR #1), WP2 (schema/migrations/seed, PR #2), WP3 (auth/RBAC/users/outlets, PR #3), WP4 (web shell, domain core, catalog, inventory, PR #4 `cdf3036`), WP5 (customers, vehicles, plate history, PR #5 `8a2a550`), WP6 (orders, pricing, payments, receipts, PR #6 `9f2fc8f`), WP6.1 (server offline-sync seam, PR #7 `c8a38ec`), WP7 (mobile offline POS, PR #8 `589418d`), and WP8 (Asia/Jakarta reports, CSV export, Owner-only audit/settings, CI, git hooks) are merged. WP9 (handover evidence, accessibility sign-off, encrypted backup/restore, generic ESC/POS Bluetooth printing) is implemented on `feat/wp9-handover-a11y-backup`. Every command below is executable against this tree; only results recorded in `docs/STATUS.md` §7 and `docs/ops/handover-evidence.md` count as verified.
+> **Repository state: WP1–WP9 merged on `main` (WP9 PR #10, `98b17e0`).** WP1 (walking skeleton/tooling, PR #1), WP2 (schema/migrations/seed, PR #2), WP3 (auth/RBAC/users/outlets, PR #3), WP4 (web shell, domain core, catalog, inventory, PR #4 `cdf3036`), WP5 (customers, vehicles, plate history, PR #5 `8a2a550`), WP6 (orders, pricing, payments, receipts, PR #6 `9f2fc8f`), WP6.1 (server offline-sync seam, PR #7 `c8a38ec`), WP7 (mobile offline POS, PR #8 `589418d`), and WP8 (Asia/Jakarta reports, CSV export, Owner-only audit/settings, CI, git hooks) are merged. WP9 (handover evidence, accessibility sign-off, encrypted backup/restore, generic ESC/POS Bluetooth printing) is merged as PR #10; FR-071 branding wiring and real-device/hardware checks remain open. Every command below is executable against this tree; only results recorded in `docs/STATUS.md` §7 and `docs/ops/handover-evidence.md` count as verified.
 
 ## Product and stack
 
@@ -98,8 +98,8 @@ Owned by `docs/plan/work-packages.md`; two work packages never own the same path
 | `packages/contracts/src/sync.ts`, `apps/web/app/api/v1/sync/**`, offline-sale application in `apps/web/lib/order-service.ts` | WP6.1 (merged) |
 | `apps/mobile/` | WP7 (merged, `589418d`); WP9 adds only `modules/escpos-bluetooth/`, `src/printing/{bluetooth-transport,PrinterPicker}`, receipt-screen wiring, permissions, and their tests under the founder's 2026-11-28 `native_now` decision |
 | reports/audit/settings/export contracts, API, screens; `packages/core/src/report-period.ts`; `.woodpecker/**`, `.githooks/**`, `scripts/install-hooks.sh` | WP8 (merged, `c93acc3`) |
-| `docs/ops/backup-runbook.md`, `docs/ops/handover-evidence.md`, `docs/ui/a11y-audit.md`, `THIRD_PARTY_NOTICES.md`, `docker/backup.Dockerfile`, `compose.yaml` backup section, `.env.example` backup variables, buyer quickstart verification | WP9 (active) |
-| `README.md` (WP9 re-verifies the quickstart), `docs/STATUS.md`, `AGENTS.md`, `.gitignore` generated-native-project rule | WP9 (revision) |
+| `docs/ops/backup-runbook.md`, `docs/ops/handover-evidence.md`, `docs/ui/a11y-audit.md`, `THIRD_PARTY_NOTICES.md`, `docker/backup.Dockerfile`, `compose.yaml` backup section, `.env.example` backup variables, buyer quickstart verification | WP9 (merged) |
+| `README.md` (WP9 re-verifies the quickstart), `docs/STATUS.md`, `AGENTS.md`, `.gitignore` generated-native-project rule | WP9 (merged revision) |
 | `docs/product/**`, `docs/adr/**`, `docs/ops/handover-checklist.md`, `docs/plan/**` | PM / architect / reviewer roles — not an implementation WP |
 
 Need a change in a path you do not own? Ask the owner; do not edit across ownership boundaries.

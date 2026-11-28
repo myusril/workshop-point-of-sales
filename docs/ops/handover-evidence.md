@@ -4,7 +4,7 @@
 | --- | --- |
 | Product | Workshop POS |
 | Delivery class | Release (WP9) |
-| Candidate | `feat/wp9-handover-a11y-backup`; frozen commit recorded in §0.4 after the candidate commit |
+| Candidate | `main` at `98b17e0` (PR #10); evidence was executed on code candidate `16bdb3a` before the squash merge |
 | Evidence date | 2026-11-28 |
 | Evidence location | `/tmp/wp9-evidence-20261128` on the seller workstation (outside the repository; not shipped) |
 | Operator | Seller release session (AI-assisted); independent second-person review is `NOT VERIFIED` |
@@ -23,7 +23,8 @@ Result vocabulary: `pass`, `fail`, `blocked` (depends on a buyer/account/legal a
 | 0.1 Clean machine without seller credentials | — | **NOT VERIFIED** — the rehearsal ran on the seller's development workstation, not a clean OS user. Buyer must repeat on its own clean host | — |
 | 0.2 Pinned toolchain | Node `v26.13.1`, npm 11.x, Docker `29.4.0`, PostgreSQL image `postgres:19-alpine`, gitleaks `8.30.1` | **pass** | `0-environment.log` |
 | 0.3 Delivery candidate is a commit | Working tree committed before the gate; build outputs and `.env` are ignored | **pass** | `git status --porcelain` at commit time |
-| 0.4 Candidate commit | `git rev-parse HEAD` | **`16bdb3aa09eabe07123be3939a28909c7686b6b1`** (code candidate; the post-gate evidence commit only fills §C/§7.18 and dispositions — no product, config, or lockfile change) | `0.4-candidate-commit.log` |
+| 0.4 Candidate commit | `git rev-parse HEAD` | **`16bdb3aa09eabe07123be3939a28909c7686b6b1`** (code candidate; merged to `main` as `98b17e0`, PR #10; the post-gate evidence commit only fills §C/§7.18 and dispositions — no product, config, or lockfile change) | `0.4-candidate-commit.log` |
+| 0.5 Merged candidate | PR #10 squash merge `98b17e0` | **pass** — the tested code candidate `16bdb3a` is the product code under test; the merge adds the evidence/doc commits | `git log main` |
 
 ---
 
