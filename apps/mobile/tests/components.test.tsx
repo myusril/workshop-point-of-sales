@@ -26,7 +26,7 @@ const mockAuth = {
   canOverrideStock: false,
 };
 
-jest.mock("@/src/app/AuthProvider", () => ({
+jest.mock("@/src/providers/AuthProvider", () => ({
   useAuth: () => mockAuth,
 }));
 
@@ -93,7 +93,7 @@ const conflictRow = {
   },
 };
 
-jest.mock("@/src/app/SyncProvider", () => ({
+jest.mock("@/src/providers/SyncProvider", () => ({
   useSync: () => ({
     queue: [conflictRow],
     online: true,
@@ -115,7 +115,7 @@ const mockRuntime = {
   engine: { resolve: jest.fn() },
 };
 
-jest.mock("@/src/app/runtime", () => ({
+jest.mock("@/src/providers/runtime", () => ({
   getRuntime: () => mockRuntime,
 }));
 

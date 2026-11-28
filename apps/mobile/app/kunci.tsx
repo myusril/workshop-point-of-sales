@@ -3,8 +3,8 @@ import { useState } from "react";
 import { Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { useAuth } from "@/src/app/AuthProvider";
-import { useSync } from "@/src/app/SyncProvider";
+import { useAuth } from "@/src/providers/AuthProvider";
+import { useSync } from "@/src/providers/SyncProvider";
 import { PIN_LENGTH } from "@/src/auth/pin";
 import { NumericKeypad } from "@/src/components/NumericKeypad";
 import { Notice } from "@/src/components/forms";

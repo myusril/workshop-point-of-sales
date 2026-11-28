@@ -3,7 +3,7 @@ import { Boxes, ClipboardList, Menu, ShoppingCart } from "lucide-react-native";
 import type { ComponentType } from "react";
 import { View } from "react-native";
 
-import { useAuth } from "@/src/app/AuthProvider";
+import { useAuth } from "@/src/providers/AuthProvider";
 import { useTheme } from "@/src/theme/ThemeProvider";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 

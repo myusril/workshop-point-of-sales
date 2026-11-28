@@ -12,8 +12,8 @@ import {
 import { AppState } from "react-native";
 
 import { ApiError, NetworkError } from "@/src/api/client";
-import { useAuth } from "@/src/app/AuthProvider";
-import { getRuntime } from "@/src/app/runtime";
+import { useAuth } from "@/src/providers/AuthProvider";
+import { getRuntime } from "@/src/providers/runtime";
 import { getCacheRefreshed, listQueue, type QueueRow } from "@/src/db/repository";
 import type { SyncRunSummary } from "@/src/sync/engine";
 

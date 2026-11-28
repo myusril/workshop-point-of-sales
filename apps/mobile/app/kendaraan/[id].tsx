@@ -4,9 +4,9 @@ import { useEffect, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { useAuth } from "@/src/app/AuthProvider";
-import { getRuntime } from "@/src/app/runtime";
-import { useSync } from "@/src/app/SyncProvider";
+import { useAuth } from "@/src/providers/AuthProvider";
+import { getRuntime } from "@/src/providers/runtime";
+import { useSync } from "@/src/providers/SyncProvider";
 import { Header, Money } from "@/src/components/chrome";
 import { EmptyState, Notice, SectionTitle } from "@/src/components/forms";
 import { Card } from "@/src/components/ui";

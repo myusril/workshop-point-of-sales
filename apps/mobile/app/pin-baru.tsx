@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { useAuth } from "@/src/app/AuthProvider";
+import { useAuth } from "@/src/providers/AuthProvider";
 import { NumericKeypad } from "@/src/components/NumericKeypad";
 import { Notice } from "@/src/components/forms";
 import { Button } from "@/src/components/ui";

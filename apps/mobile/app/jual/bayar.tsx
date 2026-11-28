@@ -6,9 +6,9 @@ import { formatIdr } from "@workshop-pos/core";
 import type { PaymentMethod } from "@workshop-pos/contracts";
 
 import { hasAction } from "@/src/auth/session-store";
-import { useAuth } from "@/src/app/AuthProvider";
-import { useSale } from "@/src/app/SaleProvider";
-import { useSync } from "@/src/app/SyncProvider";
+import { useAuth } from "@/src/providers/AuthProvider";
+import { useSale } from "@/src/providers/SaleProvider";
+import { useSync } from "@/src/providers/SyncProvider";
 import { Header, Money } from "@/src/components/chrome";
 import { NumericKeypad } from "@/src/components/NumericKeypad";
 import { EmptyState, Field, Notice } from "@/src/components/forms";

@@ -42,7 +42,7 @@
 | `docs/ops/handover-checklist.md` | Seller pre-delivery verification and evidence checklist | Executed in WP9; results and `NOT VERIFIED` items in `docs/ops/handover-evidence.md`; buyer/account/hardware items remain open |
 | `docs/ops/decision-policy.md` | Tier 1/2/3 decision authority for the buyer's team | Draft |
 | `README.md`, `AGENTS.md` | Buyer setup guide and engineering rules | README carries the verified setup/gate/CI commands, hook install, real-device-only mobile path, backup enablement, licence/privacy pointers, and no internal paths; AGENTS.md records WP1–WP9 merged, CI/hooks, backup/RPO convention, generic ESC/POS transport (Epson SDK still `REVIEW`), and the optional-tooling keep decision |
-| `apps/mobile/` | Expo Android app + local SQLite cache/outbox + Jest/RNTL suite | WP7 (`589418d`) plus WP9 direct printing: project-owned Bluetooth SPP module, printer picker, 86 mobile unit tests green, Android debug build compiled; real-device printing/TalkBack `NOT VERIFIED` |
+| `apps/mobile/` | Expo Android app + local SQLite cache/outbox + Jest/RNTL suite | WP7 (`589418d`) plus WP9 direct printing: project-owned Bluetooth SPP module, printer picker, 86 mobile unit tests green, Android debug build compiled. `fix/mobile-router-root` (§7.20) moves the provider/runtime modules to `src/providers`, adds the route-root guard (88 tests / 13 suites), and verifies launch, Owner login, and the four tabs on a real Infinix X6882; real-device printing/TalkBack `NOT VERIFIED` |
 | `.omp/`, `orca.yaml`, `.worktreeinclude`, `AGENTS.md` | Optional development aids | Founder decision 2026-11-28: keep as optional tooling; README states they may be deleted without affecting the product; `.brief/` stays untracked |
 
 ---
@@ -555,6 +555,30 @@ Branch `feat/fr071-branding-wiring`; `fnm exec --using=26.13.1 -- bash scripts/c
 **Logo origin:** only a same-origin path (`/…`) or an explicit `https://` URL is rendered. The contract's local-path pattern also admits protocol-relative values (`//host/file.png`); those are dropped on read and covered by an integration test.
 
 **Not verified:** mobile/Android branding parity, real-device printing, TalkBack, and the remote CI run remain `NOT VERIFIED`.
+
+---
+
+### 7.20 Mobile router root — real-device navigation (2026-11-28)
+
+Branch `fix/mobile-router-root`; delivery class `standard`; device Infinix X6882 (Hot 50), Android 14, arm64-v8a, `adb devices` state `device`, no emulator started.
+
+| Check | Result |
+|---|---|
+| Root cause | `@expo/cli` `getRouterDirectory` returns `src/app` whenever that directory exists, checking it before `app`. `apps/mobile/src/app` held only provider/runtime modules, so Expo Router treated them as routes: Metro logged `Using src/app as the root directory for Expo Router` and one `Route "./AuthProvider.tsx" ... missing the required default export` per module, and the device opened `workshoppos:///` as "Unmatched Route". Navigation had never been exercised on a device, so no JS test caught it |
+| Fix | `AuthProvider`, `AutoLock`, `RuntimeProvider`, `SaleProvider`, `SessionGate`, `SyncProvider`, and `runtime.ts` moved from `src/app/` to `src/providers/`; every `@/src/app/...` import rewritten in `app/**`, `src/providers/**`, and `tests/**`; `src/app/` removed. No auth, API, money, schema, or UI behavior changed |
+| Convention | `apps/mobile/app/**` holds route modules only (all 20 files export a default component); shared providers/runtime live in `src/providers/**`; `src/app` must not exist |
+| Regression guard | `apps/mobile/tests/router-root.test.ts` fails if `src/app` is recreated, if a provider module is missing from `src/providers`, or if one reappears under `app/` |
+| Mobile tests | **PASS** — 88 tests / 13 suites (86 existing + 2 route-root guard tests) |
+| `npm run typecheck` / `npm run lint` (`@workshop-pos/mobile`) | **PASS** — 0 errors, 0 warnings |
+| Metro | Clean cache (`.expo` and the Metro cache removed); bundle rebuilt (3859 modules). No `Using src/app as the root directory for Expo Router` line and no `missing the required default export` warning |
+| Install | `npx expo run:android --device 13313704BD004233` → `BUILD SUCCESSFUL in 4m 18s`, debug APK installed and launched via `workshoppos://` |
+| Cold start | `am force-stop` + `am start` → `Perangkat terkunci` PIN lock screen, no "Unmatched Route" |
+| Owner login | Seed Owner (local disposable password provisioned for this run, never committed; API reached over `adb reverse tcp:3000`) → PIN enrollment → Jual shell with `Outlet Pusat`, `Pemilik: Rina Wijaya`, Online chip, `Stok server · 28 Nov 2026 13.45 WIB` after a catalog reload |
+| Four tabs | Jual / Pesanan / Stok / Lainnya all render after login |
+| Dev-only warning | One `The action 'ROUTE_NAMES_CHANGED' ... was not handled by any navigator` warning is logged during the login transition; React Native marks it development-only and it does not appear in production builds. No functional impact observed and it is unrelated to the route root; left unchanged (auth/navigation behavior is out of scope for this fix) |
+| `gitleaks dir .` | **PASS after disposition** — first scan flagged 6 entries, all inside gitignored `apps/web/.next/dev` caches; caches deleted, rescan of 21.09 MB found no leaks |
+| `bash scripts/check.sh` | **PASS** — exit 0, 305 s, `All gates passed.` License report clean, typecheck and lint 0 errors, `test:unit` (mobile 88/13 suites, web 125, auth 208, contracts 77, core 55, db 11, design-tokens 4 = **568**), `test:integration` (web 173, auth 41, db 63 = **277**), `test:e2e:web` (65 Chromium tests), `next build` succeeded. Run as `env -u NODE_ENV … bash scripts/check.sh`: this Orca session exports `NODE_ENV=development`, and `next.config.mjs` loads the root `.env` without overriding it, so a plain `next build` in that shell compiles in development mode and crashes prerendering `/_global-error` (`Cannot read properties of null (reading 'useContext')`). The failure reproduces on pristine `daf1852` and disappears once the inherited variable is unset, so it is a session-environment artifact, not a repo defect or a branch regression; no web file changed |
+| Still `NOT VERIFIED` | Real 58/80 mm printing, TalkBack, tablet layout, offline sale/queue flow on the device, and any screen beyond launch, login, and the four-tab switch |
 
 ## 8. Approved kickoff decisions
 

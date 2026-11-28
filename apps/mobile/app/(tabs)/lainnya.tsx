@@ -4,8 +4,8 @@ import { Alert, Pressable, ScrollView, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { STAFF_ROLE_LABELS } from "@/src/domain/order-labels";
-import { useAuth } from "@/src/app/AuthProvider";
-import { useSync } from "@/src/app/SyncProvider";
+import { useAuth } from "@/src/providers/AuthProvider";
+import { useSync } from "@/src/providers/SyncProvider";
 import { Header, SyncChip } from "@/src/components/chrome";
 import { Divider, Notice, SectionTitle } from "@/src/components/forms";
 import { Card, TextLink } from "@/src/components/ui";

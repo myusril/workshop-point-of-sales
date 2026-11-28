@@ -4,8 +4,8 @@ import { AccessibilityInfo, findNodeHandle, ScrollView, Text, View } from "react
 import { SafeAreaView } from "react-native-safe-area-context";
 import { formatIdr } from "@workshop-pos/core";
 
-import { getRuntime } from "@/src/app/runtime";
-import { useSync } from "@/src/app/SyncProvider";
+import { getRuntime } from "@/src/providers/runtime";
+import { useSync } from "@/src/providers/SyncProvider";
 import { Button, Card, type PressableHandle } from "@/src/components/ui";
 import { Header } from "@/src/components/chrome";
 import { ErrorState, LoadingState, Notice, SectionTitle } from "@/src/components/forms";
