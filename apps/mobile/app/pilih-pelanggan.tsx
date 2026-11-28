@@ -3,9 +3,9 @@ import { useEffect, useState } from "react";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { useAuth } from "@/src/app/AuthProvider";
-import { getRuntime } from "@/src/app/runtime";
-import { useSale } from "@/src/app/SaleProvider";
+import { useAuth } from "@/src/providers/AuthProvider";
+import { getRuntime } from "@/src/providers/runtime";
+import { useSale } from "@/src/providers/SaleProvider";
 import { Header } from "@/src/components/chrome";
 import { EmptyState, LoadingState } from "@/src/components/forms";
 import { TextLink } from "@/src/components/ui";

@@ -1,7 +1,7 @@
 import { Text } from "react-native";
 import { render, screen } from "@testing-library/react-native";
 
-import { AutoLock } from "@/src/app/AutoLock";
+import { AutoLock } from "@/src/providers/AutoLock";
 
 const lock = jest.fn();
 const expireSession = jest.fn();
@@ -23,7 +23,7 @@ const mockAuth = {
   expireSession,
 };
 
-jest.mock("@/src/app/AuthProvider", () => ({
+jest.mock("@/src/providers/AuthProvider", () => ({
   useAuth: () => mockAuth,
 }));
 

@@ -9,9 +9,9 @@ import {
 } from "react";
 
 import { hasAction, type StoredSession } from "@/src/auth/session-store";
-import { useAuth } from "@/src/app/AuthProvider";
-import { getRuntime } from "@/src/app/runtime";
-import { useSync } from "@/src/app/SyncProvider";
+import { useAuth } from "@/src/providers/AuthProvider";
+import { getRuntime } from "@/src/providers/runtime";
+import { useSync } from "@/src/providers/SyncProvider";
 import type { CachedCatalogItem, OutletSettings } from "@/src/db/repository";
 import { getOutletSettings } from "@/src/db/repository";
 import { commitLocalSale, type CommitSaleResult } from "@/src/domain/commit-sale";

@@ -4,7 +4,7 @@ import { KeyboardAvoidingView, Platform, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ApiError, NetworkError } from "@/src/api/client";
-import { useAuth } from "@/src/app/AuthProvider";
+import { useAuth } from "@/src/providers/AuthProvider";
 import { Button } from "@/src/components/ui";
 import { Field, Notice, Screen } from "@/src/components/forms";
 import { useTheme } from "@/src/theme/ThemeProvider";

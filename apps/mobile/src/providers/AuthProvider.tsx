@@ -8,7 +8,7 @@ import {
   countQueue,
   purgeLocalData,
 } from "@/src/db/repository";
-import { getRuntime } from "@/src/app/runtime";
+import { getRuntime } from "@/src/providers/runtime";
 import { clearReceiptFiles } from "@/src/printing/receipt-files";
 
 /**

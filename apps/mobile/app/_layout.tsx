@@ -11,12 +11,12 @@ import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
-import { AuthProvider, useAuth } from "@/src/app/AuthProvider";
-import { AutoLock } from "@/src/app/AutoLock";
-import { RuntimeProvider } from "@/src/app/RuntimeProvider";
-import { SaleProvider } from "@/src/app/SaleProvider";
-import { SessionGate } from "@/src/app/SessionGate";
-import { SyncProvider } from "@/src/app/SyncProvider";
+import { AuthProvider, useAuth } from "@/src/providers/AuthProvider";
+import { AutoLock } from "@/src/providers/AutoLock";
+import { RuntimeProvider } from "@/src/providers/RuntimeProvider";
+import { SaleProvider } from "@/src/providers/SaleProvider";
+import { SessionGate } from "@/src/providers/SessionGate";
+import { SyncProvider } from "@/src/providers/SyncProvider";
 import { ThemeProvider, useTheme } from "@/src/theme/ThemeProvider";
 
 void SplashScreen.preventAutoHideAsync().catch(() => undefined);

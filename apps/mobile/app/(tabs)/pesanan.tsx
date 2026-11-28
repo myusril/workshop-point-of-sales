@@ -4,9 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import { Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { useAuth } from "@/src/app/AuthProvider";
-import { getRuntime } from "@/src/app/runtime";
-import { useSync } from "@/src/app/SyncProvider";
+import { useAuth } from "@/src/providers/AuthProvider";
+import { getRuntime } from "@/src/providers/runtime";
+import { useSync } from "@/src/providers/SyncProvider";
 import { Header, Money, SyncChip } from "@/src/components/chrome";
 import { Badge, EmptyState, LoadingState, Notice, SectionTitle } from "@/src/components/forms";
 import { Card, TextLink } from "@/src/components/ui";

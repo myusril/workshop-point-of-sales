@@ -6,9 +6,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { formatIdr } from "@workshop-pos/core";
 
-import { useAuth } from "@/src/app/AuthProvider";
-import { getRuntime } from "@/src/app/runtime";
-import { useSync } from "@/src/app/SyncProvider";
+import { useAuth } from "@/src/providers/AuthProvider";
+import { getRuntime } from "@/src/providers/runtime";
+import { useSync } from "@/src/providers/SyncProvider";
 import { Header, Money } from "@/src/components/chrome";
 import { Badge, Divider, EmptyState, Notice, SectionTitle } from "@/src/components/forms";
 import { Button, Card } from "@/src/components/ui";

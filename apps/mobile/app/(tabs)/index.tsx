@@ -4,12 +4,12 @@ import { Alert, Pressable, ScrollView, Text, TextInput, View } from "react-nativ
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { STAFF_ROLE_LABELS } from "@/src/domain/order-labels";
-import { useAuth } from "@/src/app/AuthProvider";
-import { getRuntime } from "@/src/app/runtime";
-import { useSale } from "@/src/app/SaleProvider";
+import { useAuth } from "@/src/providers/AuthProvider";
+import { getRuntime } from "@/src/providers/runtime";
+import { useSale } from "@/src/providers/SaleProvider";
 import { hasAction } from "@/src/auth/session-store";
 import { isDiscountAboveCap } from "@/src/pricing/order-pricing";
-import { useSync } from "@/src/app/SyncProvider";
+import { useSync } from "@/src/providers/SyncProvider";
 import { formatIdr } from "@workshop-pos/core";
 import { Header, Money, OfflineBanner, SyncChip } from "@/src/components/chrome";
 import { EmptyState, ErrorState, LoadingState, Notice, SectionTitle, Segmented } from "@/src/components/forms";
