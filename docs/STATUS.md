@@ -3,10 +3,10 @@
 | Field | Value |
 |---|---|
 | Product | Workshop POS (working name; buyer may rebrand) |
-| Phase | WP8 (reports, audit, export, settings, hardening gate) on the task branch |
-| Date | 2026-11-27 |
-| Code status | WP1–WP7 are merged to `main` (WP7 `589418d`, PR #8). WP8 (reports, CSV export, audit UI, settings/branding, CI pipeline, git hooks, axe sweep) is implemented on `feat/wp8-reports-audit-settings-hardening`; focused results are in §7.15 and the aggregate gate in §7.16. The native ESC/POS transport, APK/device measurements, and printer hardware remain absent/`NOT VERIFIED` |
-| Next gate | Founder reviews the WP8 diff and merges. Device/printer/APK verification remains hardware/buyer work; CI's first remote run is `NOT VERIFIED` when no runner is connected |
+| Phase | WP9 (handover, accessibility sign-off, encrypted backup/restore, generic ESC/POS printing) on the task branch |
+| Date | 2026-11-28 |
+| Code status | WP1–WP8 are merged to `main` (WP8 `c93acc3`, PR #9). WP9 is implemented on `feat/wp9-handover-a11y-backup`: encrypted backup sidecar + restore drill, handover evidence, WCAG 2.2 AA web sweep, third-party notices, and a project-owned Android Bluetooth SPP ESC/POS transport (founder decision 2026-11-28). Focused results are in §7.17; the aggregate gate is recorded in §7.18. Real-device printing/TalkBack, APK measurements, production-sized restore, and the remote CI run remain `NOT VERIFIED` |
+| Next gate | Founder reviews the WP9 diff and merges. Device/printer, buyer-account, and production-sized RTO checks remain buyer work; remote CI is `NOT VERIFIED` when no runner is connected |
 | Source of truth | `docs/product/PRD.md`, `docs/adr/0001-stack-and-architecture.md`, `docs/plan/work-packages.md` |
 
 > **Honesty rule.** This page reports what exists and what has been verified. Documents are not proof that the product works. WP1 commands were executed on 2026-11-26 on branch `feat/wp1-walking-skeleton`, including the aggregate `scripts/check.sh` gate on a fresh development volume, and WP1 was merged to `main` as PR #1 (`a96ffcb`). WP2 (schema, migrations, seed, outlet-scoped query helpers) was merged to `main` as PR #2 (`88252dc`). WP3 (auth, RBAC, users, outlets) passed its focused gates and the aggregate gate, and was merged to `main` as PR #3 (`344de62`). WP4 (web shell, domain core, catalog, inventory) passed its focused checks and the aggregate gate and was merged to `main` as PR #4 (`cdf3036`); earlier tests are re-run by later aggregate gates. Anything not listed in §7 as verified is **NOT VERIFIED** — including WP6 until its full-suite gate result is recorded in §7.10. WP5 was merged to `main` as PR #5 (`8a2a550`).
@@ -18,8 +18,8 @@
 | Milestone | Scope | Exit criteria | Status |
 |---|---|---|---|
 | **M1 — Walking skeleton** | WP1: npm-workspaces monorepo, pinned Node, `.env.example`, Compose dev/prod, Postgres, Dockerfiles, `scripts/check.sh`, license report, health endpoint, minimal page/API | A fresh clone reaches a healthy web + database stack with standard Docker/Node tooling; `scripts/check.sh` exits 0; license report has no blocker | **Verified 2026-11-26 and merged to `main` as PR #1 (`a96ffcb`)** |
-| **M2 — MVP** | WP2–WP8: schema/seed, auth/RBAC/outlets, catalog + stock ledger, customers/vehicles/history, mixed orders + payments + receipts, offline mobile POS + sync, reports/audit/export/settings, hardening gate | Every PRD story US-01–US-20 passes its acceptance criteria; offline/conflict, money, stock, and RBAC tests are green; no license blocker; WCAG 2.2 AA checks pass on agreed screens | **In progress** — WP2 `88252dc`; WP3 `344de62`; WP4 `cdf3036`; WP5 `8a2a550`; WP6 `9f2fc8f`; WP6.1 `c8a38ec` (PR #7); WP7 `589418d` (PR #8) merged. WP8 implemented on `feat/wp8-reports-audit-settings-hardening`; focused checks in §7.15, awaiting review/merge |
-| **M3 — Handover-ready** | WP9: accessibility sign-off, backup/restore drill, fresh-clone deployment rehearsal, license re-audit, documentation and credential handover | `docs/ops/handover-checklist.md` is fully checked with captured evidence; restore drill meets RPO/RTO targets; buyer accepts the signed manifest | **Not started** |
+| **M2 — MVP** | WP2–WP8: schema/seed, auth/RBAC/outlets, catalog + stock ledger, customers/vehicles/history, mixed orders + payments + receipts, offline mobile POS + sync, reports/audit/export/settings, hardening gate | Every PRD story US-01–US-20 passes its acceptance criteria; offline/conflict, money, stock, and RBAC tests are green; no license blocker; WCAG 2.2 AA checks pass on agreed screens | **Complete for the implemented scope** — WP2 `88252dc`; WP3 `344de62`; WP4 `cdf3036`; WP5 `8a2a550`; WP6 `9f2fc8f`; WP6.1 `c8a38ec` (PR #7); WP7 `589418d` (PR #8); WP8 `c93acc3` (PR #9). WP8 focused checks in §7.15 and gate in §7.16 |
+| **M3 — Handover-ready** | WP9: accessibility sign-off, backup/restore drill, fresh-clone deployment rehearsal, license re-audit, documentation and credential handover | `docs/ops/handover-checklist.md` is fully checked with captured evidence; restore drill meets RPO/RTO targets; buyer accepts the signed manifest | **In progress** — encrypted backup/restore drill passed (RTO 4 s on the drill dataset); web axe sweep passed; fresh-clone + gate evidence in `docs/ops/handover-evidence.md`; real-device printing/TalkBack, production-sized RTO, buyer credential transfer, and the signed manifest remain open/`NOT VERIFIED` |
 
 ---
 
@@ -31,15 +31,19 @@
 | `docs/ui/research/kickoff-2026-11-26.md` | Desk research, task flows, heuristics, accessibility risks | Draft; evidence and assumptions separated |
 | `docs/marketing/competitors.md` | Cited Indonesian workshop POS landscape and positioning | Draft; vendor claims labeled, gaps marked `NOT VERIFIED` |
 | `docs/adr/0001-stack-and-architecture.md` | Stack, data, auth, offline sync, deployment, cost range, rejected alternatives | Proposed |
-| `docs/ops/license-inventory.md` | Dependency/license/transferability evidence | Updated through WP7 (Expo 58.1.0, React Native 0.88.1, expo-sqlite/secure-store/netinfo/print/sharing, Google font packages, RNTL/Jest); the license report passes with a founder-approved Expo-CLI build-only exception and SPDX `OR` semantics; Epson SDK remains `REVIEW` and is not installed |
+| `docs/ops/license-inventory.md` | Dependency/license/transferability evidence | Re-audited in WP9 (2026-11-28): report exit 0, no disallowed runtime license, no new dependency; Expo-CLI `lightningcss` build-only exception and `node-forge` BSD-3-Clause alternative stand; Epson SDK remains `REVIEW` and is not installed |
+| `docs/ops/backup-runbook.md` | Buyer-facing encrypted backup, off-host copy, restore, rollback, key custody, RPO/RTO and drill record | Delivered in WP9; drill passed 2026-11-28 (encrypted dump 125,632 bytes, checksum verified, restore + health in 4 s on the drill dataset) |
+| `docs/ops/handover-evidence.md` | Executed checklist evidence: command, result, evidence path, `NOT VERIFIED` items | Delivered in WP9; every executed item has a result; buyer/account/hardware items remain explicitly open |
+| `docs/ui/a11y-audit.md` | Final WCAG 2.2 AA + keyboard/contrast + Bahasa + mobile touch/TalkBack record | Delivered in WP9; web axe sweep passed; real-device mobile verification `NOT VERIFIED` (no device attached) |
+| `THIRD_PARTY_NOTICES.md` | Shipped third-party attribution | Delivered in WP9: shadcn/ui MIT, Lucide ISC + Feather MIT, Inter and IBM Plex Mono OFL, caniuse-lite CC-BY-4.0 attribution |
 | `docs/product/personal-data.md` | Buyer-as-Controller obligations and engineering controls | Draft; counsel review required |
 | `docs/ui/DESIGN.md`, `state-matrix.md`, `tokens.json` | Original clean-room design system shared by web and mobile | Draft for review; WP4 generates `packages/design-tokens` and renders the back-office shell/catalog/inventory; WP5 composes the same shell/components for customers, vehicles, and history; WP6 adds the order list, counter sale, order detail, payment sheet, and paper-white receipt preview/print pages |
 | `docs/plan/work-packages.md` | WP1–WP9, owned paths, dependencies, acceptance gates, PRD traceability | Proposed |
 | `docs/ops/handover-checklist.md` | Seller pre-delivery verification and evidence checklist | Draft; **not executed** |
 | `docs/ops/decision-policy.md` | Tier 1/2/3 decision authority for the buyer's team | Draft |
-| `README.md`, `AGENTS.md` | Buyer setup guide and engineering rules | README carries the verified setup/gate/CI commands and hook install; AGENTS.md records WP1–WP7 merged, the WP8 branch state, CI/hooks commands, the report/export/audit/settings ownership, customer personal-data conventions, the payment-row money convention (`amount` is applied money, change is separate), and the sync conflict/idempotency seam |
-| `apps/mobile/` | Expo Android app + local SQLite cache/outbox + Jest/RNTL suite | Merged in WP7 (`589418d`); typecheck/lint/unit green; emulator/device/printer measurements `NOT VERIFIED` |
-| `.omp/`, `orca.yaml`, `.worktreeinclude` | Optional development aids | Present; may be stripped at handover |
+| `README.md`, `AGENTS.md` | Buyer setup guide and engineering rules | README carries the verified setup/gate/CI commands, hook install, real-device-only mobile path, backup enablement, licence/privacy pointers, and no internal paths; AGENTS.md records WP1–WP8 merged, the WP9 branch state, CI/hooks, backup/RPO convention, generic ESC/POS transport (Epson SDK still `REVIEW`), and the optional-tooling keep decision |
+| `apps/mobile/` | Expo Android app + local SQLite cache/outbox + Jest/RNTL suite | WP7 (`589418d`) plus WP9 direct printing: project-owned Bluetooth SPP module, printer picker, 83 mobile unit tests green, Android debug build compiled; real-device printing/TalkBack `NOT VERIFIED` |
+| `.omp/`, `orca.yaml`, `.worktreeinclude`, `AGENTS.md` | Optional development aids | Founder decision 2026-11-28: keep as optional tooling; README states they may be deleted without affecting the product; `.brief/` stays untracked |
 
 ---
 
@@ -53,12 +57,14 @@
 | `lightningcss` and `axe-core` (MPL-2.0, build/lint-only) | **REVIEW — build/lint-only** | `lightningcss` is reached through Tailwind during build; `axe-core` is used by the ESLint accessibility plugin. No MPL source or binary is copied into the runtime image |
 | `caniuse-lite` (CC-BY-4.0 browser data) | REVIEW — attribution only | Build-time data; attribution is recorded in `docs/ops/license-inventory.md` and pinned in `scripts/license-report.mjs` |
 | Ecme Next template (ThemeForest) | **Not transferable for this package** | Excluded; clean-room visual language only. Do not copy source, demo assets, or brand assets |
-| Epson ePOS SDK (via thermal printer wrapper) | **REVIEW — not installed in WP7** | The app implements an ESC/POS encoder and a `PrinterTransport` seam; no `react-native-esc-pos-printer` dependency ships. Buyer counsel confirms redistribution terms before the native sink is added; PDF/share fallback ships regardless |
+| Epson ePOS SDK (via thermal printer wrapper) | **REVIEW — not installed** | The app implements an ESC/POS encoder and a `PrinterTransport` seam; no `react-native-esc-pos-printer` dependency ships. Buyer counsel must confirm redistribution terms before any Epson SDK is added; PDF/share and the project-owned SPP transport ship regardless |
+| Direct ESC/POS Bluetooth transport (WP9) | **Project-owned MIT code, no new dependency** | `apps/mobile/modules/escpos-bluetooth` uses Android `BluetoothSocket`/SPP and writes the existing ESC/POS bytes; no vendor SDK, no Epson terms, no lockfile change. Scanning/pairing stays in Android Settings |
 | Docker Desktop | Informational | Production hosts should use Docker Engine on Linux; Desktop licensing is separate |
 | Maestro Studio / Cloud | Not included | CLI only, if adopted; do not add commercial tiers to cost assumptions |
-| shadcn/ui (web components) | MIT, copied source | Retain the MIT notice in `THIRD_PARTY_NOTICES.md`; listed in the license inventory |
-| Inter font | OFL-1.1 | Bundled in the Android app via `@expo-google-fonts/inter`; include the OFL text in the shipped notices at handover (WP9 owns `THIRD_PARTY_NOTICES.md`) |
-| IBM Plex Mono font | OFL-1.1 | Bundled via `@expo-google-fonts/ibm-plex-mono`; used for receipt numerals. Include the OFL text in the shipped notices |
+| shadcn/ui (web components) | MIT, copied source | MIT notice shipped in `THIRD_PARTY_NOTICES.md`; listed in the license inventory |
+| Lucide icons | ISC + Feather-derived MIT | ISC and Feather MIT notices shipped in `THIRD_PARTY_NOTICES.md` |
+| Inter font | OFL-1.1 | Bundled in the Android app via `@expo-google-fonts/inter`; OFL notice shipped in `THIRD_PARTY_NOTICES.md` |
+| IBM Plex Mono font | OFL-1.1 | Bundled via `@expo-google-fonts/ibm-plex-mono`; used for receipt numerals; OFL notice shipped in `THIRD_PARTY_NOTICES.md` |
 | Expo CLI build toolchain (`lightningcss` MPL-2.0, `node-forge` BSD-3-Clause OR GPL-2.0) | **Build-only, founder-approved 2026-11-27** | Pulled by `expo` → `@expo/cli`; not bundled into the APK. The license report selects the BSD-3-Clause alternative for `node-forge` and records `lightningcss` as an Expo-CLI build-time exception |
 | Illustrations, logo, sample data | Must be original or licensed | No template or stock assets without an inventory entry |
 
@@ -90,7 +96,7 @@
 | D-6 | Deletion semantics | Anonymize personal fields, preserve financial/audit records per counsel |
 | D-7 | Product name and branding | Buyer-owned; keep the working name until rebrand |
 | D-8 | Retention duration | 10 years until counsel confirms |
-| D-9 | Certified printer models | Protocol-generic ESC/POS first; publish a tested-model list after pilot |
+| D-9 | Certified printer models | Protocol-generic ESC/POS over Bluetooth SPP now; publish a tested-model list after the buyer's pilot. No model is certified in this delivery |
 | D-10 | Support/warranty terms | Commercial contract, not a product requirement |
 | D-11 | Payment correction before `PAID` | Allow audited Admin/Owner correction; post-`PAID` remains whole-order void only |
 | D-12 | Cycle count in MVP | Include if monthly counts are expected; otherwise defer and use stock adjustments |
@@ -106,6 +112,14 @@
 | Publishable claims | Competitor comparison claims must be re-checked against the delivered build before publication |
 | Keep or strip `.omp/`, `orca.yaml`, `.worktreeinclude` | Buyer preference at final handover; the product must run without them |
 
+### Decisions recorded during WP9 (2026-11-28)
+
+| Topic | Decision | Consequence |
+|---|---|---|
+| AI-ready tooling at handover (`AGENTS.md`, `.omp/`, `orca.yaml`, `.worktreeinclude`) | **Keep as optional developer tooling** | README states they are not runtime dependencies and may be deleted without affecting the product; `.brief/` stays untracked; buyer may still strip them at delivery |
+| Thermal printing | **Ship direct generic ESC/POS now** (`native_now`) | Project-owned Bluetooth SPP module for 58/80 mm, multi-brand; no Epson SDK; share/PDF fallback remains. Real-device printing is `NOT VERIFIED` until a hardware pilot |
+| Buyer logo/branding | **Use the existing env/static path** | No schema or upload change in WP9; `logo_path`/URL remains the buyer-configured path |
+
 ---
 
 ## 6. Risks
@@ -120,6 +134,10 @@
 | Personal-data obligations are underestimated | Regulatory exposure | Data inventory, counsel review, DPA, retention/anonymization tooling | Buyer as Controller |
 | Buyer lacks ops capacity for self-hosting | Outages, poor backups | Compose runbook, backup drill, optional managed hosting with DPA | Buyer |
 | Dependency license drift | Handover blocker | Lockfile license report in WP1 and WP9; inventory update per dependency | Engineering |
+| Backup passphrase lost or escrow incomplete | Every encrypted dump is unrecoverable | Two named custodians, secret-manager storage, rotation/escrow procedure in `docs/ops/backup-runbook.md`; fail-closed sidecar | Buyer ops + Engineering |
+| Backup lives only on the database host | Host loss loses database and backups together | Documented off-host copy with 3-2-1 guidance; buyer-owned monitoring and quarterly restore rehearsal | Buyer ops |
+| Direct Bluetooth printing untested on hardware | Receipts fail or misalign at the counter | Project-owned ESC/POS over standard SPP, printer picker with explicit errors, share/PDF fallback; buyer pilot with its 58/80 mm printers before go-live | Engineering + Buyer |
+| Printer permissions/pairing vary by Android vendor | Empty device list or denied connect | Permission state surfaced in Bahasa; pairing stays in Android Settings; screenshot/instructions in the printer picker | Buyer pilot |
 
 ---
 
@@ -469,7 +487,31 @@ WP7 was merged to `main` as PR #8 (`589418d`) before WP8 started. WP8 adds `pack
 
 **CI-mode status:** `WP_CI=1 DATABASE_URL=… INTEGRATION_DATABASE_URL=… bash scripts/check.sh` was also run on the final tree and exited 0 in 227.13 s (`All gates passed.`), proving the no-Docker, provided-PostgreSQL branch (including the `_test` database readiness check and the E2E CI database allowance). The remote Woodpecker pipeline itself is **NOT VERIFIED** because no runner is attached. The local default (Docker Compose) is the gate reported above.
 
+### 7.17 WP9 focused verification (2026-11-28)
 
+| Check | Result |
+|---|---|
+| Backup image | **PASS** — `docker build -f docker/backup.Dockerfile` in 7.58 s; `postgres:19-alpine` + OpenSSL 3.5.9-r1; runs as `postgres` |
+| Encrypted backup | **PASS** — `workshop-pos-20261128T024230Z.dump.enc`, 125,632 bytes, 1 s; plaintext sha256 `16dd8e0d…93dfb9`; in-container decrypt/checksum round-trip passed |
+| Fail-closed | **PASS** — empty `BACKUP_PASSPHRASE` exits 2 and writes nothing |
+| Restore + app smoke | **PASS** — decrypt checksum matched; `pg_restore` exit 0; source/restore counts identical (orders 14, lines 27, payments 11, stock ledger 15, audit 70, customers 6, vehicles 4, users 10); health 200 and `/login` 200 against the restored DB; **RTO 4 s** on the drill dataset |
+| Compose profiles | **PASS** — default services are `db, web, proxy`; `--profile backup` adds `backup`; rendered passphrase is empty until supplied |
+| Gitleaks history | **PASS** — `gitleaks git --redact -v .` exit 0 |
+| Gitleaks working tree | **PASS after disposition** — first run found 8 generated-cache hits under gitignored `apps/web/.next/dev`; cache deleted, re-run exit 0 |
+| License re-audit | **PASS** — `scripts/license-report.sh` exit 0, `PASS: no disallowed runtime licenses`; no dependency added by WP9 |
+| `npm ls --all` | **PASS** — exit 0; only optional-peer notices |
+| `npm audit --omit=dev` | **24 moderate, recorded** — dev/build tooling (`drizzle-kit` esbuild, Jest glob/minimatch, Expo CLI fingerprint); no server-runtime path; forced fix would break majors and is out of WP9 |
+| WCAG 2.2 AA axe sweep | **PASS** — 2 tests / 28.0 s; 0 violations on `/login` and 13 back-office routes (tags `wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`, `wcag22aa`) |
+| Keyboard/viewport | **PASS** — 10 auth/home tests / 22.5 s incl. keyboard reachable login with visible focus ring and 320 px no-overflow |
+| Contrast | **PASS** — body 16.20:1, secondary 7.02:1, muted 5.07:1, link 7.28:1, white-on-accent 6.10:1, focus 6.10:1, input boundary 3.61:1, status pairs 6.37–8.48:1 |
+| Bahasa sweep | **PASS** — targeted English-label scan of user-facing source returned 0 hits; printer strings are Bahasa |
+| Mobile tests | **PASS** — 83 tests / 12 suites (11 new: transport + picker) |
+| Android compile | **PASS** — `./gradlew :app:assembleDebug` BUILD SUCCESSFUL in 21 m 25 s, 403 tasks; `EscposBluetoothModule` in `classes8.dex`; APK declares `BLUETOOTH`, `BLUETOOTH_ADMIN`, `BLUETOOTH_CONNECT` |
+| Real printing/TalkBack | **NOT VERIFIED** — no device (`adb devices` empty) and no printer; no emulator used |
+
+### 7.18 WP9 aggregate gate (frozen candidate)
+
+Pending the frozen-candidate run after review; filled with the observed timings and counts.
 
 ---
 
@@ -484,7 +526,7 @@ Recorded 2026-11-26 from the product owner. These close the corresponding open q
 | Buyer model | **Single workshop**, internal use | No multi-tenant SaaS build; one installation serves one business |
 | Hosting | **Buyer-operated VPS with Docker Compose** | Buyer owns the database and backups; no vendor processor by default |
 | Stack | **Next.js + Expo/React Native + PostgreSQL** | Follow ADR-0001; no Laravel/Flutter rewrite |
-| Printer | **Interface plus pilot**: native ESC/POS only after legal confirmation, with PDF/browser fallback | Epson SDK remains `REVIEW`; fallback ships regardless |
+| Printer | **Generic ESC/POS now, with pilot**: project-owned Bluetooth SPP transport for 58/80 mm, no Epson SDK; PDF/share fallback | Epson SDK remains `REVIEW` and uninstalled; multi-brand hardware printing is piloted by the buyer (founder decision 2026-11-28) |
 | Retention | **10 years, anonymize personal fields on deletion request** | Preserve financial/audit records; counsel still confirms duration |
 | Branding | **“Workshop POS” placeholder** until the buyer supplies name/logo | No invented brand assets |
 | P1 scope | **Include audited pre-`PAID` payment correction and cycle count** | FR-048 and FR-056 are MVP; QA must map them to their stories |
@@ -493,8 +535,8 @@ Recorded 2026-11-26 from the product owner. These close the corresponding open q
 
 ## 9. Next actions
 
-1. Obtain buyer counsel review for the Epson SDK redistribution terms, the privacy notice, retention duration, and tax rounding; record the signed outcomes.
-2. WP1 is merged to `main` (PR #1, `a96ffcb`); no merge action remains.
-3. WP2 is merged to `main` (PR #2, `88252dc`); WP3 is merged to `main` (PR #3, `344de62`); WP4 (web shell, domain core, catalog, inventory) is merged to `main` (PR #4, `cdf3036`); WP5 (customers, vehicles, plate history) is merged to `main` (PR #5, `8a2a550`); WP6 (orders, pricing, payments, receipts) is merged to `main` as PR #6 (`9f2fc8f`); WP6.1 (server sync seam) is merged as PR #7 (`c8a38ec`); WP7 (mobile offline POS) is merged as PR #8 (`589418d`).
-4. The printer pilot, APK size, cold start, and real-device verification remain open hardware/buyer tasks; no emulator result is accepted as verification.
-5. WP8 (reports, export, audit, settings, CI, hooks, axe sweep) is implemented on `feat/wp8-reports-audit-settings-hardening`; founder reviews and merges. After merge, WP9 starts the handover checklist, backup drill, and license re-audit.
+1. Obtain buyer counsel review for the privacy notice, retention duration, tax rounding, and any future Epson SDK integration; record the signed outcomes.
+2. WP1–WP8 are merged to `main` (WP8 PR #9, `c93acc3`); no merge action remains for them.
+3. WP9 (handover evidence, encrypted backup/restore, a11y sign-off, generic ESC/POS printing) is implemented on `feat/wp9-handover-a11y-backup`; founder reviews and merges.
+4. The buyer must run the hardware pilot on a real Android device and its 58/80 mm printers, repeat TalkBack/touch-target checks, re-measure production-sized RTO, exercise an off-host restore, and attach a monitoring/alert route. No emulator result is accepted.
+5. The buyer must repeat the checklist on a clean host and complete the account/domain/credential transfer, signed manifest, and tag. Those items are deliberately not marked complete here.

@@ -89,33 +89,46 @@ services:
     logging: *default-logging
     restart: unless-stopped
 
-  # Optional pg_dump sidecar. Uncomment once the backup volume and the
-  # off-host copy procedure in docs/ops are in place.
-  #
-  # backup:
-  #   image: postgres:19-alpine
-  #   environment:
-  #     PGHOST: db
-  #     PGUSER: ${POSTGRES_USER}
-  #     PGPASSWORD: ${POSTGRES_PASSWORD}
-  #     PGDATABASE: ${POSTGRES_DB}
-  #   volumes:
-  #     - workshop_pos_backups:/backups
-  #   entrypoint:
-  #     - /bin/sh
-  #     - -c
-  #     - |
-  #       while true; do
-  #         pg_dump --format=custom --file="/backups/workshop-pos-$$(date -u +%Y%m%dT%H%M%SZ).dump"
-  #         sleep 900
-  #       done
-  #   depends_on:
-  #     db:
-  #       condition: service_healthy
-  #   restart: unless-stopped
+  # Optional encrypted backup sidecar (docs/ops/backup-runbook.md).
+  # Disabled by default: start it explicitly with
+  #   docker compose --profile backup up -d
+  # It writes AES-256 encrypted custom-format dumps to a named volume and never
+  # stores the passphrase or database password in the image.
+  backup:
+    profiles: ["backup"]
+    build:
+      context: .
+      dockerfile: docker/backup.Dockerfile
+    image: workshop-pos-backup:${APP_VERSION:-local}
+    environment:
+      PGHOST: db
+      PGPORT: "5432"
+      PGUSER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      PGDATABASE: ${POSTGRES_DB:?POSTGRES_DB is required}
+      # Empty by default so the normal stack still renders without a backup
+      # secret; the entrypoint fails closed when the profile is enabled
+      # without a passphrase.
+      BACKUP_PASSPHRASE: ${BACKUP_PASSPHRASE:-}
+      BACKUP_INTERVAL_SECONDS: ${BACKUP_INTERVAL_SECONDS:-900}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-30}
+    volumes:
+      - workshop_pos_backups:/backups
+    depends_on:
+      db:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    logging: *default-logging
+    restart: unless-stopped
 
 volumes:
   workshop_pos_db:
   workshop_pos_caddy_data:
   workshop_pos_caddy_config:
-  # workshop_pos_backups:
+  workshop_pos_backups:

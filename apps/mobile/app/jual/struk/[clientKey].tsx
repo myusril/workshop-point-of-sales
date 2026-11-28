@@ -16,6 +16,11 @@ import {
   type QueueRow,
   type ReceiptSnapshot,
 } from "@/src/db/repository";
+import {
+  BluetoothPrinterTransport,
+  type PrinterDevice,
+} from "@/src/printing/bluetooth-transport";
+import { PrinterPicker } from "@/src/printing/PrinterPicker";
 import { buildLocalReceipt } from "@/src/printing/receipt";
 import {
   createReceiptChannels,
@@ -45,7 +50,12 @@ export default function StrukScreen() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [outputMessage, setOutputMessage] = useState<string | null>(null);
+  const [printerPickerOpen, setPrinterPickerOpen] = useState(false);
+  const [printers, setPrinters] = useState<PrinterDevice[]>([]);
+  const [printerError, setPrinterError] = useState<string | null>(null);
+  const [printerLoading, setPrinterLoading] = useState(false);
 
+  const transport = useMemo(() => new BluetoothPrinterTransport(), []);
   const row = queue.find((entry) => entry.clientKey === clientKey) ?? fetched;
 
   useEffect(() => {
@@ -73,7 +83,7 @@ export default function StrukScreen() {
     };
   }, [clientKey, lastSummary, runtime]);
 
-  const channels = useMemo(() => createReceiptChannels(), []);
+  const channels = useMemo(() => createReceiptChannels(transport), [transport]);
   const template = useMemo(() => {
     if (!snapshot) return null;
     return buildLocalReceipt(snapshot, {
@@ -112,6 +122,33 @@ export default function StrukScreen() {
     } finally {
       setBusy(null);
     }
+  }
+
+  async function loadPrinters() {
+    setError(null);
+    setPrinterError(null);
+    setPrinterLoading(true);
+    try {
+      const devices = await transport.listPrinters();
+      setPrinters(devices);
+      setPrinterPickerOpen(true);
+    } catch (caught) {
+      setPrinters([]);
+      setPrinterError(
+        caught instanceof PrinterUnavailableError
+          ? `${caught.message} Gunakan Simpan PDF atau Bagikan struk sebagai gantinya.`
+          : "Daftar printer tidak dapat dibaca.",
+      );
+      setPrinterPickerOpen(true);
+    } finally {
+      setPrinterLoading(false);
+    }
+  }
+
+  async function selectPrinter(printer: PrinterDevice) {
+    transport.selectPrinter(printer);
+    setPrinterPickerOpen(false);
+    await output("THERMAL");
   }
 
   if (loading) {
@@ -225,6 +262,17 @@ export default function StrukScreen() {
             : "Salinan pertama tidak diberi tanda SALINAN."}
         </Text>
       </ScrollView>
+      <PrinterPicker
+        visible={printerPickerOpen}
+        printers={printers}
+        busy={printerLoading || busy === "THERMAL"}
+        error={printerError}
+        onSelect={(printer) => void selectPrinter(printer)}
+        onClose={() => {
+          if (busy !== "THERMAL" && !printerLoading) setPrinterPickerOpen(false);
+        }}
+        onRefresh={() => void loadPrinters()}
+      />
       <View
         style={{
           minHeight: theme.size.mobileActionBar,
@@ -254,11 +302,11 @@ export default function StrukScreen() {
           />
         </View>
         <Button
-          label="Cetak struk (printer belum terpasang)"
+          label={printerLoading ? "Mencari printer…" : "Cetak struk"}
           variant="secondary"
-          onPress={() => void output("THERMAL")}
-          loading={busy === "THERMAL"}
-          disabled
+          onPress={() => void loadPrinters()}
+          loading={printerLoading || busy === "THERMAL"}
+          disabled={busy !== null && busy !== "THERMAL"}
         />
       </View>
     </SafeAreaView>

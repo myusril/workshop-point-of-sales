@@ -60,6 +60,9 @@ web-build/
 .expo/
 .expo-shared/
 .metro-health-check*
+# `expo prebuild` generates these projects from app.json; they are not source.
+/apps/mobile/android/
+/apps/mobile/ios/
 android/.gradle/
 android/local.properties
 android/app/build/
