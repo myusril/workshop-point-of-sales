@@ -495,7 +495,7 @@ WP7 was merged to `main` as PR #8 (`589418d`) before WP8 started. WP8 adds `pack
 | Backup image | **PASS** — `postgres:19-alpine` + OpenSSL 3.5.9-r1 + bash; runs as `postgres`; streaming pipeline writes no plaintext |
 | Encrypted backup | **PASS** — `workshop-pos-20261128T035332Z.dump.enc`, 110,928 bytes, 13 s on a loaded host; plaintext sha256 `337e31b8…cd843f`; streaming decrypt/checksum passed; `/backups` contains only mode-600 ciphertext, checksum, and HMAC |
 | Ciphertext MAC | **PASS** — HMAC-SHA256 matched (`3ab5cd9c…`); one-byte tamper changed it (`aeccabd5…`) |
-| Fail-closed / fail-loud | **PASS** — empty passphrase exits 2 and writes nothing; unreachable DB exits 1 with `backup failed: pg_dump/encrypt pipeline` and 0 "backup ok" lines (review regression fixed) |
+| Fail-closed / fail-loud | **PASS** — empty passphrase exits 1 and writes nothing; unreachable DB exits 1 with `backup failed: pg_dump/encrypt pipeline` and 0 "backup ok" lines (review regression fixed) |
 | Crash cleanup / healthcheck | **PASS** — startup removes plaintext/partial leftovers; healthcheck exits 0 with a fresh dump |
 | Restore + app smoke | **PASS** — decrypt checksum matched; `pg_restore` exit 0 in 2 s; source/restore counts identical (orders 11, lines 20, payments 10, product 1, `user` 5, audit 19, stock ledger 9, customers 1, vehicles 1); health 200 and `/login` 200 against the restored DB; **RTO 6 s** on the drill dataset |
 | Compose profiles | **PASS** — default services are `db, web, proxy`; `--profile backup` adds `backup`; rendered passphrase is empty until supplied |
@@ -509,7 +509,7 @@ WP7 was merged to `main` as PR #8 (`589418d`) before WP8 started. WP8 adds `pack
 | Contrast | **PASS** — body 16.20:1, secondary 7.02:1, muted 5.07:1, link 7.28:1, white-on-accent 6.10:1, focus 6.10:1, input boundary 3.61:1, status pairs 6.37–8.48:1 |
 | Bahasa sweep | **PASS** — targeted English-label scan of user-facing source returned 0 hits; printer strings are Bahasa |
 | Mobile tests | **PASS** — 86 tests / 12 suites (14 new: transport + picker states) |
-| Android compile | **PASS** — `./gradlew :app:assembleDebug` BUILD SUCCESSFUL in 21 m 25 s, 403 tasks; `EscposBluetoothModule` in `classes8.dex`; APK declares `BLUETOOTH`, `BLUETOOTH_ADMIN`, `BLUETOOTH_CONNECT` |
+| Android compile | **PASS** — full build 21 m 25 s / 403 tasks, then 32 s incremental after the security fix; `EscposBluetoothModule` in `classes8.dex`; APK declares `BLUETOOTH`, `BLUETOOTH_ADMIN`, `BLUETOOTH_CONNECT` |
 | Real printing/TalkBack | **NOT VERIFIED** — no device (`adb devices` empty) and no printer; no emulator used |
 | FR-071 buyer branding | **FAIL (partial)** — branding saves (PATCH 200) and is audited with `productName`/`logoPath`, but the shell/home heading still render the static “Workshop POS”. Owning WP must wire the saved branding into the shell; WP9 records the gap instead of editing the UI |
 | Cross-WP test repair | **PASS (test-only)** — the first gate run exposed a WP4 integration test that hardcoded 2026-11-27 while the server trigger stamps `now()`; the test now derives the WIB day from the stored row. No product code changed |

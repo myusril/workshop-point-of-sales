@@ -58,11 +58,11 @@ Result vocabulary: `pass`, `fail`, `blocked` (depends on a buyer/account/legal a
 
 ## C. Fresh-clone build and runtime
 
-Rehearsal clone: `/tmp/wp9-fresh-b`, checked out at `85110c05ea` with a clean status. The seller workstation was used (0.1 remains `NOT VERIFIED` for a clean OS user).
+Rehearsal clone: `/tmp/wp9-fresh-b`, advanced from the initial `85110c05ea` checkout to the gate-tested `16bdb3aa09` before the run, with a clean status. The seller workstation was used (0.1 remains `NOT VERIFIED` for a clean OS user).
 
 | Item | Command | Result | Evidence |
 | --- | --- | --- | --- |
-| C1 clone + cleanliness | `git clone` → `git checkout 85110c05ea`; `git status --porcelain`; no `.env`, `.brief/`, `node_modules`, `.next` | **pass** — exact hash, empty status, no seller-local files | `C1-clone-b.log`, `C1-root-listing-b.log` |
+| C1 clone + cleanliness | `git clone` → `git checkout 16bdb3aa09`; `git status --porcelain`; no `.env`, `.brief/`, `node_modules`, `.next` | **pass** — exact hash, empty status, no seller-local files | `C1-clone-b.log`, `C1-root-listing-b.log` |
 | C2 toolchain | Node 26.13.1, npm 11.x, Docker 29.4.0 | **pass** — matches the pins | `0-environment.log` |
 | C3 clean install | `fnm exec --using=26.13.1 -- npm ci` | **pass** — exit 0; one root lockfile | `C3-npm-ci-b.log`, `C3-lockfiles-b.log` |
 | C4 Compose database | `docker compose -f compose.dev.yaml up -d --wait db` | **pass** — healthy on loopback:55432 | `C4-compose-up.log` |
@@ -111,7 +111,7 @@ Rehearsal clone: `/tmp/wp9-fresh-b`, checked out at `85110c05ea` with a clean st
 | Item | Command | Result | Evidence / notes |
 | --- | --- | --- | --- |
 | F1 encrypted backup drill | Build hardened sidecar (`wp9-drill-v6`); `backup-once`; HMAC verify; decrypt; checksum; restore; app smoke | **pass** — 110,928-byte encrypted dump; 13 s backup on a loaded host; no plaintext at rest; ciphertext HMAC matched and a one-byte tamper changed it; plaintext checksum matched; restore exit 0 in 2 s; row counts identical (orders 11, lines 20, payments 10, product 1, `user` 5, audit 19, stock ledger 9, customers 1, vehicles 1); health 200 and `/login` 200 against the restored DB; **RTO 6 s** on this dataset | `docs/ops/backup-runbook.md` §8; `F1-*-v6` logs |
-| F1 fail-closed | Run with empty `BACKUP_PASSPHRASE`/file | **pass** — exit 2, no file written | `F1-fail-closed.log` |
+| F1 fail-closed | Run the final image with empty `BACKUP_PASSPHRASE`/file | **pass** — exit 1 with `BACKUP_PASSPHRASE or BACKUP_PASSPHRASE_FILE is required`; no file written | `F1-fail-closed-final.log` |
 | F1 fail-loud | Loop mode against an unreachable database | **pass** — exit 1, `backup failed: pg_dump/encrypt pipeline`, 0 "backup ok" lines (regression caught by review and fixed) | `F1-failure-v2.log` |
 | F1 crash cleanup | Fake plaintext/partial leftovers then one run | **pass** — leftovers removed; `plaintext_count=0` | `F1-cleanup-v2.log`, `F1-volume-v2.log` |
 | F1 healthcheck | `find … -mmin -<2×interval>` | **pass** — exit 0 with a fresh dump; Compose renders the probe | `F1-healthcheck-v2.log` |
@@ -148,7 +148,7 @@ Rehearsal clone: `/tmp/wp9-fresh-b`, checked out at `85110c05ea` with a clean st
 | Check | Result | Evidence / notes |
 | --- | --- | --- |
 | Module present | **pass** — `apps/mobile/modules/escpos-bluetooth` with Expo config, Gradle project, Kotlin SPP bridge | source |
-| Native compile | **pass** — `./gradlew :app:assembleDebug` BUILD SUCCESSFUL in 21 m 25 s, 403 tasks; `EscposBluetoothModule.class` present in `classes8.dex` | `WP9A-android-build.log` |
+| Native compile | **pass** — initial full build 21 m 25 s / 403 tasks; after the security fix (discovery call removed, bonded check added) an incremental `:app:assembleDebug` completed in **32 s** (65 executed, 338 up-to-date), 25 module tasks present; `EscposBluetoothModule.class` in `classes8.dex` | `WP9A-android-build.log` |
 | APK permissions | **pass** — `BLUETOOTH`, `BLUETOOTH_ADMIN`, `BLUETOOTH_CONNECT` in the merged manifest | `WP9A-apk-permissions.log` |
 | Transport tests | **pass** — permission denied, adapter off, no selection, byte handoff, native failure wrapping; 86 mobile tests total (14 new) | `apps/mobile/tests/bluetooth-transport.test.ts` |
 | Picker tests | **pass** — accessible names, searching vs empty vs error exclusivity, printing label, close | `apps/mobile/tests/printer-picker.test.tsx` |

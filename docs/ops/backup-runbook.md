@@ -302,7 +302,7 @@ Environment: macOS arm64 workstation, Docker Engine 29.4.0, `postgres:19-alpine`
 | Take backup | `docker run ... workshop-pos-backup:wp9-drill-v6 backup-once` | `workshop-pos-20261128T035332Z.dump.enc`, 110,928 bytes; **13 s** on this heavily loaded host (earlier runs: 2 s); plaintext sha256 `337e31b8…cd843f`; streaming round-trip check passed |
 | No plaintext at rest | Inspect `/backups` after the run | Only mode-600 `.dump.enc`, `.dump.enc.sha256`, and `.dump.enc.hmac`; `plaintext_count=0` |
 | Crash cleanup | Seed a fake `*.dump`, `.*.partial`, `*.verify.dump`, then run | All three were removed at startup; the new encrypted dump remained |
-| Fail-closed check | Same image with `BACKUP_PASSPHRASE=` | Exit 2 with `BACKUP_PASSPHRASE or BACKUP_PASSPHRASE_FILE is required`; no file written |
+| Fail-closed check | Same image with `BACKUP_PASSPHRASE=` | Exit 1 with `BACKUP_PASSPHRASE or BACKUP_PASSPHRASE_FILE is required`; no file written |
 | Fail-loud check | Loop mode against an unreachable database | Exit 1 after `backup failed: pg_dump/encrypt pipeline`; **0** "backup ok" lines (the earlier `if ! run_backup` bug is fixed) |
 | Ciphertext MAC | `openssl dgst -sha256 -hmac …` over the encrypted file | Expected and actual matched (`3ab5cd9c…`); flipping one ciphertext byte changed the MAC (`aeccabd5…`), so tamper detection works |
 | Healthcheck | Container `find … -mmin -<2×interval>` | Exit 0 with a fresh encrypted dump; Compose renders the probe with `start_period: 180s` |

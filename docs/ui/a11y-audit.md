@@ -44,7 +44,7 @@ Observed 2026-11-28: **2 passed in 27.9 s**, zero violations.
 
 Open violations: **none** on these surfaces. Axe is automated and does not cover every WCAG 2.2 criterion (for example, meaningful reading order in complex tables, cognitive load, or screen-reader announcements); those remain manual/buyer acceptance items.
 
-The first sweep attempt on the same candidate timed out in the 13-route test while a 21-minute Android Gradle build was consuming the same machine. It reported no violations before the timeout. The clean rerun above (after the build finished) is the recorded result; no test timeout was changed.
+The first sweep attempt on the same candidate timed out in the 13-route test while a 21-minute Android Gradle build was consuming the same machine. A timeout emits no violation list, so it is neither a pass nor a violation; it is not counted. The clean rerun above (after the build finished) is the only recorded outcome; no test timeout was changed.
 
 ---
 
