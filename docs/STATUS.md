@@ -663,11 +663,23 @@ Device: same Infinix X6882 / Android 14 (`adb devices` state `device`, no emulat
 | Void/refund | `Batalkan transaksi` → reason `Stok udah habis terjual di kasir online` (as stored) → confirmation `Transaksi dibatalkan tanpa mengurangi stok. Pengembalian dana Rp 277.500 dicatat sebagai refund.` |
 | Final result | Receipt `INV/2026/000004`, `*** DIBATALKAN ***`; the receipt prints no refund line. Jual returned `Online` with `Tidak ada transaksi menunggu.` |
 | Refund proof | Device-side evidence of the refund is the pre-commit confirmation (`Pengembalian dana Rp 277.500 dicatat sebagai refund`). The authoritative record is the DB `refunds` row: `CASH 277500`, same order/payment/reason. `Pesanan` lists `INV/2026/000004` as `Dibatalkan` and opens the same void receipt; no separate refund line is rendered |
-| Server orders list | After two `Muat ulang` taps, the `Pesanan server` section still showed only `INV/2026/000002` and `INV/2026/000001`, not `INV/2026/000003`/`INV/2026/000004`; cause `NOT VERIFIED` and recorded as an observation, not a pass for server-order cache refresh |
+| Server orders list | The initial viewport showed only the first two cached server rows; scrolling revealed the rest. The cache-order diagnosis is §7.26 — not an API omission |
 | Server result | Order `VOID`, total/refund `277500`; payment `CASH 277500`; one refund row for the same payment, method `CASH`, amount `277500`, same reason; ledger stayed at 6 rows, last row is the online order's `5→0` — the void added no stock row |
 | Audit | `sync.conflict_raised`, `sync.conflict_resolved_void`, and `sync.conflict_void` carry the same sync key/reason; no `refund.*` audit action was emitted, the refund row is the financial record |
 | Observation | ADB text injection stored `udah` instead of the intended `sudah`; recorded as stored. No app-side copy or truncation defect was diagnosed |
 | Not covered | Cashier override denial on device, split/transfer/QRIS refunds on device, real printer, TalkBack, tablet layout |
+
+### 7.26 Pesanan server cache visibility — diagnosis (2026-11-29)
+
+| Check | Observed |
+|---|---|
+| Server API | `GET /api/v1/orders?page=1&pageSize=50` returned all 5 test orders, including `INV/2026/000003`, `INV/2026/000004`, and the diagnostic `INV/2026/000005` |
+| Device cache | `cached_orders` held all rows. `listCachedOrders` sorts only by `cached_at DESC` (`apps/mobile/src/db/repository.ts`), and every row in one refresh shares the same `cached_at`; ties are unspecified |
+| UI | `Pesanan server` renders all cached rows in a `ScrollView`; only the first two are visible without scrolling. Scrolling revealed the remaining orders, with the newest diagnostic row at the bottom |
+| Root cause | Not a missing API record or schema rejection. The viewport plus non-deterministic tie ordering makes the first two cards look like the complete server list; there is no count or “more” affordance |
+| Reproduction | A diagnostic online order `INV/2026/000005` was created and paid after the §7.25 drill; it is retained in the dev DB, so the DB now has 5 orders |
+| Limit | The cache snapshot at the first observation was overwritten by later refreshes, so the exact 16:56 row set is not recoverable. The viewport/ordering mechanism is reproduced on the current cache (5 rows) and is independent of the row count |
+| Recommended fix | Order cached orders deterministically newest-first (for example by the payload `createdAt`) and show a count or scroll affordance. Code is unchanged; the main-branch gate requires a brief and `/new-task` before editing |
 
 ## 8. Approved kickoff decisions
 
