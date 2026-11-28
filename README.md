@@ -119,6 +119,8 @@ adb devices                                             # must show "device"
 npx expo run:android --device                           # real device only
 ```
 
+`npm run test:e2e:web` resets the disposable dev database when it starts and leaves the outlets and staff it created behind. Reseed (`docker compose -f compose.dev.yaml down -v`, then migrate and seed) after an E2E run and before a device demo: sign-in picks the session's active outlet, and an E2E outlet can hold no catalog, so the Jual list is legitimately empty. See `docs/qa/empty-spare-parts-investigation.md`.
+
 For Wi-Fi instead of USB, bind the API to the LAN on a trusted network and use the host's address:
 
 ```sh
