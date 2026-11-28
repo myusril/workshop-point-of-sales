@@ -648,7 +648,7 @@ Device: same Infinix X6882 / Android 14 (`adb devices` state `device`, no emulat
 | Conflict surfaced | Reconnected; `Sinkronkan sekarang` reported `1 perlu tinjauan · 1 konflik`; queue row `Perlu tinjauan`, `Stok Kampas rem depan tidak mencukupi: lokal 1, server 0.` |
 | Resolution | `Tinjau konflik` showed product/local 1/server 0, collected `Rp 277.500`, and `Uang tetap sah walau stok server berbeda.` Entered reason `Stok fisik sudah habis, pelanggan sudah membayar`, confirmed the override, and the final receipt rendered `INV/2026/000002` with no local-sync marker |
 | Server result | 2 orders `PAID`; ledger `SALE_DECREMENT 0→-1` with `override = true` and the reason; audit rows `sync.conflict_raised`, `sync.conflict_resolved_override`, `sync.conflict_override`, and `inventory.sale_decrement` all carry the same sync key/reason; no duplicate order/payment/ledger |
-| Observation | The confirmation button is labelled `SETUJUI OVERRIDE` (English caps) while the rest of the flow is Bahasa Indonesia. Copy-only defect; not fixed in this drill |
+| Observation | The confirmation button renders `SETUJUI OVERRIDE`. This is Android's all-caps dialog-button styling of the source string `Setujui override` (`apps/mobile/app/konflik/[clientKey].tsx`), not a copy/localization defect; `override` is the app-wide term |
 | Not covered | Device void/refund resolution (`Batalkan transaksi`), Cashier override denial on device, real concurrent second terminal, real printer, TalkBack, tablet layout |
 
 ## 8. Approved kickoff decisions
