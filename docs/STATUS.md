@@ -634,7 +634,7 @@ Device: Infinix X6882 (Hot 50), Android 14, arm64-v8a, `adb devices` state `devi
 | Local queue | Jual header `Offline: 1 menunggu`; server still `0` orders and no sale ledger row |
 | Reconnect | Airplane off, Wi-Fi/data on, `adb reverse tcp:3000` restored; app auto-synced; queue cleared, chip `Online` |
 | Server result | 1 order `INV/2026/000001`, status `PAID`, total `277500`, tax `27500`; 1 payment `277500`; stock ledger `STOCK_IN 0→20` then one `SALE_DECREMENT 20→19`; no duplicate order/payment/ledger |
-| Not covered | Conflict void/refund on the device (integration coverage exists; the override path is §7.24), split/transfer/QRIS payments, real printer output, TalkBack, APK size/cold start, tablet layout |
+| Not covered | Split/transfer/QRIS payments, real printer output, TalkBack, APK size/cold start, tablet layout (both conflict resolutions are §7.24 and §7.25) |
 | Dev caveat | A dev-only LogBox error (`Linking did not produce an initial navigation state`, Expo Router) appeared once after the deep-link launch/payment flow and was dismissed; the sale still completed and synced. Production impact is `NOT VERIFIED`; use a normal cold launch for the next device drill |
 
 ### 7.24 Stock-conflict resolution with Owner override — real-device verification (2026-11-28)
@@ -649,7 +649,23 @@ Device: same Infinix X6882 / Android 14 (`adb devices` state `device`, no emulat
 | Resolution | `Tinjau konflik` showed product/local 1/server 0, collected `Rp 277.500`, and `Uang tetap sah walau stok server berbeda.` Entered reason `Stok fisik sudah habis, pelanggan sudah membayar`, confirmed the override, and the final receipt rendered `INV/2026/000002` with no local-sync marker |
 | Server result | 2 orders `PAID`; ledger `SALE_DECREMENT 0→-1` with `override = true` and the reason; audit rows `sync.conflict_raised`, `sync.conflict_resolved_override`, `sync.conflict_override`, and `inventory.sale_decrement` all carry the same sync key/reason; no duplicate order/payment/ledger |
 | Observation | The confirmation button renders `SETUJUI OVERRIDE`. This is Android's all-caps dialog-button styling of the source string `Setujui override` (`apps/mobile/app/konflik/[clientKey].tsx`), not a copy/localization defect; `override` is the app-wide term |
-| Not covered | Device void/refund resolution (`Batalkan transaksi`), Cashier override denial on device, real concurrent second terminal, real printer, TalkBack, tablet layout |
+| Not covered | Cashier override denial on device, real printer, TalkBack, tablet layout (void/refund and a real concurrent online order are §7.25) |
+
+### 7.25 Real concurrent online order + conflict void/refund — real-device verification (2026-11-28)
+
+Device: same Infinix X6882 / Android 14 (`adb devices` state `device`, no emulator). Server: local Next.js bound to `0.0.0.0:3000`, device on the same Wi-Fi; dev DB retained §7.24 state. Setup added one `STOCK_IN -1→5` ledger row so the race starts with stock 5.
+
+| Step | Observed |
+|---|---|
+| Offline local sale | Airplane/Wi-Fi/data off. Sold 1× `BRK-001` for `Rp 277.500`; local receipt `LOKAL-4VRTHE`, `SALINAN LOKAL — BELUM TERSINKRON`; queue 1, server unchanged |
+| Real concurrent order | Owner web session created and paid `INV/2026/000003` for 5× `BRK-001` (`subtotal 1250000`, `PPN 137500`, `total 1387500`, `CASH`); server stock moved `5→0` through one `SALE_DECREMENT`, no local data involved |
+| Conflict surfaced | Network restored. Queue showed `Perlu tinjauan`; `Stok Kampas rem depan tidak mencukupi: lokal 1, server 0.` |
+| Void/refund | `Batalkan transaksi` → reason `Stok udah habis terjual di kasir online` (as stored) → confirmation `Transaksi dibatalkan tanpa mengurangi stok. Pengembalian dana Rp 277.500 dicatat sebagai refund.` |
+| Final result | Receipt `INV/2026/000004`, `*** DIBATALKAN ***`; Jual returned `Online` with `Tidak ada transaksi menunggu.` |
+| Server result | Order `VOID`, total/refund `277500`; payment `CASH 277500`; one refund row for the same payment, method `CASH`, amount `277500`, same reason; ledger stayed at 6 rows, last row is the online order's `5→0` — the void added no stock row |
+| Audit | `sync.conflict_raised`, `sync.conflict_resolved_void`, and `sync.conflict_void` carry the same sync key/reason; no `refund.*` audit action was emitted, the refund row is the financial record |
+| Observation | ADB text injection stored `udah` instead of the intended `sudah`; recorded as stored. No app-side copy or truncation defect was diagnosed |
+| Not covered | Cashier override denial on device, split/transfer/QRIS refunds on device, real printer, TalkBack, tablet layout |
 
 ## 8. Approved kickoff decisions
 
