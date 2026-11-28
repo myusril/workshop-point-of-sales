@@ -500,7 +500,7 @@ WP7 was merged to `main` as PR #8 (`589418d`) before WP8 started. WP8 adds `pack
 | Restore + app smoke | **PASS** — decrypt checksum matched; `pg_restore` exit 0 in 2 s; source/restore counts identical (orders 11, lines 20, payments 10, product 1, `user` 5, audit 19, stock ledger 9, customers 1, vehicles 1); health 200 and `/login` 200 against the restored DB; **RTO 6 s** on the drill dataset |
 | Compose profiles | **PASS** — default services are `db, web, proxy`; `--profile backup` adds `backup`; rendered passphrase is empty until supplied |
 | Gitleaks history | **PASS** — `gitleaks git --redact -v .` exit 0 |
-| Gitleaks working tree | **PASS after disposition** — first run found 8 generated-cache hits under gitignored `apps/web/.next/dev`; cache deleted, final pre-gate run exit 0 (27.08 MB, no leaks) |
+| Gitleaks working tree | **PASS after disposition** — first run found 8 generated-cache hits under gitignored `apps/web/.next/dev`; cache deleted, final run exit 0 (27.08 MB, no leaks) |
 | License re-audit | **PASS** — `scripts/license-report.sh` exit 0, `PASS: no disallowed runtime licenses`; no dependency added by WP9 |
 | `npm ls --all` | **PASS** — exit 0; only optional-peer notices |
 | `npm audit --omit=dev` | **24 moderate, recorded** — dev/build tooling (`drizzle-kit` esbuild, Jest glob/minimatch, Expo CLI fingerprint); no server-runtime path; forced fix would break majors and is out of WP9 |
