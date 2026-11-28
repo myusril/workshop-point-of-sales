@@ -511,7 +511,7 @@ WP7 was merged to `main` as PR #8 (`589418d`) before WP8 started. WP8 adds `pack
 | Mobile tests | **PASS** — 86 tests / 12 suites (14 new: transport + picker states) |
 | Android compile | **PASS** — full build 21 m 25 s / 403 tasks, then 32 s incremental after the security fix; `EscposBluetoothModule` in `classes8.dex`; APK declares `BLUETOOTH`, `BLUETOOTH_ADMIN`, `BLUETOOTH_CONNECT` |
 | Real printing/TalkBack | **NOT VERIFIED** — no device (`adb devices` empty) and no printer; no emulator used |
-| FR-071 buyer branding | **PASS** — settings PATCH 200 is audited and the saved name/logo now render in the expanded sidebar wordmark, the 72 px collapsed rail (logo or up to two initials), the mobile top bar, the home `<h1>` and browser title, and the login card. The branding read needs no `manage_settings`: Cashier and Mechanic see it while `/settings`, `GET /api/v1/settings`, `GET/PATCH /api/v1/settings/branding` stay 403. Evidence: 5 Playwright tests (Owner save → shell/home/title/login, role visibility, invalid logo 400 with no write, 80-char name at 1440/1024/768/390/320, no-logo fallback), 9 DOM tests, 1 integration RBAC test |
+| FR-071 buyer branding | **PASS** — settings PATCH 200 is audited and the saved name/logo now render in the expanded sidebar wordmark, the 72 px collapsed rail (logo or up to two initials), the mobile top bar, the home `<h1>` and browser title, and the login card. The branding read needs no `manage_settings`: Cashier and Mechanic see it while `/settings`, `GET /api/v1/settings`, `GET/PATCH /api/v1/settings/branding` stay 403. A protocol-relative logo (`//host/file.png`, admitted by the contract's local-path pattern but neither a local path nor an `https://` URL) is dropped on read, so the wordmark falls back to text/initials instead of fetching a third-party origin. Evidence: 5 Playwright tests (Owner save → shell/home/title/login, role visibility, invalid logo 400 with no write, 80-char name at 1440/1024/768/390/320, no-logo fallback), 9 DOM tests, 2 integration tests (RBAC read, protocol-relative logo) |
 | Cross-WP test repair | **PASS (test-only)** — the first gate run exposed a WP4 integration test that hardcoded 2026-11-27 while the server trigger stamps `now()`; the test now derives the WIB day from the stored row. No product code changed |
 
 ### 7.18 WP9 aggregate gate (frozen candidate)
@@ -537,7 +537,7 @@ Run in a fresh clone at `16bdb3aa09` with `fnm exec --using=26.13.1 -- bash scri
 
 ### 7.19 FR-071 branding wiring (2026-11-28)
 
-Branch `feat/fr071-branding-wiring`; `fnm exec --using=26.13.1 -- bash scripts/check.sh`: **exit 0, 285 s, `All gates passed.`**
+Branch `feat/fr071-branding-wiring`; `fnm exec --using=26.13.1 -- bash scripts/check.sh`: **exit 0, 202 s, `All gates passed.`**
 
 | Gate step | Observed result |
 |---|---|
@@ -545,12 +545,14 @@ Branch `feat/fr071-branding-wiring`; `fnm exec --using=26.13.1 -- bash scripts/c
 | `npm run typecheck` | **PASS** — all seven workspaces; 0 errors |
 | `npm run lint` | **PASS** — all seven workspaces; 0 errors/warnings |
 | `npm run test:unit` | **PASS** — mobile 86, web 125, auth 208, contracts 77, core 55, db 11, design-tokens 4 (**566 total**; web gained 9 branding DOM tests) |
-| `npm run test:integration` | **PASS** — web 172, auth 41, db 63 (**276 total**; +1 branding RBAC test) |
-| `npm run test:e2e:web` | **PASS** — 65 Chromium tests, 3.1 m (5 new FR-071 branding tests) |
+| `npm run test:integration` | **PASS** — web 173, auth 41, db 63 (**277 total**; +2 branding tests: RBAC read and protocol-relative logo) |
+| `npm run test:e2e:web` | **PASS** — 65 Chromium tests, 2.2 m (5 new FR-071 branding tests) |
 | `npm run build` | **PASS** — Next.js 16.4.6 production build |
 | `gitleaks dir .` | **PASS after disposition** — first run flagged 21 entries, all inside gitignored `apps/web/.next/**` build caches; caches deleted, rescan of 4.37 MB found no leaks |
 
 **Viewport evidence:** the branding E2E renders an 80-character product name at 1440/1024/768/390/320 with no horizontal overflow, a 72 px collapsed rail that fits the compact mark, and an ellipsized name at 390/320. Logo rendering is asserted against a Playwright-served SVG because no brand asset is shipped; a real buyer logo URL is not part of this evidence.
+
+**Logo origin:** only a same-origin path (`/…`) or an explicit `https://` URL is rendered. The contract's local-path pattern also admits protocol-relative values (`//host/file.png`); those are dropped on read and covered by an integration test.
 
 **Not verified:** mobile/Android branding parity, real-device printing, TalkBack, and the remote CI run remain `NOT VERIFIED`.
 

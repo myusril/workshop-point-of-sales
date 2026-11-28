@@ -47,10 +47,23 @@ type BrandingRow = {
   logoPath: string | null;
 };
 
+/**
+ * The logo must be a same-origin path (`/logo.svg`) or an explicit `https://`
+ * URL. `logoPathSchema`'s local-path pattern also admits protocol-relative
+ * values (`//host/file.png`), which are neither; rendering one would load a
+ * third-party origin the buyer never typed as an https URL, so it is dropped
+ * here and the wordmark falls back to text or initials.
+ */
+function toLogoPath(raw: string | null): string | null {
+  const trimmed = raw?.trim();
+  if (!trimmed || trimmed.startsWith("//")) return null;
+  return trimmed;
+}
+
 function toBranding(row: BrandingRow | undefined): Branding {
   return {
     productName: row?.productDisplayName?.trim() || DEFAULT_PRODUCT_NAME,
-    logoPath: row?.logoPath?.trim() || null,
+    logoPath: toLogoPath(row?.logoPath ?? null),
   };
 }
 

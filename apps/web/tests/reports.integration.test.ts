@@ -1026,6 +1026,29 @@ describe("settings and branding (FR-070, FR-071)", () => {
       "FORBIDDEN",
     );
   });
+
+  it("drops a protocol-relative logo instead of rendering a third-party origin", async () => {
+    // The contract's local-path pattern admits `//host/file.png`; the display
+    // path must not turn that into an off-origin image request.
+    await db
+      .update(tables.businesses)
+      .set({
+        productDisplayName: "Bengkel Uji POS",
+        logoPath: "//cdn.example.com/logo.png",
+      })
+      .where(eq(tables.businesses.id, BUSINESS_ID));
+
+    const read = await settingsService.getBrandingForBusiness(db, BUSINESS_ID);
+    expect(read).toEqual({ productName: "Bengkel Uji POS", logoPath: null });
+
+    const installationRead = await settingsService.getInstallationBranding(db);
+    expect(installationRead.logoPath).toBeNull();
+
+    await db
+      .update(tables.businesses)
+      .set({ logoPath: "/logo.svg" })
+      .where(eq(tables.businesses.id, BUSINESS_ID));
+  });
 });
 
 describe("12-month performance at NFR-013 volumes", () => {
