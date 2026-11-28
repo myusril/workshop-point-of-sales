@@ -29,6 +29,7 @@ Result vocabulary: `pass`, `fail`, `blocked` (depends on a buyer/account/legal a
 | 0.7 Mobile router fix | PR #12 squash merge `af371ef` | **pass** — provider modules moved to `src/providers`, `src/app` removed; launch/login/four tabs verified on Infinix X6882, Android 14; no emulator | `docs/STATUS.md` §7.20 |
 | 0.8 Empty spare-part investigation | PR #13 squash merge `da3f79d` | **pass** — test-data contamination confirmed; clean DB/device shows `BRK-001`; no product code changed | `docs/qa/empty-spare-parts-investigation.md` |
 | 0.9 Mobile bootstrap catalog refresh | PR #14 squash merge `74e4141` | **pass** — fresh install fetches catalog on signed-in/online bootstrap; `BRK-001` shows without manual reload; four-case regression test | `docs/STATUS.md` §7.22 |
+| 0.10 Offline sale device drill | Clean DB + Infinix X6882, no emulator | **pass** — offline queue 1 with server at 0 orders; auto-sync produced one `PAID` order (277500), one payment, and stock 20→19; conflict flow/printer/TalkBack remain open | `docs/STATUS.md` §7.23 |
 
 ---
 
