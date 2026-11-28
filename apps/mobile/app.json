@@ -10,7 +10,11 @@
     "android": {
       "package": "com.example.workshoppos",
       "edgeToEdgeEnabled": true,
-      "permissions": [],
+      "permissions": [
+        "android.permission.BLUETOOTH",
+        "android.permission.BLUETOOTH_ADMIN",
+        "android.permission.BLUETOOTH_CONNECT"
+      ],
       "allowBackup": false
     },
     "plugins": [

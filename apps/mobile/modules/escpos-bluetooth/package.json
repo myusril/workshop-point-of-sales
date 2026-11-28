@@ -1,0 +1,9 @@
+{
+  "name": "@workshop-pos/escpos-bluetooth",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Project-owned Android Bluetooth SPP bridge for ESC/POS receipt printing.",
+  "main": "index.ts",
+  "types": "index.ts",
+  "license": "MIT"
+}

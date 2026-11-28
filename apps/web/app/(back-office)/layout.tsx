@@ -6,7 +6,7 @@ import { getSessionPayload, requirePageAuthContext } from "@/lib/auth/server";
 import { backOfficeNavItems } from "@/lib/navigation-items";
 
 export const metadata: Metadata = {
-  title: "Back-office — Workshop POS",
+  title: "Manajemen — Workshop POS",
 };
 
 export const dynamic = "force-dynamic";

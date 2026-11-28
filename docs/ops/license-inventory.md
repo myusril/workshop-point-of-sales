@@ -146,7 +146,7 @@
 | Item | Severity | Action required |
 |---|---|---|
 | Ecme Next template (or any ThemeForest item) included in the handover | **BLOCKER** | Must not be included; build on MIT shadcn/ui + project tokens instead (§5) |
-| Epson ePOS SDK redistribution terms (via `react-native-esc-pos-printer-sdk`) | **REVIEW — Tier 3 founder/legal decision** | Buyer counsel confirms Epson SDK terms before the ESC/POS sink ships; otherwise use the PDF/browser fallback (§3) |
+| Epson ePOS SDK redistribution terms (via `react-native-esc-pos-printer-sdk`) | **REVIEW — Tier 3 founder/legal decision; not shipped** | WP9 ships a project-owned Bluetooth SPP/ESC-POS transport instead, so no Epson SDK is needed for generic 58/80 mm printing. Buyer counsel still confirms Epson terms before any Epson vendor integration; PDF/share and the project-owned sink ship regardless (§3) |
 | Optional `sharp` / `@img/sharp-libvips-*` payload (Next.js image optimization) | REVIEW — not shipped | Image optimization is disabled; the Dockerfile removes both paths from the standalone output and fails the build if they reappear. `scripts/license-report.sh` lists them as optional and image-excluded. Re-check after any Next.js upgrade (§1, §2) |
 | `lightningcss` / `axe-core` MPL-2.0 (build/lint-time) | REVIEW — build/lint-only, founder-approved exception | Present in the dev/build graph through Tailwind, the ESLint accessibility plugin, and Expo's CLI (`expo` → `@expo/cli` → `lightningcss`). No MPL source or binary is bundled into the web image or the Android APK. `scripts/license-report.mjs` records the Expo-CLI path as a MOBILE BUILD-ONLY exception (founder-approved 2026-11-27); do not add either as an application runtime import (§1, §2) |
 | `node-forge` (BSD-3-Clause OR GPL-2.0) | REVIEW — permissive alternative chosen | Reached through Expo CLI dev-server certificates; not bundled in the APK. The license gate now evaluates SPDX `OR` correctly and accepts the BSD-3-Clause alternative (founder-approved 2026-11-27) |
@@ -167,3 +167,15 @@ Every row's `license` value was read from one of these sources on the stated **v
 3. **Official licensing page** — PostgreSQL licence page, Docker components-and-licenses page, Envato Standard License/FAQ pages.
 
 The buyer should re-run the check on handover (one script: `npx license-checker --production --onlyPermissive` or equivalent from the lockfile) since minor/patch versions may have changed; the SPDX identifiers above should be stable for the pinned major versions.
+
+## 8. WP9 final re-audit (2026-11-28)
+
+`bash scripts/license-report.sh` was run on the WP9 candidate and exited 0 with `PASS: no disallowed runtime licenses`. The pinned exceptions are unchanged:
+
+- Optional `sharp`/`@img/sharp-libvips-*` remains image-excluded; the web Dockerfile still asserts absence.
+- `lightningcss` (11 optional native children) and `axe-core` are build/lint-only; `@axe-core/playwright` and `@csstools/color-helpers` are dev-only. No MPL source or binary enters the web image or the Android APK.
+- `caniuse-lite` CC-BY-4.0 attribution is unchanged and now also appears in `THIRD_PARTY_NOTICES.md`.
+- `node-forge` still resolves to the BSD-3-Clause alternative.
+- **No dependency was added in WP9.** The ESC/POS transport is project-owned code using the Android SDK; it introduces no npm package, no vendor SDK, and no Epson ePOS terms. The native Android module is compiled locally and is not part of the web runtime image.
+
+Accepted gap (unchanged from §6): the report prints dev-only/optional REVIEW buckets but does not hard-fail a forbidden license there. The mitigation is the locked dependency graph plus review of any new import; closing the gap would be a change to `scripts/license-report.mjs`, outside WP9's owned paths.

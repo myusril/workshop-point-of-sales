@@ -1,12 +1,12 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
-import { ScrollView, Text, View } from "react-native";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { AccessibilityInfo, findNodeHandle, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { formatIdr } from "@workshop-pos/core";
 
 import { getRuntime } from "@/src/app/runtime";
 import { useSync } from "@/src/app/SyncProvider";
-import { Button, Card } from "@/src/components/ui";
+import { Button, Card, type PressableHandle } from "@/src/components/ui";
 import { Header } from "@/src/components/chrome";
 import { ErrorState, LoadingState, Notice, SectionTitle } from "@/src/components/forms";
 import {
@@ -16,6 +16,11 @@ import {
   type QueueRow,
   type ReceiptSnapshot,
 } from "@/src/db/repository";
+import {
+  BluetoothPrinterTransport,
+  type PrinterDevice,
+} from "@/src/printing/bluetooth-transport";
+import { PrinterPicker } from "@/src/printing/PrinterPicker";
 import { buildLocalReceipt } from "@/src/printing/receipt";
 import {
   createReceiptChannels,
@@ -45,7 +50,13 @@ export default function StrukScreen() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [outputMessage, setOutputMessage] = useState<string | null>(null);
+  const [printerPickerOpen, setPrinterPickerOpen] = useState(false);
+  const [printers, setPrinters] = useState<PrinterDevice[]>([]);
+  const [printerError, setPrinterError] = useState<string | null>(null);
+  const [printerLoading, setPrinterLoading] = useState(false);
+  const printButtonRef = useRef<PressableHandle>(null);
 
+  const transport = useMemo(() => new BluetoothPrinterTransport(), []);
   const row = queue.find((entry) => entry.clientKey === clientKey) ?? fetched;
 
   useEffect(() => {
@@ -73,7 +84,7 @@ export default function StrukScreen() {
     };
   }, [clientKey, lastSummary, runtime]);
 
-  const channels = useMemo(() => createReceiptChannels(), []);
+  const channels = useMemo(() => createReceiptChannels(transport), [transport]);
   const template = useMemo(() => {
     if (!snapshot) return null;
     return buildLocalReceipt(snapshot, {
@@ -112,6 +123,41 @@ export default function StrukScreen() {
     } finally {
       setBusy(null);
     }
+  }
+
+  async function loadPrinters() {
+    setPrinterError(null);
+    setPrinterLoading(true);
+    try {
+      const devices = await transport.listPrinters();
+      setPrinters(devices);
+      setPrinterPickerOpen(true);
+    } catch (caught) {
+      setPrinters([]);
+      setPrinterError(
+        caught instanceof PrinterUnavailableError
+          ? `${caught.message} Gunakan Simpan PDF atau Bagikan struk sebagai gantinya.`
+          : "Daftar printer tidak dapat dibaca.",
+      );
+      setPrinterPickerOpen(true);
+    } finally {
+      setPrinterLoading(false);
+    }
+  }
+
+  function closePrinterPicker() {
+    setPrinterPickerOpen(false);
+    // Return accessibility focus to the control that opened the sheet.
+    setTimeout(() => {
+      const node = findNodeHandle(printButtonRef.current);
+      if (node) AccessibilityInfo.setAccessibilityFocus(node);
+    }, 250);
+  }
+
+  async function selectPrinter(printer: PrinterDevice) {
+    transport.selectPrinter(printer);
+    closePrinterPicker();
+    await output("THERMAL");
   }
 
   if (loading) {
@@ -206,7 +252,6 @@ export default function StrukScreen() {
         <Card style={{ backgroundColor: "#FFFFFF", padding: theme.spacing[8] }}>
           <ScrollView horizontal showsHorizontalScrollIndicator contentContainerStyle={{ padding: theme.spacing[8] }}>
             <Text
-              accessibilityLabel="Pratinjau struk"
               style={{
                 fontFamily: "IBMPlexMono_400Regular",
                 fontSize: 12,
@@ -225,6 +270,16 @@ export default function StrukScreen() {
             : "Salinan pertama tidak diberi tanda SALINAN."}
         </Text>
       </ScrollView>
+      <PrinterPicker
+        visible={printerPickerOpen}
+        printers={printers}
+        loading={printerLoading}
+        busy={busy === "THERMAL"}
+        error={printerError}
+        onSelect={(printer) => void selectPrinter(printer)}
+        onClose={closePrinterPicker}
+        onRefresh={() => void loadPrinters()}
+      />
       <View
         style={{
           minHeight: theme.size.mobileActionBar,
@@ -236,9 +291,23 @@ export default function StrukScreen() {
           gap: theme.spacing[8],
         }}
       >
+        <Button
+          label={
+            busy === "THERMAL"
+              ? "Mencetak…"
+              : printerLoading
+                ? "Mencari printer…"
+                : "Cetak struk"
+          }
+          onPress={() => void loadPrinters()}
+          loading={printerLoading || busy === "THERMAL"}
+          disabled={busy !== null && busy !== "THERMAL"}
+          buttonRef={printButtonRef}
+        />
         <View style={{ flexDirection: "row", gap: theme.spacing[8] }}>
           <Button
             label={busy === "SHARE" ? "Membagikan…" : "Bagikan struk"}
+            variant="secondary"
             onPress={() => void output("SHARE")}
             loading={busy === "SHARE"}
             disabled={busy !== null && busy !== "SHARE"}
@@ -253,13 +322,6 @@ export default function StrukScreen() {
             style={{ flex: 1 }}
           />
         </View>
-        <Button
-          label="Cetak struk (printer belum terpasang)"
-          variant="secondary"
-          onPress={() => void output("THERMAL")}
-          loading={busy === "THERMAL"}
-          disabled
-        />
       </View>
     </SafeAreaView>
   );

@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ComponentRef, ReactNode, RefObject } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -11,6 +11,7 @@ import {
 import { useTheme } from "@/src/theme/ThemeProvider";
 
 type ButtonVariant = "primary" | "secondary" | "danger" | "ghost";
+export type PressableHandle = ComponentRef<typeof Pressable>;
 
 export function Button({
   label,
@@ -21,6 +22,7 @@ export function Button({
   accessibilityLabel,
   style,
   icon,
+  buttonRef,
 }: {
   label: string;
   onPress: () => void;
@@ -30,6 +32,7 @@ export function Button({
   accessibilityLabel?: string;
   style?: StyleProp<ViewStyle>;
   icon?: ReactNode;
+  buttonRef?: RefObject<PressableHandle | null>;
 }) {
   const theme = useTheme();
   const height = variant === "primary" ? theme.size.primaryMobile : theme.size.targetMobile;
@@ -57,6 +60,7 @@ export function Button({
 
   return (
     <Pressable
+      ref={buttonRef}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
       accessibilityState={{ disabled: disabled || loading, busy: loading }}
