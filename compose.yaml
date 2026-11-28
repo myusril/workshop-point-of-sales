@@ -108,8 +108,11 @@ services:
       PGDATABASE: ${POSTGRES_DB:?POSTGRES_DB is required}
       # Empty by default so the normal stack still renders without a backup
       # secret; the entrypoint fails closed when the profile is enabled
-      # without a passphrase.
+      # without a passphrase or a readable passphrase file.
       BACKUP_PASSPHRASE: ${BACKUP_PASSPHRASE:-}
+      BACKUP_PASSPHRASE_FILE: ${BACKUP_PASSPHRASE_FILE:-}
+      PGPASSFILE: ${PGPASSFILE:-}
+      PGCONNECT_TIMEOUT: "10"
       BACKUP_INTERVAL_SECONDS: ${BACKUP_INTERVAL_SECONDS:-900}
       BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-30}
     volumes:
@@ -117,6 +120,17 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      # Unhealthy when the newest encrypted dump is older than two intervals.
+      test:
+        [
+          "CMD-SHELL",
+          "max=$$(( $${BACKUP_INTERVAL_SECONDS:-900} * 2 / 60 )); find /backups -maxdepth 1 -name 'workshop-pos-*.dump.enc' -mmin -$$max | grep -q .",
+        ]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+      start_period: 180s
     read_only: true
     tmpfs:
       - /tmp

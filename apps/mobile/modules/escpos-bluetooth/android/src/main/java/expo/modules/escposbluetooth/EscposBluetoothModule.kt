@@ -85,8 +85,9 @@ class EscposBluetoothModule : Module() {
       executor.execute {
         var socket: BluetoothSocket? = null
         try {
-          val device = adapter.getRemoteDevice(address)
-          adapter.cancelDiscovery()
+          // Only devices the operator paired in Android Settings may be used.
+          val device = adapter.bondedDevices.firstOrNull { it.address == address }
+            ?: throw IllegalStateException("Printer belum dipasangkan di Pengaturan Bluetooth.")
           socket = device.createRfcommSocketToServiceRecord(serialPortUuid)
           socket.connect()
           socket.outputStream.use { stream ->

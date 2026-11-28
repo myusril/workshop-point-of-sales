@@ -60,6 +60,15 @@ describe("generic ESC/POS Bluetooth transport", () => {
     await expect(transport.listPrinters()).resolves.toEqual([printer]);
   });
 
+  it("passes the injected Android version to the permission gate", async () => {
+    const request = jest.fn(async () => true);
+    const transport = new BluetoothPrinterTransport(
+      deps({ osVersion: 30, requestConnectPermission: request }),
+    );
+    await transport.listPrinters();
+    expect(request).toHaveBeenCalledWith(30);
+  });
+
   it("refuses to print before a printer is selected", async () => {
     const transport = new BluetoothPrinterTransport(deps());
     await expect(transport.print(Uint8Array.from([0x1b, 0x40]))).rejects.toThrow(

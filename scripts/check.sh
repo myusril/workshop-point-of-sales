@@ -108,6 +108,15 @@ else
     "${COMPOSE[@]}" logs db || true
     fail "The ${TEST_DB_NAME} database was not reachable within 30 seconds. If this volume predates docker/initdb/01-test-database.sql, reset it with: docker compose -f compose.dev.yaml down -v"
   fi
+
+  step "Backup image"
+  # The production-shape Compose file and the optional sidecar are not used by
+  # the app tests, so build and render them here where Docker is available.
+  # CI mode (WP_CI=1) has no Docker daemon and skips this step; the Woodpecker
+  # pipeline does not build the sidecar image.
+  BETTER_AUTH_SECRET="${BETTER_AUTH_SECRET:-gate-only-not-a-production-secret}" \
+    docker compose --profile backup config --quiet
+  docker build -f docker/backup.Dockerfile -t workshop-pos-backup:gate .
 fi
 
 step "License report"

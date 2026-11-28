@@ -254,6 +254,8 @@ Summary table:
 | DEC-0020 | 2026-11-27 | 2 | Destructive local sign-out requires a reason and purges the queue/PII caches; sign-out, PIN-forgot, and expiry make a best-effort server token revocation and delete exported receipt files | FR-006 and the retention table require local erasure; the server logout route already revokes a bearer token; exported receipt files contain customer PII | Product owner (reference-matching) | decision-reviewer | implemented | WP7 implementation |
 | DEC-0021 | 2026-11-27 | 3 | Production builds fail closed unless the API URL is HTTPS; plain HTTP is allowed only in a development build for the emulator loopback | NFR-007 requires TLS for all traffic; founder approved the dev-only exception 2026-11-27 | Founder | Founder | implemented | WP7 implementation; founder decision 2026-11-27 |
 | DEC-0022 | 2026-11-27 | 3 | The license report evaluates SPDX `OR` as a choice and records Expo-CLI `lightningcss` (MPL-2.0) as a build-only exception; review date 2027-05-31 | Expo 58 ships its CLI as a production dependency, but the toolchain is not bundled into the APK; MPL-2.0 is file-level copyleft and not in the prohibited set | Founder | Founder | implemented | WP7 implementation; founder decision 2026-11-27; `scripts/license-report.mjs` |
+| DEC-0023 | 2026-11-28 | 2 | Ship a project-owned generic ESC/POS Bluetooth SPP transport for 58/80 mm printers now; the Epson ePOS SDK stays `REVIEW` and uninstalled | Founder chose `native_now` after the fallback-only question; multi-brand direct printing is the product goal | Founder | Founder | implemented | WP9 brief amendment 2026-11-28; `apps/mobile/modules/escpos-bluetooth/`; `docs/ui/a11y-audit.md` §5 |
+| DEC-0024 | 2026-11-28 | 2 | Keep the existing env/static branding path (`logo_path`/URL); no in-app logo upload or schema change in WP9 | Buyer branding is already configurable per FR-071; an upload path is a separate schema/security change | Founder | Founder | implemented | WP9 brief 2026-11-28; `docs/STATUS.md` §5 |
 
 
 Status values: `proposed`, `approved`, `rejected`, `implemented`, `reverted`, `superseded`.
@@ -705,6 +707,42 @@ Illustrative entry (not a real decision):
 - Rollback: remove the exception and the OR handling; the gate fails until the Expo dependency graph changes.
 - Follow-ups: WP1/WP8 forbidden-license hard fail in every bucket.
 - Links: `docs/ops/license-inventory.md` §6; `scripts/license-report.mjs`; founder decision 2026-11-27.
+- Supersedes: none
+
+### DEC-0023 — Ship generic ESC/POS Bluetooth printing now
+
+- Date: 2026-11-28
+- Tier: 2
+- Status: implemented
+- Requester: founder (WP9 handover)
+- Decider: Founder
+- Approver(s): Founder
+- Context: WP9 was scoped as handover-only with a PDF/share fallback. The founder asked whether the app could print directly to multiple 58/80 mm thermal-printer brands and chose to include that capability in this delivery instead of deferring it.
+- Options: (a) fallback-only and defer native printing; (b) add the Epson ePOS SDK; (c) ship a project-owned generic ESC/POS transport over Android Bluetooth SPP.
+- Decision: option (c). The app includes a small local Expo module (`apps/mobile/modules/escpos-bluetooth`) that lists bonded printers, writes the existing ESC/POS bytes over SPP, and exposes a printer picker. No third-party printer SDK is installed.
+- Rationale: standard SPP/ESC-POS covers mainstream 58/80 mm printers without Epson's SDK terms or a large vendor payload; the `PrinterTransport` seam and share/PDF fallback remain, so the change is bounded.
+- Consequences: the mobile app now requests `BLUETOOTH_CONNECT` (plus legacy install-time permissions) and lists bonded devices; pairing stays in Android Settings. Real-device printing, TalkBack, and per-model alignment are **NOT VERIFIED** until the buyer's pilot.
+- Rollback: remove the printer picker wiring and the local module; the existing share/PDF channels keep working. No data migration.
+- Follow-ups: buyer pilot on its printers (owner: buyer; before go-live); record the tested-model list (D-9).
+- Links: WP9 brief amendment 2026-11-28; `docs/ops/handover-evidence.md` §WP9A; `docs/ui/a11y-audit.md` §5.
+- Supersedes: none
+
+### DEC-0024 — Keep the existing branding path
+
+- Date: 2026-11-28
+- Tier: 2
+- Status: implemented
+- Requester: founder (WP9 handover)
+- Decider: Founder
+- Approver(s): Founder
+- Context: FR-071 requires buyer-configurable branding. The shipped implementation uses `businesses.product_display_name` and `logo_path` (URL or static path), audited and Owner-only; an in-app logo upload would need storage, validation, and a schema change.
+- Options: (a) keep the env/static path; (b) add schema/upload support in WP9.
+- Decision: option (a). WP9 verifies the existing path and documents the buyer configuration; no schema or upload change.
+- Rationale: no new storage/security surface in a handover branch; the current path already satisfies the reference requirement.
+- Consequences: the buyer sets the logo as a URL/path and the product display name; in-app upload remains a future work package.
+- Rollback: none needed; adding upload later is additive but needs its own decision and migration.
+- Follow-ups: buyer supplies name/logo and re-checks contrast if the accent changes (DESIGN §10).
+- Links: `docs/STATUS.md` §5; FR-071; WP9 brief.
 - Supersedes: none
 
 ## 8. Suggested turnaround

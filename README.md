@@ -24,7 +24,7 @@ Full requirements live in [`docs/product/PRD.md`](docs/product/PRD.md).
 | Inventory | Append-only stock ledger; decrement on completion; stock-in/adjustment; low-stock list; authorized negative-stock override |
 | Reports | Daily sales, payment mix, service vs. product revenue, technician productivity, stock valuation, end-of-day reconciliation; CSV export |
 | Mobile offline-first | Locally queued sales, idempotent sync, surfaced conflicts, server-authoritative stock |
-| Receipts | 58 mm / 80 mm thermal printing from Android with browser-print fallback; reprint |
+| Receipts | 58 mm / 80 mm ESC/POS printing from Android (hardware pilot pending; share/PDF fallback) and reprint |
 | Settings & branding | Tax rate, discount caps, receipt branding, product name/logo configurable by the buyer |
 
 ### Out of scope for MVP
@@ -68,12 +68,16 @@ WP1 created `apps/web/`, `docker/`, `scripts/`, `compose.yaml`, and `compose.dev
 
 Exact file ownership per work package: [`docs/plan/work-packages.md`](docs/plan/work-packages.md).
 
+### Optional development tooling
+
+`AGENTS.md`, `.omp/`, `orca.yaml`, and `.worktreeinclude` are optional AI-assisted-development aids. They are **not** runtime or build dependencies and may be deleted without affecting the product; no build, start, or deployment file references them. The buyer may remove them from the final handover commit. Session briefs under `.brief/` are never tracked.
+
 ## Prerequisites
 
 - **Node.js 26 LTS** (pinned via `.node-version`) and **npm** with workspaces support
 - **Docker Engine + Docker Compose** (v2) for PostgreSQL and the deployment stack
 - **Android tooling** for mobile builds: JDK 17 + Android SDK (platform 36, build-tools) and a physical Android 8.0+ device — the app builds locally with `expo prebuild` + Gradle; no paid build service is required. Emulator/AVD testing is not used
-- A 58 mm or 80 mm ESC/POS thermal printer and a physical Android device for the printer pilot (buyer-supplied). The shipped build does not include a native printer transport; receipt share and PDF work offline
+- A 58 mm or 80 mm ESC/POS thermal printer and a physical Android device for the printer pilot (buyer-supplied). The app includes a project-owned Bluetooth SPP transport for direct printing; share and PDF work offline and remain the fallback. Real-printer verification is a buyer pilot, not a claim of this build
 
 ## Setup
 
@@ -104,17 +108,25 @@ WP4 maps the documented token values into shared CSS variables; WP7 does the sam
 The mobile app is a separate Expo workspace (`@workshop-pos/mobile`). It never owns server money or stock: a paid sale is written to SQLite (order + outbox row in one transaction) with a client idempotency key, and the server applies it later. The app needs the web/API process running. Device checks use a real Android device only; emulators/AVDs are never used.
 
 ```sh
-# 1. Start the API (host or Compose) on port 3000.
+# 1. Start the API on 127.0.0.1:3000.
 npm run dev
 
-# 2. Point the app at the API on the same LAN and install on a real device.
-EXPO_PUBLIC_API_URL=http://<LAN-IP>:3000 npm run start --workspace @workshop-pos/mobile
+# 2. USB device: forward the host loopback port to the phone (no LAN exposure).
+adb reverse tcp:3000 tcp:3000
+EXPO_PUBLIC_API_URL=http://127.0.0.1:3000 npm run start --workspace @workshop-pos/mobile
 # Then press "a" in the Expo terminal, or with the device connected:
 adb devices                                             # must show "device"
 npx expo run:android --device                           # real device only
 ```
 
-Use the host's LAN address (for example `http://192.168.1.20:3000`). The URL is public configuration, not a secret; never put credentials in it. If no real device is connected, device-only checks are `NOT VERIFIED`; never substitute an emulator.
+For Wi-Fi instead of USB, bind the API to the LAN on a trusted network and use the host's address:
+
+```sh
+npm run dev --workspace @workshop-pos/web -- --hostname 0.0.0.0
+EXPO_PUBLIC_API_URL=http://<LAN-IP>:3000 npm run start --workspace @workshop-pos/mobile
+```
+
+The URL is public configuration, not a secret; never put credentials in it. If no real device is connected, device-only checks are `NOT VERIFIED`; never substitute an emulator.
 
 **Production requires HTTPS.** `resolveApiBaseUrl` accepts plain HTTP only in a development build (`__DEV__`); a release build with an `http://` or missing `EXPO_PUBLIC_API_URL` fails closed with a clear message. Terminate TLS at the Caddy proxy (WP1) and point the app at the HTTPS hostname.
 
@@ -137,7 +149,7 @@ npx expo run:android --device                          # real device only; never
 adb devices                                             # proceed only for a device in "device" state
 ```
 
-Release signing, Play Store packaging, APK size, and cold-start time are buyer/hardware tasks and are **not verified** in this repository. Direct printing uses a project-owned Android Bluetooth SPP module (`apps/mobile/modules/escpos-bluetooth`) that writes ESC/POS bytes to any paired 58 mm or 80 mm printer; no vendor SDK is linked, and the Epson ePOS SDK remains `REVIEW`/not installed. The app still exposes a `PrinterTransport` seam, and share/PDF are the always-available fallback. **Actual printing on hardware is `NOT VERIFIED`** until a pilot with the buyer's printers.
+Release signing, Play Store packaging, APK size, and cold-start time are buyer/hardware tasks and are **not verified** in this repository. Direct printing uses a project-owned Android Bluetooth SPP module (`apps/mobile/modules/escpos-bluetooth`) that writes ESC/POS bytes to a paired 58 mm or 80 mm ESC/POS printer; no model or brand is certified until the buyer's pilot, no vendor SDK is linked, and the Epson ePOS SDK remains `REVIEW`/not installed. The app still exposes a `PrinterTransport` seam, and share/PDF are the always-available fallback. **Actual printing on hardware is `NOT VERIFIED`** until a pilot with the buyer's printers.
 
 ## Quality gate
 
@@ -151,7 +163,7 @@ The npm scripts and aggregate runner exist. The individual steps and the aggrega
 | `npm run test:integration` | Database integration tests against the Compose test database (web, auth, db) |
 | `npm run test:e2e:web` | Playwright Chromium journeys for the back-office and counter flows |
 | `npm run build` | Next.js production build with standalone output |
-| `bash scripts/check.sh` | **Aggregate gate** — license report, typecheck, lint, unit, integration, E2E, build; Docker preflight (local) or a provided PostgreSQL service (`WP_CI=1`) |
+| `bash scripts/check.sh` | **Aggregate gate** — license report, typecheck, lint, unit, integration, E2E, build; local mode also renders the backup profile and builds `docker/backup.Dockerfile`; Docker preflight (local) or a provided PostgreSQL service (`WP_CI=1`) |
 
 Runner parity rule: automation must run exactly these commands in this order; nothing may pass locally and fail elsewhere. Stop any running `npm run dev` before the aggregate gate; Next.js allows one dev server per project, and the E2E step starts its own on port 3100.
 
@@ -166,7 +178,7 @@ Observed results and exact counts for each work package are recorded in [`docs/S
 - **Compose services:** `web` (Next.js standalone), `db` (PostgreSQL 19 with a named persistent volume), `proxy` (Caddy 2: TLS, compression, security headers), and an optional `backup` sidecar behind the `backup` profile. No Redis, no mandatory cloud service.
 - **Health checks:** `/api/v1/health` (DB roundtrip + migration version) is used by the Compose healthcheck and returns 503 with `database:"down"` when PostgreSQL is unreachable. The proxy waits for a healthy web container.
 - **Migrations before app start:** `npm run db:migrate` applies the WP2 Drizzle migrations. The web container does not auto-migrate; run the command (or the release runbook step) before starting a new image. Production data still requires a backup before a migration.
-- **Backups:** the optional sidecar takes an encrypted `pg_dump` every 15 minutes (`BACKUP_INTERVAL_SECONDS=900`), verifies the decrypt/checksum round-trip, and prunes after 30 days. Enable it with `docker compose --profile backup up -d` after setting `BACKUP_PASSPHRASE`. The restore, off-host copy, key custody, RPO/RTO targets, and the 2026-11-28 drill record are in [`docs/ops/backup-runbook.md`](docs/ops/backup-runbook.md). Off-host copying and alerting are buyer-owned.
+- **Backups:** the optional sidecar takes an encrypted `pg_dump` every 15 minutes (`BACKUP_INTERVAL_SECONDS=900`), streams it without writing plaintext, stores a ciphertext HMAC and checksum, verifies the round-trip, and prunes after 30 days. Enable it with `docker compose --profile backup up -d` after setting `BACKUP_PASSPHRASE` or a mounted `BACKUP_PASSPHRASE_FILE`. The restore, off-host copy, key custody, RPO/RTO targets, and the 2026-11-28 drill record are in [`docs/ops/backup-runbook.md`](docs/ops/backup-runbook.md). Off-host copying and alerting are buyer-owned.
 - **Upgrades and rollback:** image tags and the DB-volume snapshot rule are design requirements (ADR §5.3); the backup runbook covers restore and cutover/rollback. A production-sized upgrade rehearsal remains buyer/staging work.
 
 Details: [`docs/adr/0001-stack-and-architecture.md`](docs/adr/0001-stack-and-architecture.md) §3.9 and §5.
@@ -196,6 +208,10 @@ From handover onward the **buyer is the Data Controller** under Indonesia's UU P
 | [`docs/plan/work-packages.md`](docs/plan/work-packages.md) | Work packages WP1–WP9, file ownership, traceability |
 | [`docs/product/personal-data.md`](docs/product/personal-data.md) | Personal-data inventory and UU PDP controller note |
 | [`docs/ops/handover-checklist.md`](docs/ops/handover-checklist.md) | Pre-delivery verification checklist (draft, not executed) |
+| [`docs/ops/handover-evidence.md`](docs/ops/handover-evidence.md) | Executed checklist evidence and open/`NOT VERIFIED` items |
+| [`docs/ops/backup-runbook.md`](docs/ops/backup-runbook.md) | Encrypted backup, off-host copy, restore/rollback, key custody, RPO/RTO drill |
+| [`docs/ui/a11y-audit.md`](docs/ui/a11y-audit.md) | WCAG 2.2 AA, keyboard/contrast, Bahasa, mobile touch/TalkBack sign-off |
+| [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) | Shipped third-party notices |
 | [`docs/ops/license-inventory.md`](docs/ops/license-inventory.md) | Dependency license evidence and blockers |
 | [`docs/ops/decision-policy.md`](docs/ops/decision-policy.md) | Tier 1/2/3 decision and approval policy |
 | [`docs/ui/research/kickoff-2026-11-26.md`](docs/ui/research/kickoff-2026-11-26.md) | UX research: flows, environment, risks |

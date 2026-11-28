@@ -34,14 +34,30 @@ describe("printer picker", () => {
     expect(props.onSelect).toHaveBeenCalledWith(printers[1]);
   });
 
-  it("explains how to pair a printer when the list is empty", async () => {
+  it("shows a searching state without claiming that no printer is paired", async () => {
+    await renderPicker({ printers: [], loading: true });
+    expect(screen.getAllByText("Mencari printer…").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Belum ada printer")).toBeNull();
+    expect(screen.queryByText(/Pasangkan printer di Pengaturan/)).toBeNull();
+  });
+
+  it("does not show the empty message when discovery failed", async () => {
+    await renderPicker({ printers: [], error: "Izin Bluetooth ditolak." });
+    expect(screen.getByText("Izin Bluetooth ditolak.")).toBeVisible();
+    expect(screen.queryByText("Belum ada printer")).toBeNull();
+  });
+
+  it("explains how to pair a printer only for a successful empty result", async () => {
     await renderPicker({ printers: [] });
+    expect(screen.getByText("Belum ada printer")).toBeVisible();
     expect(screen.getByText(/Pasangkan printer di Pengaturan Bluetooth Android/)).toBeVisible();
   });
 
-  it("shows the permission or adapter error instead of hiding it", async () => {
-    await renderPicker({ printers: [], error: "Izin Bluetooth ditolak." });
-    expect(screen.getByText("Izin Bluetooth ditolak.")).toBeVisible();
+  it("labels an in-flight print as printing, not as a refresh", async () => {
+    await renderPicker({ busy: true });
+    expect(screen.getByText("Mencetak struk…")).toBeVisible();
+    expect(screen.getByText("Mencetak…")).toBeVisible();
+    expect(screen.queryByText("Muat ulang")).toBeNull();
   });
 
   it("closes through the explicit Tutup button", async () => {

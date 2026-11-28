@@ -33,7 +33,7 @@ export interface BluetoothTransportDeps {
   platform: string;
   osVersion: number;
   loadModule(): EscposBluetoothBridge | null;
-  requestConnectPermission(): Promise<boolean>;
+  requestConnectPermission(osVersion: number): Promise<boolean>;
 }
 
 function loadNativeModule(): EscposBluetoothBridge | null {
@@ -41,10 +41,10 @@ function loadNativeModule(): EscposBluetoothBridge | null {
   return requireOptionalNativeModule<EscposBluetoothNativeModule>("EscposBluetooth");
 }
 
-async function requestConnectPermission(): Promise<boolean> {
+async function requestConnectPermission(osVersion: number): Promise<boolean> {
   if (Platform.OS !== "android") return false;
   // Android 11 and below grant BLUETOOTH at install time.
-  if (Number(Platform.Version) < 31) return true;
+  if (osVersion < 31) return true;
 
   type AndroidPermission = Parameters<typeof PermissionsAndroid.check>[0];
   const permission = PermissionsAndroid.PERMISSIONS
@@ -101,7 +101,7 @@ export class BluetoothPrinterTransport implements PrinterTransport {
         "Pencetakan langsung hanya tersedia di aplikasi Android.",
       );
     }
-    if (!(await this.deps.requestConnectPermission())) {
+    if (!(await this.deps.requestConnectPermission(this.deps.osVersion))) {
       throw new PrinterUnavailableError(
         "Izin Bluetooth ditolak. Izinkan akses Bluetooth untuk mencetak struk.",
       );

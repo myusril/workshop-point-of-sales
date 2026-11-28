@@ -19,7 +19,7 @@
 |---|---|---|---|
 | **M1 — Walking skeleton** | WP1: npm-workspaces monorepo, pinned Node, `.env.example`, Compose dev/prod, Postgres, Dockerfiles, `scripts/check.sh`, license report, health endpoint, minimal page/API | A fresh clone reaches a healthy web + database stack with standard Docker/Node tooling; `scripts/check.sh` exits 0; license report has no blocker | **Verified 2026-11-26 and merged to `main` as PR #1 (`a96ffcb`)** |
 | **M2 — MVP** | WP2–WP8: schema/seed, auth/RBAC/outlets, catalog + stock ledger, customers/vehicles/history, mixed orders + payments + receipts, offline mobile POS + sync, reports/audit/export/settings, hardening gate | Every PRD story US-01–US-20 passes its acceptance criteria; offline/conflict, money, stock, and RBAC tests are green; no license blocker; WCAG 2.2 AA checks pass on agreed screens | **Complete for the implemented scope** — WP2 `88252dc`; WP3 `344de62`; WP4 `cdf3036`; WP5 `8a2a550`; WP6 `9f2fc8f`; WP6.1 `c8a38ec` (PR #7); WP7 `589418d` (PR #8); WP8 `c93acc3` (PR #9). WP8 focused checks in §7.15 and gate in §7.16 |
-| **M3 — Handover-ready** | WP9: accessibility sign-off, backup/restore drill, fresh-clone deployment rehearsal, license re-audit, documentation and credential handover | `docs/ops/handover-checklist.md` is fully checked with captured evidence; restore drill meets RPO/RTO targets; buyer accepts the signed manifest | **In progress** — encrypted backup/restore drill passed (RTO 4 s on the drill dataset); web axe sweep passed; fresh-clone + gate evidence in `docs/ops/handover-evidence.md`; real-device printing/TalkBack, production-sized RTO, buyer credential transfer, and the signed manifest remain open/`NOT VERIFIED` |
+| **M3 — Handover-ready** | WP9: accessibility sign-off, backup/restore drill, fresh-clone deployment rehearsal, license re-audit, documentation and credential handover | `docs/ops/handover-checklist.md` is fully checked with captured evidence; restore drill meets RPO/RTO targets; buyer accepts the signed manifest | **In progress** — encrypted backup/restore drill passed (RTO 6 s on the drill dataset); web axe sweep passed; fresh-clone + gate evidence in `docs/ops/handover-evidence.md`; **FR-071 is partial**: branding saves and is audited but the shell still renders the static name, so the owning WP must wire it before handover; real-device printing/TalkBack, production-sized RTO, buyer credential transfer, and the signed manifest remain open/`NOT VERIFIED` |
 
 ---
 
@@ -32,7 +32,7 @@
 | `docs/marketing/competitors.md` | Cited Indonesian workshop POS landscape and positioning | Draft; vendor claims labeled, gaps marked `NOT VERIFIED` |
 | `docs/adr/0001-stack-and-architecture.md` | Stack, data, auth, offline sync, deployment, cost range, rejected alternatives | Proposed |
 | `docs/ops/license-inventory.md` | Dependency/license/transferability evidence | Re-audited in WP9 (2026-11-28): report exit 0, no disallowed runtime license, no new dependency; Expo-CLI `lightningcss` build-only exception and `node-forge` BSD-3-Clause alternative stand; Epson SDK remains `REVIEW` and is not installed |
-| `docs/ops/backup-runbook.md` | Buyer-facing encrypted backup, off-host copy, restore, rollback, key custody, RPO/RTO and drill record | Delivered in WP9; drill passed 2026-11-28 (encrypted dump 125,632 bytes, checksum verified, restore + health in 4 s on the drill dataset) |
+| `docs/ops/backup-runbook.md` | Buyer-facing encrypted backup, off-host copy, restore, rollback, key custody, RPO/RTO and drill record | Delivered in WP9; drill passed 2026-11-28 (110,928-byte encrypted dump, no plaintext at rest, HMAC + checksum verified, restore + health in 6 s on the drill dataset) |
 | `docs/ops/handover-evidence.md` | Executed checklist evidence: command, result, evidence path, `NOT VERIFIED` items | Delivered in WP9; every executed item has a result; buyer/account/hardware items remain explicitly open |
 | `docs/ui/a11y-audit.md` | Final WCAG 2.2 AA + keyboard/contrast + Bahasa + mobile touch/TalkBack record | Delivered in WP9; web axe sweep passed; real-device mobile verification `NOT VERIFIED` (no device attached) |
 | `THIRD_PARTY_NOTICES.md` | Shipped third-party attribution | Delivered in WP9: shadcn/ui MIT, Lucide ISC + Feather MIT, Inter and IBM Plex Mono OFL, caniuse-lite CC-BY-4.0 attribution |
@@ -42,7 +42,7 @@
 | `docs/ops/handover-checklist.md` | Seller pre-delivery verification and evidence checklist | Draft; **not executed** |
 | `docs/ops/decision-policy.md` | Tier 1/2/3 decision authority for the buyer's team | Draft |
 | `README.md`, `AGENTS.md` | Buyer setup guide and engineering rules | README carries the verified setup/gate/CI commands, hook install, real-device-only mobile path, backup enablement, licence/privacy pointers, and no internal paths; AGENTS.md records WP1–WP8 merged, the WP9 branch state, CI/hooks, backup/RPO convention, generic ESC/POS transport (Epson SDK still `REVIEW`), and the optional-tooling keep decision |
-| `apps/mobile/` | Expo Android app + local SQLite cache/outbox + Jest/RNTL suite | WP7 (`589418d`) plus WP9 direct printing: project-owned Bluetooth SPP module, printer picker, 83 mobile unit tests green, Android debug build compiled; real-device printing/TalkBack `NOT VERIFIED` |
+| `apps/mobile/` | Expo Android app + local SQLite cache/outbox + Jest/RNTL suite | WP7 (`589418d`) plus WP9 direct printing: project-owned Bluetooth SPP module, printer picker, 86 mobile unit tests green, Android debug build compiled; real-device printing/TalkBack `NOT VERIFIED` |
 | `.omp/`, `orca.yaml`, `.worktreeinclude`, `AGENTS.md` | Optional development aids | Founder decision 2026-11-28: keep as optional tooling; README states they may be deleted without affecting the product; `.brief/` stays untracked |
 
 ---
@@ -491,23 +491,26 @@ WP7 was merged to `main` as PR #8 (`589418d`) before WP8 started. WP8 adds `pack
 
 | Check | Result |
 |---|---|
-| Backup image | **PASS** — `docker build -f docker/backup.Dockerfile` in 7.58 s; `postgres:19-alpine` + OpenSSL 3.5.9-r1; runs as `postgres` |
-| Encrypted backup | **PASS** — `workshop-pos-20261128T024230Z.dump.enc`, 125,632 bytes, 1 s; plaintext sha256 `16dd8e0d…93dfb9`; in-container decrypt/checksum round-trip passed |
-| Fail-closed | **PASS** — empty `BACKUP_PASSPHRASE` exits 2 and writes nothing |
-| Restore + app smoke | **PASS** — decrypt checksum matched; `pg_restore` exit 0; source/restore counts identical (orders 14, lines 27, payments 11, stock ledger 15, audit 70, customers 6, vehicles 4, users 10); health 200 and `/login` 200 against the restored DB; **RTO 4 s** on the drill dataset |
+| Backup image | **PASS** — `postgres:19-alpine` + OpenSSL 3.5.9-r1 + bash; runs as `postgres`; streaming pipeline writes no plaintext |
+| Encrypted backup | **PASS** — `workshop-pos-20261128T035332Z.dump.enc`, 110,928 bytes, 13 s on a loaded host; plaintext sha256 `337e31b8…cd843f`; streaming decrypt/checksum passed; `/backups` contains only mode-600 ciphertext, checksum, and HMAC |
+| Ciphertext MAC | **PASS** — HMAC-SHA256 matched (`3ab5cd9c…`); one-byte tamper changed it (`aeccabd5…`) |
+| Fail-closed / fail-loud | **PASS** — empty passphrase exits 2 and writes nothing; unreachable DB exits 1 with `backup failed: pg_dump/encrypt pipeline` and 0 "backup ok" lines (review regression fixed) |
+| Crash cleanup / healthcheck | **PASS** — startup removes plaintext/partial leftovers; healthcheck exits 0 with a fresh dump |
+| Restore + app smoke | **PASS** — decrypt checksum matched; `pg_restore` exit 0 in 2 s; source/restore counts identical (orders 11, lines 20, payments 10, product 1, `user` 5, audit 19, stock ledger 9, customers 1, vehicles 1); health 200 and `/login` 200 against the restored DB; **RTO 6 s** on the drill dataset |
 | Compose profiles | **PASS** — default services are `db, web, proxy`; `--profile backup` adds `backup`; rendered passphrase is empty until supplied |
 | Gitleaks history | **PASS** — `gitleaks git --redact -v .` exit 0 |
 | Gitleaks working tree | **PASS after disposition** — first run found 8 generated-cache hits under gitignored `apps/web/.next/dev`; cache deleted, re-run exit 0 |
 | License re-audit | **PASS** — `scripts/license-report.sh` exit 0, `PASS: no disallowed runtime licenses`; no dependency added by WP9 |
 | `npm ls --all` | **PASS** — exit 0; only optional-peer notices |
 | `npm audit --omit=dev` | **24 moderate, recorded** — dev/build tooling (`drizzle-kit` esbuild, Jest glob/minimatch, Expo CLI fingerprint); no server-runtime path; forced fix would break majors and is out of WP9 |
-| WCAG 2.2 AA axe sweep | **PASS** — 2 tests / 28.0 s; 0 violations on `/login` and 13 back-office routes (tags `wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`, `wcag22aa`) |
+| WCAG 2.2 AA axe sweep | **PASS** — 2 tests / 27.9 s; 0 violations on `/login` and 13 back-office routes (tags `wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`, `wcag22aa`) |
 | Keyboard/viewport | **PASS** — 10 auth/home tests / 22.5 s incl. keyboard reachable login with visible focus ring and 320 px no-overflow |
 | Contrast | **PASS** — body 16.20:1, secondary 7.02:1, muted 5.07:1, link 7.28:1, white-on-accent 6.10:1, focus 6.10:1, input boundary 3.61:1, status pairs 6.37–8.48:1 |
 | Bahasa sweep | **PASS** — targeted English-label scan of user-facing source returned 0 hits; printer strings are Bahasa |
-| Mobile tests | **PASS** — 83 tests / 12 suites (11 new: transport + picker) |
+| Mobile tests | **PASS** — 86 tests / 12 suites (14 new: transport + picker states) |
 | Android compile | **PASS** — `./gradlew :app:assembleDebug` BUILD SUCCESSFUL in 21 m 25 s, 403 tasks; `EscposBluetoothModule` in `classes8.dex`; APK declares `BLUETOOTH`, `BLUETOOTH_ADMIN`, `BLUETOOTH_CONNECT` |
 | Real printing/TalkBack | **NOT VERIFIED** — no device (`adb devices` empty) and no printer; no emulator used |
+| FR-071 buyer branding | **FAIL (partial)** — branding saves (PATCH 200) and is audited with `productName`/`logoPath`, but the shell/home heading still render the static “Workshop POS”. Owning WP must wire the saved branding into the shell; WP9 records the gap instead of editing the UI |
 
 ### 7.18 WP9 aggregate gate (frozen candidate)
 

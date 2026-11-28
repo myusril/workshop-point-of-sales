@@ -23,7 +23,7 @@ Command (from `apps/web`, disposable dev database):
 npx playwright test tests/e2e/a11y.spec.ts --project=chromium
 ```
 
-Observed 2026-11-28: **2 passed in 28.0 s**, zero violations.
+Observed 2026-11-28: **2 passed in 27.9 s**, zero violations.
 
 | Surface | Result |
 | --- | --- |
@@ -97,7 +97,8 @@ Dark-mode tokens were not re-measured in this run; the shipped web app is light-
 
 - UI strings are product Bahasa Indonesia by convention; code identifiers, comments, and docs are English.
 - A targeted scan of user-facing source (`apps/web/app`, `apps/web/components`, `apps/web/lib`, `apps/mobile/app`, `apps/mobile/src`, excluding tests) for English labels (`Save`, `Cancel`, `Submit`, `Loading`, `Search`, `Add`, `Edit`, `Delete`, `Error`, `Retry`, `Close`, `Back`, `Next`, `Print`, `Settings`, `Users`, `Reports`, `Audit`, `Logout`, `Sign in`, `Sign out`) returned **0 hits**.
-- The new printer surface is entirely Bahasa: “Pilih printer”, “Cetak struk”, “Mencari printer…”, “Belum ada printer yang dipasangkan…”, “Izin Bluetooth ditolak…”, “Bluetooth mati…”, “Gagal mencetak…”, “Muat ulang”, “Tutup”.
+- The new printer surface is entirely Bahasa: “Pilih printer”, “Cetak struk”, “Mencari printer…”, “Mencetak…”, “Mencetak struk…”, “Belum ada printer”, “Pasangkan printer di Pengaturan Bluetooth Android…”, “Izin Bluetooth ditolak…”, “Bluetooth mati…”, “Gagal mencetak…”, “Muat ulang”, “Tutup”.
+- The back-office document title was changed from the English “Back-office — Workshop POS” to “Manajemen — Workshop POS” during this pass; the scan above was re-run afterwards and still returned **0 hits**.
 - Validation/error copy for the printer path is explicit; no browser/library default string is shown.
 
 ---
@@ -108,7 +109,12 @@ Dark-mode tokens were not re-measured in this run; the shipped web app is light-
 | --- | --- |
 | 48 dp minimum targets in shared components | **Static PASS** — `Button` uses `theme.size.targetMobile`; `IconButton` and `TextLink` enforce the same minimum; the new printer rows use `theme.size.targetMobile` and the modal buttons reuse `Button` |
 | Primary action 56 dp | **Static PASS** — `theme.size.primaryMobile` is used by primary `Button` |
-| Accessible names on the printer picker | **PASS (RNTL)** — each printer row exposes `Cetak ke <name>` plus the address as a hint; close/refresh have explicit labels |
+| Accessible names on the printer picker | **PASS (RNTL)** — each printer row exposes `Cetak ke <name>` plus the address as a hint; `Muat ulang`/`Tutup` have explicit labels |
+| Modal semantics and focus | **Static PASS** — the sheet is `accessibilityViewIsModal`, the title is focused when it opens, the scrim is not an accessibility target, and focus returns to the “Cetak struk” button on close. Device announcement order is **NOT VERIFIED** |
+| State exclusivity | **PASS (RNTL)** — searching, printing, empty, and permission/adapter error are separate states; “Belum ada printer” is shown only for a successful empty result; the refresh action says “Mencari printer…” while discovering and “Mencetak…” while printing |
+| Long content | **Static PASS** — the sheet body scrolls inside an 85% height cap while the action row stays pinned; a 10-printer/font-scale run is **NOT VERIFIED** (no device) |
+| Receipt preview | **PASS (code review)** — the preview no longer replaces its content with the label “Pratinjau struk”; TalkBack can read the receipt rows. Device announcement quality is **NOT VERIFIED** |
+| Primary action hierarchy | **PASS** — “Cetak struk” is the primary action and appears above the secondary share/PDF buttons, matching DESIGN §7.6 |
 | Screen-reader/TalkBack labels on the sale and receipt path | **NOT VERIFIED** — no Android device attached (`adb devices` empty) |
 | System font scaling / large text | **NOT VERIFIED** — no device |
 | 58/80 mm receipt preview | **PASS (unit/DOM)** — receipt columns 35/48 and paper width are covered by the printing/receipt tests |
@@ -122,6 +128,7 @@ No emulator or AVD was created or used.
 
 - Real Android device: TalkBack, focus order on the shared device, touch-target measurement, OS font scaling, landscape. `adb devices` returned no attached device at audit time.
 - Real 58/80 mm printers (any brand), pairing prompts, and Bluetooth permission flows. The picker and transport are unit-tested; the native write path is not hardware-tested.
+- Modal focus trap/return timing, TalkBack announcement order, 10-printer lists, and 200% font scaling inside the sheet. The static contract is implemented; these behaviors need a device.
 - Firefox, WebKit, iOS Safari, and OS dark mode on the web.
 - Screen-reader announcement quality beyond axe's automated checks.
 - 200%/400% browser zoom and sticky-bar focus occlusion beyond the existing 320 px/keyboard tests.
