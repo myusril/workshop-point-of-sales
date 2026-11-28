@@ -138,6 +138,7 @@
 | Backup lives only on the database host | Host loss loses database and backups together | Documented off-host copy with 3-2-1 guidance; buyer-owned monitoring and quarterly restore rehearsal | Buyer ops |
 | Direct Bluetooth printing untested on hardware | Receipts fail or misalign at the counter | Project-owned ESC/POS over standard SPP, printer picker with explicit errors, share/PDF fallback; buyer pilot with its 58/80 mm printers before go-live | Engineering + Buyer |
 | Printer permissions/pairing vary by Android vendor | Empty device list or denied connect | Permission state surfaced in Bahasa; pairing stays in Android Settings; screenshot/instructions in the printer picker | Buyer pilot |
+| Aggregate gate/CI do not build the optional backup image | A Dockerfile/compose regression can pass the gate | The WP9 drill builds it; add a CI image-build step when the buyer owns the pipeline (WP1/WP8 path) | Buyer/CI owner |
 
 ---
 

@@ -163,7 +163,7 @@ The npm scripts and aggregate runner exist. The individual steps and the aggrega
 | `npm run test:integration` | Database integration tests against the Compose test database (web, auth, db) |
 | `npm run test:e2e:web` | Playwright Chromium journeys for the back-office and counter flows |
 | `npm run build` | Next.js production build with standalone output |
-| `bash scripts/check.sh` | **Aggregate gate** — license report, typecheck, lint, unit, integration, E2E, build; local mode also renders the backup profile and builds `docker/backup.Dockerfile`; Docker preflight (local) or a provided PostgreSQL service (`WP_CI=1`) |
+| `bash scripts/check.sh` | **Aggregate gate** — license report, typecheck, lint, unit, integration, E2E, build; Docker preflight (local) or a provided PostgreSQL service (`WP_CI=1`). The optional backup image is built and drilled separately (`docs/ops/backup-runbook.md`) |
 
 Runner parity rule: automation must run exactly these commands in this order; nothing may pass locally and fail elsewhere. Stop any running `npm run dev` before the aggregate gate; Next.js allows one dev server per project, and the E2E step starts its own on port 3100.
 
