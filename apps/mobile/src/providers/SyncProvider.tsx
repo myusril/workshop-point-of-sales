@@ -22,8 +22,10 @@ import type { SyncRunSummary } from "@/src/sync/engine";
  *
  * Sales upload automatically when connectivity returns, on app foreground, and
  * at the earliest scheduled retry. A manual "Sinkronkan sekarang" bypasses the
- * backoff without changing queue order. After any applied sale the read cache is
- * refreshed so stock stops being provisional and shows the server value.
+ * backoff without changing queue order. The read cache is refreshed on every
+ * signed-in/online transition, even with an empty outbox, so a fresh install
+ * gets its catalog without waiting for a sale; a refresh after any applied sale
+ * then replaces provisional stock with the server value.
  */
 
 export interface SyncContextValue {
@@ -36,6 +38,7 @@ export interface SyncContextValue {
   pendingTotal: number;
   cacheAt: string | null;
   cacheFresh: boolean;
+  cacheLoading: boolean;
   cacheError: string | null;
   foreignPending: number;
   lastError: string | null;
@@ -56,16 +59,20 @@ function errorMessage(error: unknown): string {
 export function SyncProvider({ children }: { children: ReactNode }) {
   const { status, session } = useAuth();
   const [online, setOnline] = useState(true);
+  const [onlineKnown, setOnlineKnown] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [queue, setQueue] = useState<QueueRow[]>([]);
   const [cacheAt, setCacheAt] = useState<string | null>(null);
   const [cacheFresh, setCacheFresh] = useState(false);
+  const [cacheLoading, setCacheLoading] = useState(false);
   const [cacheError, setCacheError] = useState<string | null>(null);
   const [lastError, setLastError] = useState<string | null>(null);
   const [lastSummary, setLastSummary] = useState<SyncRunSummary | null>(null);
   const sessionRef = useRef(session);
   const runningRef = useRef(false);
   const autoSyncKeyRef = useRef<string | null>(null);
+  const bootstrapRefreshKeyRef = useRef<string | null>(null);
+  const refreshSeqRef = useRef(0);
 
   useEffect(() => {
     sessionRef.current = session;
@@ -91,11 +98,17 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     NetInfo.fetch()
       .then((state) => {
-        if (!cancelled) setOnline(Boolean(state.isConnected));
+        if (cancelled) return;
+        setOnline(Boolean(state.isConnected));
+        setOnlineKnown(true);
       })
-      .catch(() => undefined);
+      .catch(() => {
+        // Keep the optimistic default rather than blocking sync on a probe error.
+        if (!cancelled) setOnlineKnown(true);
+      });
     const unsubscribe = NetInfo.addEventListener((state) => {
       setOnline(Boolean(state.isConnected));
+      setOnlineKnown(true);
     });
     return () => {
       cancelled = true;
@@ -106,13 +119,18 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   const refreshCache = useCallback(async () => {
     const current = sessionRef.current;
     if (!current) return;
+    const seq = ++refreshSeqRef.current;
+    setCacheLoading(true);
     try {
       await getRuntime().refresher.refreshAll(current.activeOutletId);
-      setCacheError(null);
+      if (seq === refreshSeqRef.current) setCacheError(null);
     } catch (error) {
-      setCacheError(errorMessage(error));
+      // An outlet switch/sign-out aborts the in-flight refresh; that stale
+      // rejection must not re-install an error over the new session's snapshot.
+      if (seq === refreshSeqRef.current) setCacheError(errorMessage(error));
       throw error;
     } finally {
+      if (seq === refreshSeqRef.current) setCacheLoading(false);
       await reload();
     }
   }, [reload]);
@@ -135,6 +153,14 @@ export function SyncProvider({ children }: { children: ReactNode }) {
           setLastError("Sesi berakhir. Masuk kembali untuk melanjutkan sinkronisasi.");
         } else if (summary.applied > 0 && online) {
           try {
+            // A bootstrap refresh may have fetched its snapshot before this
+            // upload committed. Joining it alone would cache pre-sale stock and
+            // label it "Stok server", so wait out the overlap and fetch again.
+            const outletId = sessionRef.current?.activeOutletId;
+            const refresher = getRuntime().refresher;
+            if (outletId && refresher.isRefreshing()) {
+              await refresher.refreshAll(outletId);
+            }
             await refreshCache();
           } catch {
             // The sale is safe; stock simply stays provisional until the next refresh.
@@ -156,11 +182,14 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (status !== "signedIn") {
       autoSyncKeyRef.current = null;
+      bootstrapRefreshKeyRef.current = null;
       return;
     }
     // The queue is SQLite state, not render state; the first read is async.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void reload();
+    // `online` starts optimistic; wait for NetInfo before touching the network.
+    if (!onlineKnown) return;
     // Run once per sign-in/connectivity transition. `runNow` changes identity
     // when its inputs do, so using it as an unconditional trigger would loop.
     const key = online ? "online" : "offline";
@@ -168,7 +197,17 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       autoSyncKeyRef.current = key;
       if (online) void runNow();
     }
-  }, [status, online, reload, runNow]);
+    // A fresh sign-in or a restored connection must populate the read cache even
+    // when the outbox is empty: the Jual tab only reads SQLite. The key is the
+    // outlet plus the connectivity transition, so this refreshes once per
+    // sign-in/outlet/online change instead of on every render, and the refresher
+    // keeps its single-flight guard for an overlapping post-sale refresh.
+    const refreshKey = `${session?.activeOutletId ?? ""}:${key}`;
+    if (online && bootstrapRefreshKeyRef.current !== refreshKey) {
+      bootstrapRefreshKeyRef.current = refreshKey;
+      void refreshCache().catch(() => undefined);
+    }
+  }, [onlineKnown, status, online, reload, refreshCache, runNow, session?.activeOutletId]);
 
   useEffect(() => {
     if (status !== "signedIn") return;
@@ -246,6 +285,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       pendingTotal,
       cacheAt,
       cacheFresh,
+      cacheLoading,
       cacheError,
       foreignPending,
       lastError,
@@ -261,6 +301,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     counts,
     cacheAt,
     cacheFresh,
+    cacheLoading,
     cacheError,
     foreignPending,
     lastError,
