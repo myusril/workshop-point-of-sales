@@ -4,7 +4,7 @@
 | --- | --- |
 | Product | Workshop POS |
 | Delivery class | Release (WP9) |
-| Candidate | `main` at `98b17e0` (PR #10); evidence was executed on code candidate `16bdb3a` before the squash merge |
+| Candidate | `main` at `a7dab6e` (PR #11); WP9 evidence at code candidate `16bdb3a`, FR-071 follow-up at `a7dab6e` |
 | Evidence date | 2026-11-28 |
 | Evidence location | `/tmp/wp9-evidence-20261128` on the seller workstation (outside the repository; not shipped) |
 | Operator | Seller release session (AI-assisted); independent second-person review is `NOT VERIFIED` |
@@ -25,6 +25,7 @@ Result vocabulary: `pass`, `fail`, `blocked` (depends on a buyer/account/legal a
 | 0.3 Delivery candidate is a commit | Working tree committed before the gate; build outputs and `.env` are ignored | **pass** | `git status --porcelain` at commit time |
 | 0.4 Candidate commit | `git rev-parse HEAD` | **`16bdb3aa09eabe07123be3939a28909c7686b6b1`** (code candidate; merged to `main` as `98b17e0`, PR #10; the post-gate evidence commit only fills §C/§7.18 and dispositions — no product, config, or lockfile change) | `0.4-candidate-commit.log` |
 | 0.5 Merged candidate | PR #10 squash merge `98b17e0` | **pass** — the tested code candidate `16bdb3a` is the product code under test; the merge adds the evidence/doc commits | `git log main` |
+| 0.6 FR-071 follow-up merge | PR #11 squash merge `a7dab6e` | **pass** — branding wiring merged; current handover candidate | `git log main` |
 
 ---
 
@@ -101,7 +102,7 @@ Rehearsal clone: `/tmp/wp9-fresh-b`, advanced from the initial `85110c05ea` chec
 | E2 asset licenses | Inventory review | **pass** — shadcn/ui MIT, Lucide ISC + Feather MIT, Inter/IBM Plex Mono OFL, caniuse-lite CC-BY-4.0 attribution; no stock/photo/Ecme asset; no binary asset tracked | `THIRD_PARTY_NOTICES.md`, `docs/ops/license-inventory.md` |
 | E3 notices | File presence + content review | **pass** — `THIRD_PARTY_NOTICES.md` at root includes all required notices | `THIRD_PARTY_NOTICES.md` |
 | FR-071 buyer rebranding | Settings save + audit check (Playwright) | **fail (partial) at WP9, superseded 2026-11-28** — `PATCH /api/v1/settings/branding` returned 200, the success message showed, and the audit row contains `productName`/`logoPath`; however the configured name did **not** render in the back-office shell or home heading, which still showed the static “Workshop POS”. WP9 did not edit that UI | `FR071-branding.log` |
-| FR-071 follow-up (2026-11-28) | Branding E2E + aggregate gate on `feat/fr071-branding-wiring` | **pass** — the saved name/logo render in the expanded sidebar wordmark, the 72 px collapsed rail, the mobile top bar, the home `<h1>` and browser title, and the login card; branding read needs no `manage_settings` while settings/branding write stay Owner-only. 5 Playwright + 9 DOM + 1 integration tests; `scripts/check.sh` exit 0 | `docs/STATUS.md` §7.19 |
+| FR-071 follow-up (2026-11-28) | Branding E2E + aggregate gate on `feat/fr071-branding-wiring`; merged as PR #11 (`a7dab6e`) | **pass** — the saved name/logo render in the expanded sidebar wordmark, the 72 px collapsed rail, the mobile top bar, the home `<h1>` and browser title, and the login card; branding read needs no `manage_settings` while settings/branding write stay Owner-only. 5 Playwright + 9 DOM + 1 integration tests; `scripts/check.sh` exit 0 | `docs/STATUS.md` §7.19 |
 | E4 transfer evidence | — | **blocked** — buyer/counsel must confirm third-party transfer terms (Epson if ever added; fonts/shadcn are permissive) | — |
 | E5 seller copy deletion | — | **blocked** — destructive post-transfer step; not executed. No commercial template is included, so no Ecme deletion is required | `docs/ops/license-inventory.md` §5 |
 | E6 copyleft review | Report + inventory | **pass** — no GPL/AGPL/SSPL runtime dependency; MPL-2.0 `lightningcss`/`axe` are build/lint/dev only; `sharp`/libvips excluded from the image and asserted at build time | `E1-license-report.log` |

@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Product | Workshop POS (working name; buyer may rebrand) |
-| Phase | WP9 merged and FR-071 branding wired; M3 handover verification open (real-device/hardware, buyer credentials, signed manifest) |
+| Phase | WP9 merged and FR-071 branding wired (PR #11, `a7dab6e`); M3 handover verification open (real-device/hardware, buyer credentials, signed manifest) |
 | Date | 2026-11-28 |
 | Code status | WP1–WP9 are merged to `main` (WP9 `98b17e0`, PR #10). WP9 adds encrypted backup/restore, handover evidence, WCAG 2.2 AA web sweep, third-party notices, and project-owned Bluetooth SPP ESC/POS transport. FR-071 branding is now wired end to end: the saved name and logo render in the shell (expanded wordmark, 72 px collapsed rail, mobile top bar), the home heading and browser title, and the login card; every role can read branding while settings stay Owner-only. Real-device printing/TalkBack, APK measurements, production-sized restore, buyer credentials/signed manifest, and the remote CI run remain `NOT VERIFIED` |
 | Next gate | Complete buyer/hardware checks (printer, real device, production-sized restore, credentials, signed manifest); remote CI remains `NOT VERIFIED` until a runner is attached |
@@ -577,6 +577,6 @@ Recorded 2026-11-26 from the product owner. These close the corresponding open q
 ## 9. Next actions
 
 1. Obtain buyer counsel review for the privacy notice, retention duration, tax rounding, and any future Epson SDK integration; record the signed outcomes.
-2. WP1–WP9 are merged to `main` (WP9 PR #10, `98b17e0`); no merge action remains for any work package. FR-071 branding wiring is complete on `feat/fr071-branding-wiring` and awaits the founder's merge.
+2. WP1–WP9 are merged to `main` (WP9 PR #10, `98b17e0`); FR-071 branding wiring is merged as PR #11 (`a7dab6e`); no merge action remains.
 3. The buyer must run the hardware pilot on a real Android device and its 58/80 mm printers, repeat TalkBack/touch-target checks, re-measure production-sized RTO, exercise an off-host restore, and attach a monitoring/alert route. No emulator result is accepted.
 4. The buyer must repeat the checklist on a clean host and complete the account/domain/credential transfer, signed manifest, and tag. Those items are deliberately not marked complete here.
